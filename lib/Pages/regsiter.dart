@@ -1,5 +1,5 @@
+import 'package:demo/component/textfield.dart';
 import 'package:flutter/material.dart';
-import 'package:tracker/component/textfield.dart';
 
 class RegisterPage extends StatelessWidget {
   const RegisterPage({super.key});
@@ -37,7 +37,7 @@ class RegisterPage extends StatelessWidget {
                       fontSize: 18,
                       color: Colors.grey, fontStyle: FontStyle.italic),
                 ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 30),
                 Text(
                   'Welcome!',
                   style: TextStyle(
@@ -46,7 +46,13 @@ class RegisterPage extends StatelessWidget {
                     fontWeight: FontWeight.w400
                   ),
                 ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 10),
+                MyTextField(
+                  controller: passwordController,
+                  hintText: 'Username',
+                  obscureText: true,
+                ),
+                const SizedBox(height: 10),
                 MyTextField(
                   controller: emailController,
                   hintText: "E-mail",
@@ -84,7 +90,7 @@ class RegisterPage extends StatelessWidget {
                     child: TextButton(
                       onPressed: () {},
                       child: const Text(
-                        "First time here? Join now",
+                        "already have account?",
                         style: TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.bold,
