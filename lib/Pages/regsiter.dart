@@ -1,5 +1,7 @@
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/component/textfield.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -17,6 +19,24 @@ class _RegisterPageState extends State<RegisterPage> {
     final usernameController = TextEditingController();
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
+
+    Future signup()async{
+      try{
+        UserCredential userCredential= await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: emailController.text.trim(), 
+          password: passwordController.text.trim()
+        );
+        await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set({
+          'username':usernameController.text.trim(),
+          'email':emailController.text.trim(),
+        });
+      }on FirebaseAuthException catch(e){
+        print("Signup error: $e");
+      }
+    }
 
     @override
     void dispose() {
@@ -132,7 +152,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              onPressed: () {},
+                              onPressed: signup,
                               child: const Text(
                                 'Sign Up',
                                 style: TextStyle(
