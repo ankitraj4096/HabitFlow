@@ -20,20 +20,21 @@ class _RegisterPageState extends State<RegisterPage> {
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
-    Future signup()async{
-      try{
-        UserCredential userCredential= await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: emailController.text.trim(), 
-          password: passwordController.text.trim()
-        );
+    Future signup() async {
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: emailController.text.trim(),
+              password: passwordController.text.trim(),
+            );
         await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userCredential.user!.uid)
-        .set({
-          'username':usernameController.text.trim(),
-          'email':emailController.text.trim(),
-        });
-      }on FirebaseAuthException catch(e){
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({
+              'username': usernameController.text.trim(),
+              'email': emailController.text.trim(),
+            });
+      } on FirebaseAuthException catch (e) {
         print("Signup error: $e");
       }
     }

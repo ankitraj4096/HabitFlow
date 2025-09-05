@@ -1,5 +1,5 @@
-import 'package:demo/Pages/authPage.dart';
-import 'package:demo/Pages/home_page.dart';
+import 'package:demo/Pages/login_components/authPage.dart';
+import 'package:demo/Pages/ui_components/navbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -13,7 +13,7 @@ class Mainpage extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return HomePage();
+            return Navbar();
           } else {
             return Authpage();
           }

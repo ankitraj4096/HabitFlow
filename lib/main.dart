@@ -1,4 +1,5 @@
-import 'package:demo/Pages/mainPage.dart';
+
+import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
