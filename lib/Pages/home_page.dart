@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatelessWidget {
@@ -7,7 +8,9 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text("Home Page"),
+        child: GestureDetector(
+          onTap: FirebaseAuth.instance.signOut,
+          child: Text("Home Page")),
       ),
     );
   }
