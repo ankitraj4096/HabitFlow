@@ -17,89 +17,92 @@ class RegisterPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 50),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(25.0),
-                  child: Image.asset(
-                    'lib/image/logo.jpg',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 50),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(25.0),
+                    child: Image.asset(
+                      'lib/image/logo.jpg',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Build Better",
-                  style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey, fontStyle: FontStyle.italic),
-                ),
-                const SizedBox(height: 30),
-                Text(
-                  'Welcome!',
-                  style: TextStyle(
-                    color: const Color.fromARGB(255, 86, 107, 87),
-                    fontSize: 30,
-                    fontWeight: FontWeight.w400
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Build Better",
+                    style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey, fontStyle: FontStyle.italic),
                   ),
-                ),
-                const SizedBox(height: 10),
-                MyTextField(
-                  controller: passwordController,
-                  hintText: 'Username',
-                  obscureText: true,
-                ),
-                const SizedBox(height: 10),
-                MyTextField(
-                  controller: emailController,
-                  hintText: "E-mail",
-                  obscureText: false,
-                ),
-                const SizedBox(height: 10),
-                MyTextField(
-                  controller: passwordController,
-                  hintText: 'Password',
-                  obscureText: true,
-                ),
-                const SizedBox(height: 10),
-                MyTextField(
-                  controller: passwordController,
-                  hintText: 'RePassword',
-                  obscureText: true,
-                ),
-                const SizedBox(height: 25),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 22, 198, 3),
-                    fixedSize: const Size(350, 50),
+                  const SizedBox(height: 30),
+                  Text(
+                    'Welcome!',
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 86, 107, 87),
+                      fontSize: 30,
+                      fontWeight: FontWeight.w400
+                    ),
                   ),
-                  onPressed: () {},
-                  child: const Text(
-                    'Sign In',
-                    style: TextStyle(color: Colors.white, fontSize: 20),
+                  const SizedBox(height: 10),
+                  MyTextField(
+                    controller: passwordController,
+                    hintText: 'Username',
+                    obscureText: true,
                   ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 350,
-                  child: Container(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        "already have account?",
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(height: 10),
+                  MyTextField(
+                    controller: emailController,
+                    hintText: "E-mail",
+                    obscureText: false,
+                  ),
+                  const SizedBox(height: 10),
+                  MyTextField(
+                    controller: passwordController,
+                    hintText: 'Password',
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 10),
+                  MyTextField(
+                    controller: passwordController,
+                    hintText: 'RePassword',
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 25),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 22, 198, 3),
+                      fixedSize: const Size(350, 50),
+                    ),
+                    onPressed: () {},
+                    child: const Text(
+                      'Sign In',
+                      style: TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: 350,
+                    child: Container(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {},
+                        child: const Text(
+                          "already have account?",
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                )
-              ],
+                  )
+                ],
+              ),
             ),
           ),
         ),

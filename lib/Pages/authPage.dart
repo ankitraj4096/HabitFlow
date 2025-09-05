@@ -10,7 +10,7 @@ class Authpage extends StatefulWidget {
 }
 
 class _AuthpageState extends State<Authpage> {
-  bool showLoginPage = true;
+  bool showLoginPage = false;
 
   @override
   Widget build(BuildContext context) {
