@@ -38,6 +38,9 @@ dependencies:
   firebase_auth: 
   cloud_firestore: 
   provider: ^6.1.5+1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_slidable: ^3.1.0 
 
 dev_dependencies:
   flutter_test:
