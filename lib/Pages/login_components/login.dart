@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:demo/component/textfield.dart';
+import 'package:demo/services/auth/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -18,10 +19,22 @@ class _LoginPageState extends State<LoginPage> {
     final passwordController = TextEditingController();
 
     Future signIn() async {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text,
-        password: passwordController.text.trim(),
-      );
+      // auth service
+      final authService = AuthService();
+
+      // try login
+      try {
+        await authService.signInWithEmailPassword(
+          emailController.text,
+          passwordController.text,
+        );
+      }
+      // catch any erros
+      catch (e) {
+        showDialog(context: context, builder: (context) => AlertDialog(
+          title: Text(e.toString()),
+        ));
+      }
     }
 
     @override

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/component/textfield.dart';
+import 'package:demo/services/auth/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -20,22 +21,34 @@ class _RegisterPageState extends State<RegisterPage> {
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
-    Future signup() async {
+    void signUp() async {
+      // Get the auth service
+      final authService =
+          AuthService(); // Or however you access your service instance
+
+      // Check if passwords match (optional but recommended)
+      if (passwordController.text != confirmPasswordController.text) {
+        showDialog(
+          context: context,
+          builder: (context) =>
+              AlertDialog(title: Text("Passwords don't match!")),
+        );
+        return;
+      }
+
+      // Try to sign up the user
       try {
-        UserCredential userCredential = await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(
-              email: emailController.text.trim(),
-              password: passwordController.text.trim(),
-            );
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .set({
-              'username': usernameController.text.trim(),
-              'email': emailController.text.trim(),
-            });
-      } on FirebaseAuthException catch (e) {
-        print("Signup error: $e");
+        await authService.signUpWithEmailPassword(
+          emailController.text.trim(),
+          passwordController.text.trim(),
+          usernameController.text.trim(), // Pass the username here
+        );
+      } catch (e) {
+        // Catch and display any errors
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(title: Text(e.toString())),
+        );
       }
     }
 
@@ -153,7 +166,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              onPressed: signup,
+                              onPressed: signUp,
                               child: const Text(
                                 'Sign Up',
                                 style: TextStyle(
