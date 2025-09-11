@@ -96,13 +96,13 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 161, 231, 161),
       appBar: AppBar(
-        title: const Center(child: Text("Task List")),
+        title:  Center(child: Text("Task List",style: TextStyle(color: const Color.fromARGB(255, 64, 63, 63),fontSize: 30,),)),
         elevation: 10,
         backgroundColor: const Color.fromARGB(255, 99, 238, 141),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: NewTask,
-        backgroundColor: const Color.fromARGB(255, 29, 205, 44),
+        backgroundColor: const Color.fromARGB(255, 96, 210, 102),
         child: const Icon(Icons.add),
       ),
       body: ListView.builder(
