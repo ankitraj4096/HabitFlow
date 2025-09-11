@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:hive/hive.dart';
 
 class Todolist extends StatelessWidget {
   final String TaskName;
@@ -43,6 +44,14 @@ class Todolist extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color.fromARGB(255, 96, 210, 102),
             borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: const Color.fromARGB(255, 39, 95, 41).withOpacity(0.5),
+                offset: Offset(4, 4), 
+                blurRadius: 10,
+                spreadRadius: 2,
+              )
+            ],
           ),
           child: Row(
             children: [
