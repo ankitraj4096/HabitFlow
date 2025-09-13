@@ -103,7 +103,7 @@ class _HomepageState extends State<Homepage> {
       floatingActionButton: FloatingActionButton(
         onPressed: NewTask,
         backgroundColor: const Color.fromARGB(255, 96, 210, 102),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add,),
       ),
       body: ListView.builder(
         itemCount: tasklist.length,
