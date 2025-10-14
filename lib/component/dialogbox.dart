@@ -16,31 +16,177 @@ class TaskDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: const Color.fromARGB(255, 110, 213, 151),
-      title: Text(title),
-      content: TextField(
-        controller: controller,
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          hintText: "Enter task",
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xFF7C4DFF).withOpacity(0.2),
+              blurRadius: 30,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with Icon
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      buttonText == "Update" ? Icons.edit_rounded : Icons.add_task,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              SizedBox(height: 24),
+              
+              // Text Field
+              Container(
+                decoration: BoxDecoration(
+                  color: Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Color(0xFF7C4DFF).withOpacity(0.1),
+                    width: 1.5,
+                  ),
+                ),
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLines: 3,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF2C3E50),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: "Enter your task here...",
+                    hintStyle: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 16,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(16),
+                  ),
+                ),
+              ),
+              
+              SizedBox(height: 24),
+              
+              // Buttons
+              Row(
+                children: [
+                  // Cancel Button
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            controller.clear();
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Center(
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  SizedBox(width: 12),
+                  
+                  // Confirm Button
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFF7C4DFF).withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onConfirm,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Center(
+                            child: Text(
+                              buttonText,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        ElevatedButton(
-          onPressed: onConfirm,
-          style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 10, 228, 50)),
-          child: Text(buttonText),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            controller.clear();
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-          child: const Text("Cancel"),
-        ),
-      ],
     );
   }
 }
