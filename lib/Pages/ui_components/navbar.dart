@@ -14,7 +14,7 @@ class _NavBarState extends State<Navbar> {
   int _selectedIndex = 1;
 
   final List<Widget> _pages = [
-    ChatPage(),
+    ChatListPage(),
     Homepage(),
     ProfilePage(), 
   ];
