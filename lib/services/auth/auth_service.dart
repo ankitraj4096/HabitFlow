@@ -6,8 +6,15 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  User? getCurrentUser() {
+    return _auth.currentUser;
+  }
+
   // Sign in with email and password (your existing code)
-  Future<UserCredential> signInWithEmailPassword(String email, String password) async {
+  Future<UserCredential> signInWithEmailPassword(
+    String email,
+    String password,
+  ) async {
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
@@ -20,13 +27,15 @@ class AuthService {
   }
 
   // Sign up with email, password, and username
-  Future<UserCredential> signUpWithEmailPassword(String email, String password, String username) async {
+  Future<UserCredential> signUpWithEmailPassword(
+    String email,
+    String password,
+    String username,
+  ) async {
     try {
       // Step 1: Create the user with email and password
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       // Step 2: Save the user's information in a 'users' collection in Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
