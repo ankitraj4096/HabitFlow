@@ -82,11 +82,14 @@ class ProfilePage extends StatelessWidget {
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(15),
                               ),
-                              child: Icon(
-                                Icons.trending_up,
-                                color: Colors.white,
-                                size: 28,
-                              ),
+                              child: GestureDetector(
+                                onTap: _authService.signOut,
+                                child: Icon(
+                                  Icons.logout_outlined,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              )
                             ),
                           ],
                         ),
@@ -109,9 +112,7 @@ class ProfilePage extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  child: GestureDetector(
-                                    onTap: _authService.signOut,
-                                    child: CircleAvatar(
+                                  child:CircleAvatar(
                                       radius: 40,
                                       backgroundColor: Colors.white,
                                       backgroundImage: AssetImage("assets/images/dp.jpg"),
@@ -121,7 +122,6 @@ class ProfilePage extends StatelessWidget {
                                         color: Color(0xFF7C4DFF),
                                       ),
                                     ),
-                                  ),
                                 ),
                                 Positioned(
                                   bottom: 0,
