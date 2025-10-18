@@ -1,8 +1,11 @@
 import 'package:demo/component/heatmap.dart';
+import 'package:demo/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  ProfilePage({super.key});
+
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -106,14 +109,17 @@ class ProfilePage extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  child: CircleAvatar(
-                                    radius: 40,
-                                    backgroundColor: Colors.white,
-                                    backgroundImage: AssetImage("assets/images/dp.jpg"),
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 40,
-                                      color: Color(0xFF7C4DFF),
+                                  child: GestureDetector(
+                                    onTap: _authService.signOut,
+                                    child: CircleAvatar(
+                                      radius: 40,
+                                      backgroundColor: Colors.white,
+                                      backgroundImage: AssetImage("assets/images/dp.jpg"),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 40,
+                                        color: Color(0xFF7C4DFF),
+                                      ),
                                     ),
                                   ),
                                 ),
