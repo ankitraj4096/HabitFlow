@@ -3,9 +3,11 @@ import 'package:demo/services/notes/firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+
 class FriendTasksManagerPage extends StatefulWidget {
   final String friendUserID;
   final String friendUsername;
+
 
   const FriendTasksManagerPage({
     super.key,
@@ -13,9 +15,11 @@ class FriendTasksManagerPage extends StatefulWidget {
     required this.friendUsername,
   });
 
+
   @override
   State<FriendTasksManagerPage> createState() => _FriendTasksManagerPageState();
 }
+
 
 class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     with SingleTickerProviderStateMixin {
@@ -25,11 +29,39 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
   final TextEditingController _taskController = TextEditingController();
   final TextEditingController _timerController = TextEditingController();
 
+  // Tier colors
+  List<Color> tierGradient = [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+  Color tierColor = const Color(0xFF7C4DFF);
+  bool isLoadingTier = true;
+
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this); // Changed to 2 tabs
+    _tabController = TabController(length: 2, vsync: this);
+    _loadTierColors();
   }
+
+  Future<void> _loadTierColors() async {
+    try {
+      final stats = await _firestoreService.getUserStatistics();
+      final completedTasks = stats['completedTasks'] ?? 0;
+      final tier = _firestoreService.getUserTier(completedTasks);
+
+      setState(() {
+        tierColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
+        tierGradient = (tier['gradient'] as List<dynamic>?)
+                ?.map((e) => e as Color)
+                .toList() ??
+            [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+        isLoadingTier = false;
+      });
+    } catch (e) {
+      print('Error loading tier colors: $e');
+      setState(() => isLoadingTier = false);
+    }
+  }
+
 
   @override
   void dispose() {
@@ -39,16 +71,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     super.dispose();
   }
 
+
   void _showAssignTaskDialog() {
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFFF3E5F5), Colors.white],
+              colors: [const Color(0xFFF3E5F5), Colors.white],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -61,68 +94,76 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
               Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
-                      ),
+                      gradient: LinearGradient(colors: tierGradient),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.person_add_alt,
                       color: Colors.white,
                       size: 24,
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Assign Task to ${widget.friendUsername}',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF7C4DFF),
+                        color: tierColor,
                       ),
                       maxLines: 2,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextField(
                 controller: _taskController,
                 decoration: InputDecoration(
                   labelText: 'Task Name',
                   hintText: 'What should they do?',
-                  prefixIcon: Icon(Icons.task, color: Color(0xFF7C4DFF)),
+                  prefixIcon: Icon(Icons.task, color: tierColor),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF7C4DFF), width: 2),
+                    borderSide: BorderSide(color: tierColor, width: 2),
                   ),
+                  labelStyle: TextStyle(color: tierColor),
                 ),
                 maxLines: 2,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: _timerController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Timer (minutes) - Optional',
                   hintText: 'e.g., 30 minutes',
-                  prefixIcon: Icon(Icons.timer, color: Color(0xFF448AFF)),
+                  prefixIcon: Icon(
+                    Icons.timer,
+                    color: tierGradient.length > 1 ? tierGradient[1] : tierColor,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF448AFF), width: 2),
+                    borderSide: BorderSide(
+                      color: tierGradient.length > 1 ? tierGradient[1] : tierColor,
+                      width: 2,
+                    ),
+                  ),
+                  labelStyle: TextStyle(
+                    color: tierGradient.length > 1 ? tierGradient[1] : tierColor,
                   ),
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -137,12 +178,12 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () async {
                       if (_taskController.text.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Please enter a task name')),
+                          const SnackBar(content: Text('Please enter a task name')),
                         );
                         return;
                       }
@@ -158,38 +199,42 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                           durationMins: timerMins,
                         );
 
-                        Navigator.pop(context);
-                        _taskController.clear();
-                        _timerController.clear();
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          _taskController.clear();
+                          _timerController.clear();
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Task assigned to ${widget.friendUsername}!',
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Task assigned to ${widget.friendUsername}!',
+                              ),
+                              backgroundColor: tierColor,
                             ),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                          );
+                        }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to assign task: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to assign task: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF7C4DFF),
+                      backgroundColor: tierColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Assign Task',
                       style: TextStyle(color: Colors.white),
                     ),
@@ -203,11 +248,12 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -226,31 +272,32 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAssignTaskDialog,
-        backgroundColor: Color(0xFF7C4DFF),
-        icon: Icon(Icons.add),
-        label: Text('Assign Task'),
+        backgroundColor: tierColor,
+        icon: const Icon(Icons.add),
+        label: const Text('Assign Task'),
       ),
     );
   }
+
 
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+          colors: tierGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF7C4DFF).withOpacity(0.3),
+            color: tierColor.withOpacity(0.3),
             blurRadius: 20,
-            offset: Offset(0, 10),
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -261,17 +308,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         '${widget.friendUsername}\'s Tasks',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -279,8 +326,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 4),
+                      const Text(
                         'View and assign tasks',
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
@@ -295,9 +342,10 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
+
   Widget _buildTabBar() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -305,37 +353,35 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
             blurRadius: 15,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
-          ),
+          gradient: LinearGradient(colors: tierGradient),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF7C4DFF).withOpacity(0.3),
+              color: tierColor.withOpacity(0.3),
               blurRadius: 8,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         labelColor: Colors.white,
         unselectedLabelColor: Colors.grey.shade600,
-        labelStyle: TextStyle(
+        labelStyle: const TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 13,
           letterSpacing: 0.5,
         ),
-        unselectedLabelStyle: TextStyle(
+        unselectedLabelStyle: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 13,
         ),
-        tabs: [
+        tabs: const [
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -361,6 +407,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
+
   Widget _buildTabBarView() {
     return TabBarView(
       controller: _tabController,
@@ -368,8 +415,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
+
   Widget _buildAllTasksTab() {
-    // Get all tasks from friend's collection (no status filtering)
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('user_notes')
@@ -386,13 +433,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           return _buildLoadingState();
         }
 
-        // Filter: show accepted tasks OR tasks without status (old tasks)
         final allTasks =
             snapshot.data?.docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final status = data['status'];
-              return status == 'accepted' ||
-                  status == null; // Include old tasks
+              return status == 'accepted' || status == null;
             }).toList() ??
             [];
 
@@ -401,7 +446,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         }
 
         return ListView.builder(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           itemCount: allTasks.length,
           itemBuilder: (context, index) {
             final data = allTasks[index].data() as Map<String, dynamic>;
@@ -411,6 +456,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       },
     );
   }
+
 
   Widget _buildTasksByMeTab() {
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
@@ -441,7 +487,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         }
 
         return ListView.builder(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
@@ -452,6 +498,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       },
     );
   }
+
 
   Widget _buildTaskCard(
     Map<String, dynamic> data, {
@@ -467,42 +514,41 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
     final isMyTask = data['assignedByUserID'] == currentUserID;
 
-    // Calculate progress for tasks with timers
     double? timerProgress;
     if (hasTimer && totalDuration != null && totalDuration > 0) {
       timerProgress = (elapsedSeconds / totalDuration).clamp(0.0, 1.0);
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isCompleted
-              ? [Color(0xFFE8F5E9), Color(0xFFC8E6C9)]
+              ? [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)]
               : (highlightMyTask || isMyTask)
-              ? [Color(0xFFEDE7F6), Color(0xFFD1C4E9)]
-              : [Colors.white, Color(0xFFFAFAFA)],
+              ? tierGradient.map((c) => c.withOpacity(0.1)).toList()
+              : [Colors.white, const Color(0xFFFAFAFA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isCompleted
-              ? Color(0xFF4CAF50).withOpacity(0.3)
+              ? const Color(0xFF4CAF50).withOpacity(0.3)
               : (highlightMyTask || isMyTask)
-              ? Color(0xFF7C4DFF).withOpacity(0.4)
+              ? tierColor.withOpacity(0.4)
               : Colors.grey.withOpacity(0.2),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
             color: isCompleted
-                ? Color(0xFF4CAF50).withOpacity(0.1)
+                ? const Color(0xFF4CAF50).withOpacity(0.1)
                 : (highlightMyTask || isMyTask)
-                ? Color(0xFF7C4DFF).withOpacity(0.15)
+                ? tierColor.withOpacity(0.15)
                 : Colors.black.withOpacity(0.06),
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -510,7 +556,6 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            // Left accent bar
             if (isMyTask)
               Positioned(
                 left: 0,
@@ -520,7 +565,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                   width: 5,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                      colors: tierGradient,
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -528,23 +573,20 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                 ),
               ),
 
-            // Main content
             Padding(
-              padding: EdgeInsets.all(18),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Row
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Completion Icon with animation effect
                       Container(
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
                           gradient: isCompleted
-                              ? LinearGradient(
+                              ? const LinearGradient(
                                   colors: [
                                     Color(0xFF4CAF50),
                                     Color(0xFF66BB6A),
@@ -556,15 +598,15 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                           boxShadow: isCompleted
                               ? [
                                   BoxShadow(
-                                    color: Color(0xFF4CAF50).withOpacity(0.3),
+                                    color: const Color(0xFF4CAF50).withOpacity(0.3),
                                     blurRadius: 8,
-                                    offset: Offset(0, 2),
+                                    offset: const Offset(0, 2),
                                   ),
                                 ]
                               : [],
                         ),
                         child: isCompleted
-                            ? Icon(
+                            ? const Icon(
                                 Icons.check_circle,
                                 color: Colors.white,
                                 size: 20,
@@ -575,9 +617,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                 size: 20,
                               ),
                       ),
-                      SizedBox(width: 14),
+                      const SizedBox(width: 14),
 
-                      // Task Name and Details
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,7 +630,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                 fontWeight: FontWeight.bold,
                                 color: isCompleted
                                     ? Colors.grey.shade600
-                                    : Color(0xFF2C3E50),
+                                    : const Color(0xFF2C3E50),
                                 decoration: isCompleted
                                     ? TextDecoration.lineThrough
                                     : null,
@@ -598,14 +639,12 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
 
-                            // Status Row with better visual hierarchy
                             Wrap(
                               spacing: 8,
                               runSpacing: 6,
                               children: [
-                                // Assignment Badge
                                 if (assignedBy != null)
                                   _buildInfoChip(
                                     icon: isMyTask
@@ -614,53 +653,49 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                     label: isMyTask
                                         ? 'By You'
                                         : 'By $assignedBy',
-                                    color: isMyTask
-                                        ? Color(0xFF7C4DFF)
-                                        : Color(0xFF9C27B0),
-                                    backgroundColor: isMyTask
-                                        ? Color(0xFF7C4DFF).withOpacity(0.12)
-                                        : Color(0xFF9C27B0).withOpacity(0.12),
+                                    color: tierColor,
+                                    backgroundColor: tierColor.withOpacity(0.12),
                                   )
                                 else
                                   _buildInfoChip(
                                     icon: Icons.person_outline_rounded,
                                     label: 'Self-Created',
-                                    color: Color(0xFF448AFF),
-                                    backgroundColor: Color(
-                                      0xFF448AFF,
-                                    ).withOpacity(0.12),
+                                    color: tierGradient.length > 1
+                                        ? tierGradient[1]
+                                        : tierColor,
+                                    backgroundColor: (tierGradient.length > 1
+                                            ? tierGradient[1]
+                                            : tierColor)
+                                        .withOpacity(0.12),
                                   ),
 
-                                // Timer Badge
                                 if (hasTimer && totalDuration != null)
                                   _buildInfoChip(
                                     icon: Icons.timer_outlined,
                                     label:
                                         '${(totalDuration / 60).round()} min',
-                                    color: Color(0xFFFF9800),
-                                    backgroundColor: Color(
+                                    color: const Color(0xFFFF9800),
+                                    backgroundColor: const Color(
                                       0xFFFF9800,
                                     ).withOpacity(0.12),
                                   ),
 
-                                // Status Badge
                                 if (status == 'pending')
                                   _buildInfoChip(
                                     icon: Icons.pending_outlined,
                                     label: 'Awaiting Accept',
-                                    color: Color(0xFFFF6F00),
-                                    backgroundColor: Color(
+                                    color: const Color(0xFFFF6F00),
+                                    backgroundColor: const Color(
                                       0xFFFF6F00,
                                     ).withOpacity(0.12),
                                   ),
 
-                                // Completion Badge
                                 if (isCompleted)
                                   _buildInfoChip(
                                     icon: Icons.check_circle_outline,
                                     label: 'Done',
-                                    color: Color(0xFF4CAF50),
-                                    backgroundColor: Color(
+                                    color: const Color(0xFF4CAF50),
+                                    backgroundColor: const Color(
                                       0xFF4CAF50,
                                     ).withOpacity(0.12),
                                   ),
@@ -672,12 +707,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                     ],
                   ),
 
-                  // Timer Progress Bar (if applicable)
                   if (hasTimer &&
                       totalDuration != null &&
                       timerProgress != null &&
                       !isCompleted) ...[
-                    SizedBox(height: 14),
+                    const SizedBox(height: 14),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -703,7 +737,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                             ),
                           ],
                         ),
-                        SizedBox(height: 6),
+                        const SizedBox(height: 6),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
@@ -726,7 +760,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                             ),
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           '${_formatDuration(elapsedSeconds)} / ${_formatDuration(totalDuration)}',
                           style: TextStyle(
@@ -746,7 +780,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-  // Helper widget for info chips
+
   Widget _buildInfoChip({
     required IconData icon,
     required String label,
@@ -754,7 +788,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     required Color backgroundColor,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(10),
@@ -764,7 +798,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: color),
-          SizedBox(width: 5),
+          const SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
@@ -779,25 +813,25 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-  // Helper method for progress color
+
   Color _getProgressColor(double progress) {
-    if (progress < 0.33) return Color(0xFF4CAF50);
-    if (progress < 0.66) return Color(0xFFFF9800);
-    return Color(0xFFEF5350);
+    if (progress < 0.33) return const Color(0xFF4CAF50);
+    if (progress < 0.66) return const Color(0xFFFF9800);
+    return const Color(0xFFEF5350);
   }
 
-  // Helper method for progress gradient
+
   List<Color> _getProgressGradient(double progress) {
     if (progress < 0.33) {
-      return [Color(0xFF4CAF50), Color(0xFF66BB6A)];
+      return [const Color(0xFF4CAF50), const Color(0xFF66BB6A)];
     } else if (progress < 0.66) {
-      return [Color(0xFFFF9800), Color(0xFFFFA726)];
+      return [const Color(0xFFFF9800), const Color(0xFFFFA726)];
     } else {
-      return [Color(0xFFEF5350), Color(0xFFE57373)];
+      return [const Color(0xFFEF5350), const Color(0xFFE57373)];
     }
   }
 
-  // Helper method for duration formatting
+
   String _formatDuration(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
@@ -808,13 +842,15 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     return '${minutes}m';
   }
 
+
   Widget _buildLoadingState() {
     return Center(
       child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+        valueColor: AlwaysStoppedAnimation<Color>(tierColor),
       ),
     );
   }
+
 
   Widget _buildErrorState(String message) {
     return Center(
@@ -822,8 +858,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-          SizedBox(height: 16),
-          Text(
+          const SizedBox(height: 16),
+          const Text(
             'Error occurred',
             style: TextStyle(
               fontSize: 18,
@@ -831,9 +867,9 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
               color: Colors.red,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               message,
               style: TextStyle(fontSize: 14, color: Colors.red.shade600),
@@ -845,20 +881,23 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
+
   Widget _buildEmptyState(String message, IconData icon) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Color(0xFF7C4DFF).withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+              ),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 64, color: Color(0xFF7C4DFF)),
+            child: Icon(icon, size: 64, color: tierColor),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           Text(
             message,
             style: TextStyle(

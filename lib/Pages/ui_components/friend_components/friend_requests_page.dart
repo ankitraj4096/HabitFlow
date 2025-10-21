@@ -1,54 +1,111 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/services/friends/friend_service.dart';
+import 'package:demo/services/notes/firestore.dart';
 import 'package:flutter/material.dart';
+
 
 class FriendRequestsPage extends StatefulWidget {
   const FriendRequestsPage({super.key});
 
+
   @override
-  State<FriendRequestsPage> createState() => _FriendRequestsPageState();
+  State <FriendRequestsPage> createState() => _FriendRequestsPageState();
 }
+
 
 class _FriendRequestsPageState extends State<FriendRequestsPage> {
   final FriendService _friendService = FriendService();
+  final FireStoreService _firestoreService = FireStoreService();
+
+  // Tier colors
+  List<Color> tierGradient = [const Color(0xFF667EEA), const Color(0xFF764BA2)];
+  Color tierColor = const Color(0xFF667EEA);
+  bool isLoadingTier = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTierColors();
+  }
+
+  Future<void> _loadTierColors() async {
+    try {
+      final stats = await _firestoreService.getUserStatistics();
+      final completedTasks = stats['completedTasks'] ?? 0;
+      final tier = _firestoreService.getUserTier(completedTasks);
+
+      setState(() {
+        tierColor = tier['glow'] as Color? ?? const Color(0xFF667EEA);
+        tierGradient = (tier['gradient'] as List<dynamic>?)
+                ?.map((e) => e as Color)
+                .toList() ??
+            [const Color(0xFF667EEA), const Color(0xFF764BA2)];
+        isLoadingTier = false;
+      });
+    } catch (e) {
+      print('Error loading tier colors: $e');
+      setState(() => isLoadingTier = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Friend Requests'),
+        title: const Text('Friend Requests'),
         elevation: 0,
-        backgroundColor: Color(0xFF667EEA),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: tierGradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _friendService.getFriendRequestsStream(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(
+            return const Center(
               child: Text('Error loading requests'),
             );
           }
 
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+                valueColor: AlwaysStoppedAnimation<Color>(tierColor),
               ),
             );
           }
+
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.people_alt_outlined,
-                    size: 80,
-                    color: Colors.grey.shade400,
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.people_alt_outlined,
+                      size: 50,
+                      color: tierColor,
+                    ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
                     'No friend requests',
                     style: TextStyle(
@@ -57,7 +114,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                       color: Colors.grey.shade700,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     'When someone sends you a request,\nit will appear here',
                     textAlign: TextAlign.center,
@@ -71,12 +128,14 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
             );
           }
 
+
           return ListView.builder(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               final doc = snapshot.data!.docs[index];
               final data = doc.data() as Map<String, dynamic>;
+
 
               return _buildRequestCard(
                 requestId: doc.id,
@@ -91,6 +150,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
     );
   }
 
+
   Widget _buildRequestCard({
     required String requestId,
     required String fromUserId,
@@ -98,15 +158,19 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
     required Timestamp timestamp,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: tierColor.withOpacity(0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: tierColor.withOpacity(0.08),
             blurRadius: 10,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -123,16 +187,23 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                   height: 56,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                      colors: tierGradient,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: tierColor.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
                       fromUsername[0].toUpperCase(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -140,7 +211,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 
                 // User Info
                 Expanded(
@@ -149,13 +220,13 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                     children: [
                       Text(
                         fromUsername,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         _getTimeAgo(timestamp),
                         style: TextStyle(
@@ -168,7 +239,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             
             // Action Buttons
             Row(
@@ -177,15 +248,16 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                   child: ElevatedButton(
                     onPressed: () => _acceptRequest(requestId, fromUserId, fromUsername),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF667EEA),
+                      backgroundColor: tierColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       elevation: 0,
+                      shadowColor: tierColor.withOpacity(0.3),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Accept',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
@@ -194,7 +266,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _declineRequest(requestId, fromUsername),
@@ -204,9 +276,9 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Decline',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
@@ -223,9 +295,11 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
     );
   }
 
+
   String _getTimeAgo(Timestamp timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp.toDate());
+
 
     if (difference.inDays > 0) {
       return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
@@ -238,51 +312,63 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
     }
   }
 
+
   Future<void> _acceptRequest(String requestId, String fromUserId, String fromUsername) async {
     try {
       await _friendService.acceptFriendRequest(requestId, fromUserId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('You are now friends with $fromUsername'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You are now friends with $fromUsername'),
+            backgroundColor: tierColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error accepting request: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error accepting request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
+
 
   Future<void> _declineRequest(String requestId, String fromUsername) async {
     try {
       await _friendService.declineFriendRequest(requestId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Declined request from $fromUsername'),
-          backgroundColor: Colors.grey.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Declined request from $fromUsername'),
+            backgroundColor: Colors.grey.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error declining request: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error declining request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 }

@@ -5,23 +5,61 @@ import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/chat/chat_service.dart';
 import 'package:demo/services/friends/friend_service.dart';
+import 'package:demo/services/notes/firestore.dart';
 import 'package:flutter/material.dart';
 
-class ChatListPage extends StatelessWidget {
-  ChatListPage({super.key});
 
+class ChatListPage extends StatefulWidget {
+  const ChatListPage({super.key});
+
+  @override
+  State<ChatListPage> createState() => _ChatListPageState();
+}
+
+class _ChatListPageState extends State<ChatListPage> {
   final FriendService _friendService = FriendService();
   final AuthService _authService = AuthService();
+  final FireStoreService _firestoreService = FireStoreService();
+
+  // Tier colors
+  List<Color> tierGradient = [const Color(0xFF667EEA), const Color(0xFF764BA2)];
+  Color tierColor = const Color(0xFF667EEA);
+  bool isLoadingTier = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTierColors();
+  }
+
+  Future<void> _loadTierColors() async {
+    try {
+      final stats = await _firestoreService.getUserStatistics();
+      final completedTasks = stats['completedTasks'] ?? 0;
+      final tier = _firestoreService.getUserTier(completedTasks);
+
+      setState(() {
+        tierColor = tier['glow'] as Color? ?? const Color(0xFF667EEA);
+        tierGradient = (tier['gradient'] as List<dynamic>?)
+                ?.map((e) => e as Color)
+                .toList() ??
+            [const Color(0xFF667EEA), const Color(0xFF764BA2)];
+        isLoadingTier = false;
+      });
+    } catch (e) {
+      print('Error loading tier colors: $e');
+      setState(() => isLoadingTier = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // The entire Scaffold is wrapped in a SafeArea
     return SafeArea(
       child: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+              colors: tierGradient,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -188,12 +226,16 @@ class ChatListPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFF5F7FA),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: tierColor.withOpacity(0.1),
+            width: 1,
+          ),
         ),
         child: TextField(
           decoration: InputDecoration(
             hintText: 'Search friends...',
             hintStyle: TextStyle(color: Colors.grey.shade500),
-            prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+            prefixIcon: Icon(Icons.search, color: tierColor.withOpacity(0.7)),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -218,9 +260,9 @@ class ChatListPage extends StatelessWidget {
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
+          return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+              valueColor: AlwaysStoppedAnimation<Color>(tierColor),
             ),
           );
         }
@@ -229,10 +271,20 @@ class ChatListPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.people_outline,
-                  size: 80,
-                  color: Colors.grey.shade400,
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.people_outline,
+                    size: 50,
+                    color: tierColor,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -285,10 +337,18 @@ class ChatListPage extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: tierColor.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
+          splashColor: tierColor.withOpacity(0.1),
           onTap: () {
             Navigator.push(
               context,
@@ -311,12 +371,19 @@ class ChatListPage extends StatelessWidget {
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                        gradient: LinearGradient(
+                          colors: tierGradient,
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: tierColor.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Center(
                         child: Text(
@@ -355,6 +422,13 @@ class ChatListPage extends StatelessWidget {
                               color: Colors.red,
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.4),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Center(
                               child: Text(
@@ -416,7 +490,8 @@ class ChatListPage extends StatelessWidget {
                               'Tap to start chatting',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey.shade600,
+                                color: tierColor.withOpacity(0.6),
+                                fontWeight: FontWeight.w500,
                               ),
                             );
                           }
@@ -425,7 +500,7 @@ class ChatListPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                Icon(Icons.chevron_right, color: tierColor.withOpacity(0.5)),
               ],
             ),
           ),

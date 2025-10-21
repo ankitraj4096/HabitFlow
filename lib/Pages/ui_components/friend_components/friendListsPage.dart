@@ -2,12 +2,15 @@ import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.
 import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
 import 'package:demo/services/friends/friend_service.dart';
+import 'package:demo/services/notes/firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class FriendsListPage extends StatelessWidget {
+
+class FriendsListPage extends StatefulWidget {
   final String? viewingUserID; // null if viewing own friends
   final String? viewingUsername; // null if viewing own friends
+
 
   const FriendsListPage({
     super.key,
@@ -15,7 +18,46 @@ class FriendsListPage extends StatelessWidget {
     this.viewingUsername,
   });
 
-  bool get isOwnProfile => viewingUserID == null;
+  @override
+  State<FriendsListPage> createState() => _FriendsListPageState();
+}
+
+class _FriendsListPageState extends State<FriendsListPage> {
+  final FireStoreService _firestoreService = FireStoreService();
+
+  // Tier colors
+  List<Color> tierGradient = [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+  Color tierColor = const Color(0xFF7C4DFF);
+  bool isLoadingTier = true;
+
+  bool get isOwnProfile => widget.viewingUserID == null;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTierColors();
+  }
+
+  Future<void> _loadTierColors() async {
+    try {
+      final stats = await _firestoreService.getUserStatistics();
+      final completedTasks = stats['completedTasks'] ?? 0;
+      final tier = _firestoreService.getUserTier(completedTasks);
+
+      setState(() {
+        tierColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
+        tierGradient = (tier['gradient'] as List<dynamic>?)
+                ?.map((e) => e as Color)
+                .toList() ??
+            [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+        isLoadingTier = false;
+      });
+    } catch (e) {
+      print('Error loading tier colors: $e');
+      setState(() => isLoadingTier = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -40,14 +82,16 @@ class FriendsListPage extends StatelessWidget {
     );
   }
 
+
   Widget _buildHeader(BuildContext context) {
     final FriendService friendService = FriendService();
+
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+        gradient: LinearGradient(
+          colors: tierGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -57,7 +101,7 @@ class FriendsListPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C4DFF).withOpacity(0.3),
+            color: tierColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -81,7 +125,7 @@ class FriendsListPage extends StatelessWidget {
                       Text(
                         isOwnProfile
                             ? 'My Friends'
-                            : '${viewingUsername}\'s Friends',
+                            : '${widget.viewingUsername}\'s Friends',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -94,7 +138,7 @@ class FriendsListPage extends StatelessWidget {
                       StreamBuilder<List<Map<String, dynamic>>>(
                         stream: isOwnProfile
                             ? friendService.getFriendsStream()
-                            : friendService.getFriendsStreamForUser(viewingUserID!),
+                            : friendService.getFriendsStreamForUser(widget.viewingUserID!),
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             int count = snapshot.data!.length;
@@ -135,7 +179,7 @@ class FriendsListPage extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => FriendRequestsPage(),
+                                builder: (context) => const FriendRequestsPage(),
                               ),
                             );
                           },
@@ -203,13 +247,15 @@ class FriendsListPage extends StatelessWidget {
     );
   }
 
+
   Widget _buildFriendsList(BuildContext context) {
     final FriendService friendService = FriendService();
+
 
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: isOwnProfile
           ? friendService.getFriendsStream()
-          : friendService.getFriendsStreamForUser(viewingUserID!),
+          : friendService.getFriendsStreamForUser(widget.viewingUserID!),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
@@ -227,13 +273,15 @@ class FriendsListPage extends StatelessWidget {
           );
         }
 
+
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
+          return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+              valueColor: AlwaysStoppedAnimation<Color>(tierColor),
             ),
           );
         }
+
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
@@ -243,13 +291,15 @@ class FriendsListPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7C4DFF).withOpacity(0.1),
+                    gradient: LinearGradient(
+                      colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                    ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.people_outline,
                     size: 80,
-                    color: Color(0xFF7C4DFF),
+                    color: tierColor,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -277,6 +327,7 @@ class FriendsListPage extends StatelessWidget {
           );
         }
 
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: snapshot.data!.length,
@@ -289,6 +340,7 @@ class FriendsListPage extends StatelessWidget {
     );
   }
 
+
   Widget _buildFriendCard(
     BuildContext context,
     Map<String, dynamic> friendData,
@@ -297,14 +349,19 @@ class FriendsListPage extends StatelessWidget {
     final friendUsername = friendData['username'] ?? 'Unknown';
     final friendUID = friendData['uid'] ?? '';
 
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: tierColor.withOpacity(0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: tierColor.withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -314,6 +371,7 @@ class FriendsListPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
+          splashColor: tierColor.withOpacity(0.1),
           onTap: () {
             // Navigate to friend's profile
             Navigator.push(
@@ -335,12 +393,19 @@ class FriendsListPage extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    gradient: LinearGradient(
+                      colors: tierGradient,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: tierColor.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
@@ -392,10 +457,10 @@ class FriendsListPage extends StatelessWidget {
                     },
                   )
                 else
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: Colors.grey,
+                    color: tierColor.withOpacity(0.5),
                   ),
               ],
             ),
@@ -404,6 +469,7 @@ class FriendsListPage extends StatelessWidget {
       ),
     );
   }
+
 
   void _showRemoveFriendDialog(
     BuildContext context,
@@ -439,7 +505,7 @@ class FriendsListPage extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Removed $friendUsername from friends'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: tierColor,
                     ),
                   );
                 }
