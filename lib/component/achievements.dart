@@ -1,6 +1,5 @@
 import 'package:demo/services/notes/firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_lucide/flutter_lucide.dart';
 
 class AchievementPage extends StatefulWidget {
   const AchievementPage({super.key});
