@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class Message {
   final String senderID;
@@ -6,6 +7,7 @@ class Message {
   final String receiverID;
   final String message;
   final Timestamp timestamp;
+  final bool isRead;
 
   Message({
     required this.message,
@@ -13,6 +15,7 @@ class Message {
     required this.senderEmail,
     required this.senderID,
     required this.timestamp,
+    this.isRead = false,
   });
 
   // convert to a map
@@ -23,6 +26,7 @@ class Message {
       'receiverID': receiverID,
       'message': message,
       'timestamp': timestamp,
+      'isRead' : isRead,
     };
   }
 }

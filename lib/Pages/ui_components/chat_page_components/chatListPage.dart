@@ -3,6 +3,7 @@ import 'package:demo/Pages/ui_components/chat_page_components/chatPage.dart';
 import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
 import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
+import 'package:demo/services/chat/chat_service.dart';
 import 'package:demo/services/friends/friend_service.dart';
 import 'package:flutter/material.dart';
 
@@ -79,7 +80,10 @@ class ChatListPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.person_add_alt, color: Colors.white),
+                          icon: const Icon(
+                            Icons.person_add_alt,
+                            color: Colors.white,
+                          ),
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -131,7 +135,10 @@ class ChatListPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.person_search, color: Colors.white),
+                      icon: const Icon(
+                        Icons.person_search,
+                        color: Colors.white,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -188,7 +195,10 @@ class ChatListPage extends StatelessWidget {
             hintStyle: TextStyle(color: Colors.grey.shade500),
             prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 15,
+            ),
           ),
         ),
       ),
@@ -201,7 +211,10 @@ class ChatListPage extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Center(
-            child: Text("Error loading friends", style: TextStyle(color: Colors.grey)),
+            child: Text(
+              "Error loading friends",
+              style: TextStyle(color: Colors.grey),
+            ),
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -216,7 +229,11 @@ class ChatListPage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline, size: 80, color: Colors.grey.shade400),
+                Icon(
+                  Icons.people_outline,
+                  size: 80,
+                  color: Colors.grey.shade400,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No friends yet',
@@ -238,7 +255,9 @@ class ChatListPage extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           children: snapshot.data!
-              .map<Widget>((userData) => _buildFriendListItem(userData, context))
+              .map<Widget>(
+                (userData) => _buildFriendListItem(userData, context),
+              )
               .toList(),
         );
       },
@@ -258,8 +277,12 @@ class ChatListPage extends StatelessWidget {
         .snapshots();
   }
 
-  Widget _buildFriendListItem(Map<String, dynamic> userData, BuildContext context) {
+  Widget _buildFriendListItem(
+    Map<String, dynamic> userData,
+    BuildContext context,
+  ) {
     String currentUserID = _authService.getCurrentUser()!.uid;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
       child: Material(
@@ -281,27 +304,73 @@ class ChatListPage extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      userData['username'][0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                // Avatar with unread badge
+                Stack(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Text(
+                          userData['username'][0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    // Unread badge
+                    StreamBuilder<int>(
+                      stream: ChatService().getUnreadMessagesFromUser(
+                        currentUserID,
+                        userData["uid"],
+                      ),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData || snapshot.data == 0) {
+                          return const SizedBox.shrink();
+                        }
+
+                        final unreadCount = snapshot.data!;
+
+                        return Positioned(
+                          top: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(
+                              minWidth: 20,
+                              minHeight: 20,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadCount > 9 ? '9+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -322,20 +391,33 @@ class ChatListPage extends StatelessWidget {
                         builder: (context, messageSnapshot) {
                           if (messageSnapshot.hasData &&
                               messageSnapshot.data!.docs.isNotEmpty) {
-                            var lastMessage = messageSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+                            var lastMessage =
+                                messageSnapshot.data!.docs.first.data()
+                                    as Map<String, dynamic>;
                             String messageText = lastMessage['message'] ?? '';
-                            bool isCurrentUserSender = lastMessage['senderID'] == currentUserID;
-                            String displayMessage = messageText.length > 30 ? '${messageText.substring(0, 30)}...' : messageText;
+                            bool isCurrentUserSender =
+                                lastMessage['senderID'] == currentUserID;
+                            String displayMessage = messageText.length > 30
+                                ? '${messageText.substring(0, 30)}...'
+                                : messageText;
                             return Text(
-                              isCurrentUserSender ? 'You: $displayMessage' : displayMessage,
-                              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                              isCurrentUserSender
+                                  ? 'You: $displayMessage'
+                                  : displayMessage,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             );
                           } else {
                             return Text(
                               'Tap to start chatting',
-                              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
                             );
                           }
                         },

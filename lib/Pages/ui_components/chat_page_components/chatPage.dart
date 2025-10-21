@@ -7,7 +7,7 @@ import 'package:demo/services/chat/chat_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 
-class ChatPage extends StatelessWidget {
+class ChatPage extends StatefulWidget {
   final String receiverID;
   final String receiverUsername;
 
@@ -17,13 +17,20 @@ class ChatPage extends StatelessWidget {
     required this.receiverUsername,
   });
 
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
+
   final ChatService _chatService = ChatService();
+
   final AuthService _authService = AuthService();
 
   void sendMessage() async {
     if (_messageController.text.isNotEmpty) {
-      await _chatService.sendMessage(receiverID, _messageController.text);
+      await _chatService.sendMessage(widget.receiverID, _messageController.text);
       _messageController.clear();
     }
   }
@@ -33,8 +40,8 @@ class ChatPage extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => ProfilePageViewer(
-          receiverID: receiverID,
-          receiverUsername: receiverUsername,
+          receiverID: widget.receiverID,
+          receiverUsername: widget.receiverUsername,
         ),
       ),
     );
@@ -68,7 +75,7 @@ class ChatPage extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    receiverUsername[0].toUpperCase(),
+                    widget.receiverUsername[0].toUpperCase(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -83,7 +90,7 @@ class ChatPage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    receiverUsername,
+                    widget.receiverUsername,
                     style: const TextStyle(
                       color: Colors.black87,
                       fontSize: 16,
@@ -111,8 +118,8 @@ class ChatPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => FriendTasksManagerPage(
-                    friendUserID: receiverID,
-                    friendUsername: receiverUsername,
+                    friendUserID: widget.receiverID,
+                    friendUsername: widget.receiverUsername,
                   ),
                 ),
               );
@@ -133,7 +140,7 @@ class ChatPage extends StatelessWidget {
   Widget _buildMessageList() {
     String senderID = _authService.getCurrentUser()!.uid;
     return StreamBuilder(
-      stream: _chatService.getMessages(senderID, receiverID),
+      stream: _chatService.getMessages(senderID, widget.receiverID),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Center(

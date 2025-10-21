@@ -1,6 +1,7 @@
 import 'package:demo/Pages/ui_components/home_page.dart';
 import 'package:demo/Pages/ui_components/chat_page_components/chatListPage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
+import 'package:demo/services/chat/chat_service.dart';
 import 'package:flutter/material.dart';
 
 class Navbar extends StatefulWidget {
@@ -12,6 +13,7 @@ class Navbar extends StatefulWidget {
 
 class _NavBarState extends State<Navbar> {
   int _selectedIndex = 1;
+  final ChatService _chatService = ChatService();
 
   final List<Widget> _pages = [
     ChatListPage(),
@@ -78,39 +80,92 @@ class _NavBarState extends State<Navbar> {
                     highlightColor: Colors.transparent,
                     child: Container(
                       padding: EdgeInsets.zero,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOutCubic,
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isSelected ? _colors[index] : Colors.grey.shade200,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              _icons[index],
-                              color: isSelected ? Colors.white : Colors.grey.shade700,
-                              size: 24,
-                            ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOutCubic,
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? _colors[index] : Colors.grey.shade200,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _icons[index],
+                                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  color: isSelected ? _colors[index] : Colors.grey.shade700,
+                                  letterSpacing: 0.3,
+                                ),
+                                child: Text(
+                                  _labels[index],
+                                  overflow: TextOverflow.clip,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 2),
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                              color: isSelected ? _colors[index] : Colors.grey.shade700,
-                              letterSpacing: 0.3,
+                          
+                          // Unread badge for Chat tab
+                          if (index == 0)
+                            Positioned(
+                              top: 8,
+                              right: 16,
+                              child: StreamBuilder<int>(
+                                stream: _chatService.getUnreadMessagesCount(),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData || snapshot.data == 0) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  
+                                  final unreadCount = snapshot.data!;
+                                  
+                                  return Container(
+                                    padding: const EdgeInsets.all(4),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 18,
+                                      minHeight: 18,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFF5252), Color(0xFFFF1744)],
+                                      ),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red.withOpacity(0.5),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        unreadCount > 99 ? '99+' : '$unreadCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                            child: Text(
-                              _labels[index],
-                              overflow: TextOverflow.clip,
-                            ),
-                          ),
                         ],
                       ),
                     ),
