@@ -144,6 +144,67 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
+  void _autoCompleteTask(int index) async {
+    final task = tasklist[index];
+    final firebaseId = task['firebaseId'];
+
+    if (firebaseId == null || task['isCompleted'] == true) {
+      return; // Already completed or not synced
+    }
+
+    setState(() {
+      tasklist[index]['isCompleted'] = true;
+      tasklist[index]['isSynced'] = false;
+      tasklist[index]['completedAt'] = Timestamp.now();
+    });
+
+    try {
+      await firestoreService.toggleCompletion(firebaseId, false);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '✨ "${task['taskName']}" completed automatically!',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF4CAF50),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error auto-completing task: $e');
+      // Revert on error
+      setState(() {
+        tasklist[index]['isCompleted'] = false;
+        tasklist[index]['completedAt'] = null;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to auto-complete task'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _syncPendingChangesToFirebase() async {
     try {
       final pendingTasks = tasklist
@@ -865,6 +926,7 @@ class _HomepageState extends State<Homepage> {
                             onTimerToggle: () => _toggleTimer(index),
                             onTimerReset: () => _resetTimer(index),
                             assignedByUsername: task['assignedByUsername'],
+                            onTimerComplete: () => _autoCompleteTask(index),
                           );
                         },
                       ),

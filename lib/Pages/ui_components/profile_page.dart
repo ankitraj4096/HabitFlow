@@ -648,7 +648,15 @@ class _ProfilePageState extends State<ProfilePage>
                   ],
                 ),
                 const SizedBox(height: 16),
-                HeatMapPage(completionData: heatmapData),
+                HeatMapPage(
+                  completionData: heatmapData,
+                  viewingUserID: widget.isOwnProfile
+                      ? null
+                      : widget.viewingUserID,
+                  viewingUsername: widget.isOwnProfile
+                      ? null
+                      : widget.viewingUsername,
+                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -677,7 +685,7 @@ class _ProfilePageState extends State<ProfilePage>
                     ),
                   ],
                 ),
-                const SizedBox(height: 50,)
+                const SizedBox(height: 50),
               ],
             );
           },

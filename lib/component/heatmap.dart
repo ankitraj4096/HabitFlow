@@ -1,12 +1,17 @@
+import 'package:demo/component/dailyTaskShow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 
 class HeatMapPage extends StatelessWidget {
   final Map<String, int> completionData;
+  final String? viewingUserID; // NEW: null if viewing own heatmap
+  final String? viewingUsername; // NEW
 
   const HeatMapPage({
     super.key,
     this.completionData = const {},
+    this.viewingUserID,
+    this.viewingUsername,
   });
 
   @override
@@ -23,7 +28,6 @@ class HeatMapPage extends StatelessWidget {
             int.parse(parts[1]),
             int.parse(parts[2]),
           );
-          // The count is passed directly. The widget uses this as a key.
           heatMapDataset[date] = count;
         }
       } catch (e) {
@@ -35,14 +39,12 @@ class HeatMapPage extends StatelessWidget {
       defaultColor: Colors.grey.shade200,
       flexible: true,
       datasets: heatMapDataset,
-      // THE FIX: Use ColorMode.color to select from your colorsets
       colorMode: ColorMode.color,
       showColorTip: false,
       size: 30,
       fontSize: 10,
       monthFontSize: 12,
       weekFontSize: 11,
-      // Your color map is perfect for ColorMode.color
       colorsets: {
         1: Colors.green.shade100,
         2: Colors.green.shade200,
@@ -55,22 +57,14 @@ class HeatMapPage extends StatelessWidget {
         9: Colors.green.shade900,
       },
       onClick: (value) {
-        // Use the original count for the snackbar message
-        final originalCount = completionData[
-                '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}'] ??
-            0;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              originalCount > 0
-                  ? '$originalCount task${originalCount > 1 ? 's' : ''} completed on ${value.day}/${value.month}/${value.year}'
-                  : 'No tasks completed on ${value.day}/${value.month}/${value.year}',
-            ),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+        // Navigate to DailyCompletedTasksPage
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DailyCompletedTasksPage(
+              selectedDate: value,
+              viewingUserID: viewingUserID,
+              viewingUsername: viewingUsername,
             ),
           ),
         );

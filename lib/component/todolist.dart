@@ -16,6 +16,7 @@ class Todolist extends StatefulWidget {
   final bool isRunning;
   final VoidCallback? onTimerToggle;
   final VoidCallback? onTimerReset;
+  final VoidCallback? onTimerComplete;
   final String? assignedByUsername;
 
   // Sync status
@@ -36,6 +37,7 @@ class Todolist extends StatefulWidget {
     this.onTimerReset,
     this.isSynced = true,
     required this.assignedByUsername,
+    required this.onTimerComplete,
   });
 
   @override
@@ -83,10 +85,15 @@ class _TodolistState extends State<Todolist> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (widget.totalDuration != null && _currentElapsed >= widget.totalDuration!) {
+      if (widget.totalDuration != null &&
+          _currentElapsed >= widget.totalDuration!) {
         _stopTimer();
         widget.onTimerToggle?.call();
         _showTimerCompleteSnackbar();
+
+        if (widget.onTimerComplete != null && !widget.IsChecked) {
+          widget.onTimerComplete!();
+        }
         return;
       }
 
@@ -196,8 +203,8 @@ class _TodolistState extends State<Todolist> {
               color: widget.IsChecked
                   ? Color(0xFF7C4DFF).withOpacity(0.3)
                   : widget.isSynced
-                      ? Colors.grey.withOpacity(0.2)
-                      : Colors.orange.withOpacity(0.4),
+                  ? Colors.grey.withOpacity(0.2)
+                  : Colors.orange.withOpacity(0.4),
               width: 1.5,
             ),
             boxShadow: [
@@ -233,7 +240,10 @@ class _TodolistState extends State<Todolist> {
                           decoration: BoxDecoration(
                             gradient: widget.IsChecked
                                 ? LinearGradient(
-                                    colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                                    colors: [
+                                      Color(0xFF7C4DFF),
+                                      Color(0xFF448AFF),
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   )
@@ -257,7 +267,11 @@ class _TodolistState extends State<Todolist> {
                                 : [],
                           ),
                           child: widget.IsChecked
-                              ? Icon(Icons.check_rounded, color: Colors.white, size: 20)
+                              ? Icon(
+                                  Icons.check_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                )
                               : null,
                         ),
                         SizedBox(width: 12),
@@ -291,7 +305,11 @@ class _TodolistState extends State<Todolist> {
                                 SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.person, size: 14, color: Colors.purple),
+                                    Icon(
+                                      Icons.person,
+                                      size: 14,
+                                      color: Colors.purple,
+                                    ),
                                     SizedBox(width: 4),
                                     Text(
                                       'From: ${widget.assignedByUsername}',
@@ -343,7 +361,10 @@ class _TodolistState extends State<Todolist> {
                               Tooltip(
                                 message: 'Syncing to cloud...',
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 3,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.orange.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(6),
@@ -360,7 +381,10 @@ class _TodolistState extends State<Todolist> {
                                         height: 10,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 1.5,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.orange,
+                                              ),
                                         ),
                                       ),
                                       SizedBox(width: 4),
@@ -382,7 +406,10 @@ class _TodolistState extends State<Todolist> {
                             // Timer Badge
                             if (widget.hasTimer)
                               Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
@@ -399,7 +426,11 @@ class _TodolistState extends State<Todolist> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.timer, size: 12, color: Color(0xFF7C4DFF)),
+                                    Icon(
+                                      Icons.timer,
+                                      size: 12,
+                                      color: Color(0xFF7C4DFF),
+                                    ),
                                     SizedBox(width: 3),
                                     Text(
                                       'Timer',
@@ -485,8 +516,12 @@ class _TodolistState extends State<Todolist> {
                                       Container(
                                         padding: EdgeInsets.all(5),
                                         decoration: BoxDecoration(
-                                          color: _getTimerColor().withOpacity(0.15),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: _getTimerColor().withOpacity(
+                                            0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: Icon(
                                           widget.isRunning
@@ -499,7 +534,8 @@ class _TodolistState extends State<Todolist> {
                                       SizedBox(width: 6),
                                       Flexible(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
@@ -542,16 +578,25 @@ class _TodolistState extends State<Todolist> {
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: widget.isRunning
-                                                  ? [Color(0xFFFFA726), Color(0xFFFF9800)]
-                                                  : [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                                                  ? [
+                                                      Color(0xFFFFA726),
+                                                      Color(0xFFFF9800),
+                                                    ]
+                                                  : [
+                                                      Color(0xFF4CAF50),
+                                                      Color(0xFF66BB6A),
+                                                    ],
                                             ),
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: (widget.isRunning
-                                                        ? Color(0xFFFFA726)
-                                                        : Color(0xFF4CAF50))
-                                                    .withOpacity(0.3),
+                                                color:
+                                                    (widget.isRunning
+                                                            ? Color(0xFFFFA726)
+                                                            : Color(0xFF4CAF50))
+                                                        .withOpacity(0.3),
                                                 blurRadius: 6,
                                                 offset: Offset(0, 2),
                                               ),
@@ -578,7 +623,8 @@ class _TodolistState extends State<Todolist> {
                                             context: context,
                                             builder: (context) => AlertDialog(
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
                                               ),
                                               title: Row(
                                                 mainAxisSize: MainAxisSize.min,
@@ -596,10 +642,13 @@ class _TodolistState extends State<Todolist> {
                                               ),
                                               actions: [
                                                 TextButton(
-                                                  onPressed: () => Navigator.pop(context),
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
                                                   child: Text(
                                                     'Cancel',
-                                                    style: TextStyle(color: Colors.grey),
+                                                    style: TextStyle(
+                                                      color: Colors.grey,
+                                                    ),
                                                   ),
                                                 ),
                                                 ElevatedButton(
@@ -608,14 +657,21 @@ class _TodolistState extends State<Todolist> {
                                                     widget.onTimerReset?.call();
                                                   },
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Color(0xFFEF5350),
+                                                    backgroundColor: Color(
+                                                      0xFFEF5350,
+                                                    ),
                                                     shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
                                                     ),
                                                   ),
                                                   child: Text(
                                                     'Reset',
-                                                    style: TextStyle(color: Colors.white),
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -627,12 +683,19 @@ class _TodolistState extends State<Todolist> {
                                           padding: EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
-                                              colors: [Color(0xFFEF5350), Color(0xFFE53935)],
+                                              colors: [
+                                                Color(0xFFEF5350),
+                                                Color(0xFFE53935),
+                                              ],
                                             ),
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Color(0xFFEF5350).withOpacity(0.3),
+                                                color: Color(
+                                                  0xFFEF5350,
+                                                ).withOpacity(0.3),
                                                 blurRadius: 6,
                                                 offset: Offset(0, 2),
                                               ),
@@ -666,7 +729,9 @@ class _TodolistState extends State<Todolist> {
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Color(0xFF4CAF50).withOpacity(0.5),
+                                          color: Color(
+                                            0xFF4CAF50,
+                                          ).withOpacity(0.5),
                                           blurRadius: 3,
                                           spreadRadius: 1,
                                         ),
