@@ -452,4 +452,79 @@ class FireStoreService {
     };
     return iconMap[iconName] ?? LucideIcons.star;
   }
+
+  /// Get statistics for a specific user (for viewing other profiles)
+Future<Map<String, dynamic>> getUserStatisticsForUser(String userID) async {
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('user_notes')
+        .doc(userID)
+        .collection('notes')
+        .get();
+
+    // Same logic as getUserStatistics but for specific user
+    int totalTasks = snapshot.docs.length;
+    int completedTasks = 0;
+    int totalHours = 0;
+    Map<String, int> completionsByDate = {};
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['isCompleted'] == true) {
+        completedTasks++;
+        final timestamp = data['timestamp'] as Timestamp?;
+        if (timestamp != null) {
+          final dateKey = _formatDate(timestamp.toDate());
+          completionsByDate[dateKey] = (completionsByDate[dateKey] ?? 0) + 1;
+        }
+      }
+      if (data['hasTimer'] == true && data['elapsedSeconds'] != null) {
+        totalHours += (data['elapsedSeconds'] as int) ~/ 3600;
+      }
+    }
+
+    int currentStreak = _calculateStreak(completionsByDate);
+
+    return {
+      'totalTasks': totalTasks,
+      'completedTasks': completedTasks,
+      'totalHours': totalHours,
+      'currentStreak': currentStreak,
+      'completionsByDate': completionsByDate,
+    };
+  } catch (e) {
+    print('Error getting user statistics: $e');
+    return {
+      'totalTasks': 0,
+      'completedTasks': 0,
+      'totalHours': 0,
+      'currentStreak': 0,
+      'completionsByDate': {},
+    };
+  }
+}
+
+/// Get heatmap data for a specific user
+Stream<Map<String, int>> getHeatmapDataForUser(String userID) {
+  return FirebaseFirestore.instance
+      .collection('user_notes')
+      .doc(userID)
+      .collection('notes')
+      .where('isCompleted', isEqualTo: true)
+      .snapshots()
+      .map((snapshot) {
+    final Map<String, int> heatmap = {};
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final ts = data['timestamp'] as Timestamp?;
+      if (ts != null) {
+        final d = ts.toDate();
+        final key = _formatDate(d);
+        heatmap[key] = (heatmap[key] ?? 0) + 1;
+      }
+    }
+    return heatmap;
+  });
+}
+
 }
