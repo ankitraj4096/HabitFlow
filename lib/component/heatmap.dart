@@ -2,77 +2,63 @@ import 'package:flutter/material.dart';
 import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 
 class HeatMapPage extends StatelessWidget {
-  const HeatMapPage({super.key});
+  final Map<String, int> completionData;
+
+  const HeatMapPage({
+    super.key,
+    this.completionData = const {},
+  });
 
   @override
   Widget build(BuildContext context) {
-    return HeatMap(
-      datasets: {
-        // Sample data - replace with your actual data
-        DateTime(2024, 10, 15): 3,
-        DateTime(2024, 10, 16): 7,
-        DateTime(2024, 10, 18): 5,
-        DateTime(2024, 10, 20): 9,
-        DateTime(2024, 10, 22): 4,
-        DateTime(2024, 10, 25): 8,
-        DateTime(2024, 11, 1): 6,
-        DateTime(2024, 11, 3): 7,
-        DateTime(2024, 11, 5): 3,
-        DateTime(2024, 11, 8): 9,
-        DateTime(2024, 11, 10): 5,
-        DateTime(2024, 11, 12): 8,
-        DateTime(2024, 11, 15): 4,
-        DateTime(2024, 11, 18): 7,
-        DateTime(2024, 11, 20): 6,
-        DateTime(2024, 11, 23): 9,
-        DateTime(2024, 12, 1): 5,
-        DateTime(2024, 12, 3): 8,
-        DateTime(2024, 12, 5): 4,
-        DateTime(2024, 12, 8): 7,
-        DateTime(2024, 12, 10): 9,
-        DateTime(2024, 12, 12): 6,
-        DateTime(2024, 12, 15): 3,
-        DateTime(2024, 12, 18): 8,
-        DateTime(2025, 1, 1): 7,
-        DateTime(2025, 1, 3): 5,
-        DateTime(2025, 1, 5): 9,
-        DateTime(2025, 1, 8): 6,
-        DateTime(2025, 1, 10): 8,
-        DateTime(2025, 1, 12): 4,
-        DateTime(2025, 1, 14): 7,
-      },
-      startDate: DateTime(2024, 10, 1),
-      endDate: DateTime(2025, 1, 14),
-      size: 24,
-      fontSize: 10,
-      showText: false,
-      scrollable: true,
+    // Convert String dates to DateTime for HeatMap
+    Map<DateTime, int> heatMapDataset = {};
+    
+    completionData.forEach((dateStr, count) {
+      try {
+        final parts = dateStr.split('-');
+        if (parts.length == 3) {
+          final date = DateTime(
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            int.parse(parts[2]),
+          );
+          heatMapDataset[date] = count;
+        }
+      } catch (e) {
+        print('Error parsing date: $dateStr');
+      }
+    });
+
+    return HeatMapCalendar(
+      defaultColor: Colors.grey.shade200,
+      flexible: true,
+      datasets: heatMapDataset,
       colorMode: ColorMode.opacity,
       showColorTip: false,
-      defaultColor: Color(0xFFF5F5F5),
-      textColor: Colors.black45,
+      size: 30,
+      fontSize: 10,
+      monthFontSize: 12,
+      weekFontSize: 11,
       colorsets: {
-        1: Color(0xFF4CAF50).withOpacity(0.15),
-        2: Color(0xFF4CAF50).withOpacity(0.25),
-        3: Color(0xFF4CAF50).withOpacity(0.35),
-        4: Color(0xFF4CAF50).withOpacity(0.45),
-        5: Color(0xFF4CAF50).withOpacity(0.55),
-        6: Color(0xFF4CAF50).withOpacity(0.65),
-        7: Color(0xFF4CAF50).withOpacity(0.75),
-        8: Color(0xFF4CAF50).withOpacity(0.85),
-        9: Color(0xFF4CAF50).withOpacity(0.95),
-        10: Color(0xFF4CAF50),
+        1: Colors.green.shade100,
+        2: Colors.green.shade300,
+        3: Colors.green.shade500,
+        4: Colors.green.shade700,
+        5: Colors.green.shade900,
       },
       onClick: (value) {
+        final count = heatMapDataset[value] ?? 0;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Date: ${value.toString().split(' ')[0]}'),
-            duration: Duration(seconds: 1),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFF4CAF50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+            content: Text(
+              count > 0 
+                  ? '$count task${count > 1 ? 's' : ''} completed on ${value.day}/${value.month}/${value.year}'
+                  : 'No tasks completed on ${value.day}/${value.month}/${value.year}',
             ),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       },

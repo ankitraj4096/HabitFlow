@@ -155,4 +155,133 @@ class FireStoreService {
       rethrow;
     }
   }
+
+    Future<Map<String, dynamic>> getUserStatistics() async {
+    try {
+      final snapshot = await _userNotes.get();
+      
+      int totalTasks = snapshot.docs.length;
+      int completedTasks = 0;
+      int totalHours = 0;
+      Map<String, int> completionsByDate = {};
+      
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        
+        // Count completed tasks
+        if (data['isCompleted'] == true) {
+          completedTasks++;
+          
+          // Track completion date for heatmap
+          final timestamp = data['lastUpdated'] as Timestamp?;
+          if (timestamp != null) {
+            final dateKey = _formatDate(timestamp.toDate());
+            completionsByDate[dateKey] = (completionsByDate[dateKey] ?? 0) + 1;
+          }
+        }
+        
+        // Calculate total hours from timer tasks
+        if (data['hasTimer'] == true && data['elapsedSeconds'] != null) {
+          totalHours += (data['elapsedSeconds'] as int) ~/ 3600;
+        }
+      }
+      
+      // Calculate current streak
+      int currentStreak = _calculateStreak(completionsByDate);
+      
+      return {
+        'totalTasks': totalTasks,
+        'completedTasks': completedTasks,
+        'totalHours': totalHours,
+        'currentStreak': currentStreak,
+        'completionsByDate': completionsByDate,
+      };
+    } catch (e) {
+      print('Error getting user statistics: $e');
+      return {
+        'totalTasks': 0,
+        'completedTasks': 0,
+        'totalHours': 0,
+        'currentStreak': 0,
+        'completionsByDate': {},
+      };
+    }
+  }
+
+  /// Get heatmap data for the last 90 days
+  Stream<Map<String, int>> getHeatmapData() {
+    return _userNotes
+        .where('isCompleted', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+      Map<String, int> heatmapData = {};
+      
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final timestamp = data['lastUpdated'] as Timestamp?;
+        
+        if (timestamp != null) {
+          final dateKey = _formatDate(timestamp.toDate());
+          heatmapData[dateKey] = (heatmapData[dateKey] ?? 0) + 1;
+        }
+      }
+      
+      return heatmapData;
+    });
+  }
+
+  /// Format date for heatmap (YYYY-MM-DD)
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Calculate current streak of consecutive days with completions
+  int _calculateStreak(Map<String, int> completionsByDate) {
+    if (completionsByDate.isEmpty) return 0;
+    
+    final today = DateTime.now();
+    int streak = 0;
+    
+    // Check backwards from today
+    for (int i = 0; i < 365; i++) {
+      final checkDate = today.subtract(Duration(days: i));
+      final dateKey = _formatDate(checkDate);
+      
+      if (completionsByDate.containsKey(dateKey)) {
+        streak++;
+      } else {
+        // If we've already started counting and hit a gap, stop
+        if (streak > 0) break;
+        // If it's the first day (today) and no completion, allow one day grace
+        if (i == 0) continue;
+        break;
+      }
+    }
+    
+    return streak;
+  }
+
+  /// Get username from Firestore users collection
+  Future<String> getUsername() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return 'User';
+      
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      return userDoc.data()?['username'] ?? 'User';
+    } catch (e) {
+      print('Error getting username: $e');
+      return 'User';
+    }
+  }
+
+  /// Get user level based on completed tasks
+  int getUserLevel(int completedTasks) {
+    // Level up every 10 completed tasks
+    return (completedTasks ~/ 10) + 1;
+  }
 }
