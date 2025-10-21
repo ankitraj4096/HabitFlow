@@ -1,13 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/chatPage.dart';
+import 'package:demo/Pages/ui_components/search_users_page.dart';
+import 'package:demo/Pages/ui_components/friend_requests_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
-import 'package:demo/services/chat/chat_service.dart';
+import 'package:demo/services/friends/friend_service.dart';
 import 'package:flutter/material.dart';
 
 class ChatListPage extends StatelessWidget {
   ChatListPage({super.key});
 
-  final ChatService _chatService = ChatService();
+  final FriendService _friendService = FriendService();
   final AuthService _authService = AuthService();
 
   @override
@@ -37,7 +39,7 @@ class ChatListPage extends StatelessWidget {
                   child: Column(
                     children: [
                       _buildSearchBar(),
-                      Expanded(child: _buildUserList()),
+                      Expanded(child: _buildFriendsList()),
                     ],
                   ),
                 ),
@@ -66,26 +68,94 @@ class ChatListPage extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.edit, color: Colors.white),
-                  onPressed: () {},
-                ),
+              Row(
+                children: [
+                  // Friend Requests Button with Badge
+                  Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.person_add_alt, color: Colors.white),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FriendRequestsPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      // Badge showing request count
+                      StreamBuilder<int>(
+                        stream: _friendService.getFriendRequestsCountStream(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData || snapshot.data == 0) {
+                            return SizedBox.shrink();
+                          }
+                          return Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                '${snapshot.data}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(width: 8),
+                  // Add Friends Button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.person_search, color: Colors.white),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SearchUsersPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           SizedBox(height: 8),
-          StreamBuilder(
-            stream: _chatService.getUserStream(),
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _friendService.getFriendsStream(),
             builder: (context, snapshot) {
               if (snapshot.hasData) {
-                int count = snapshot.data!.length - 1;
+                int count = snapshot.data!.length;
                 return Text(
-                  '$count conversation${count != 1 ? 's' : ''}',
+                  '$count friend${count != 1 ? 's' : ''}',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 16,
@@ -93,7 +163,7 @@ class ChatListPage extends StatelessWidget {
                 );
               }
               return Text(
-                '0 conversations',
+                '0 friends',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 16,
@@ -116,7 +186,7 @@ class ChatListPage extends StatelessWidget {
         ),
         child: TextField(
           decoration: InputDecoration(
-            hintText: 'Search messages...',
+            hintText: 'Search friends...',
             hintStyle: TextStyle(color: Colors.grey.shade500),
             prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
             border: InputBorder.none,
@@ -127,14 +197,14 @@ class ChatListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildUserList() {
-    return StreamBuilder(
-      stream: _chatService.getUserStream(),
+  Widget _buildFriendsList() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _friendService.getFriendsStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
             child: Text(
-              "Error loading chats",
+              "Error loading friends",
               style: TextStyle(color: Colors.grey),
             ),
           );
@@ -148,10 +218,42 @@ class ChatListPage extends StatelessWidget {
           );
         }
 
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.people_outline,
+                  size: 80,
+                  color: Colors.grey.shade400,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'No friends yet',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Tap the search icon to find friends',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         return ListView(
           padding: EdgeInsets.symmetric(horizontal: 10),
           children: snapshot.data!
-              .map<Widget>((userData) => _buildUserListItem(userData, context))
+              .map<Widget>((userData) => _buildFriendListItem(userData, context))
               .toList(),
         );
       },
@@ -173,126 +275,123 @@ class ChatListPage extends StatelessWidget {
         .snapshots();
   }
 
-  Widget _buildUserListItem(
+  Widget _buildFriendListItem(
     Map<String, dynamic> userData,
     BuildContext context,
   ) {
-    if (userData["email"] != _authService.getCurrentUser()!.email) {
-      String currentUserID = _authService.getCurrentUser()!.uid;
-      
-      return Container(
-        margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatPage(
-                    receiverID: userData["uid"],
-                    receiverUsername: userData["username"],
+    String currentUserID = _authService.getCurrentUser()!.uid;
+
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatPage(
+                  receiverID: userData["uid"],
+                  receiverUsername: userData["username"],
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Text(
+                      userData['username'][0].toUpperCase(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Center(
-                      child: Text(
-                        userData['username'][0].toUpperCase(),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userData['username'],
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
                         ),
                       ),
-                    ),
+                      SizedBox(height: 4),
+                      // StreamBuilder to show last message
+                      StreamBuilder<QuerySnapshot>(
+                        stream: _getLastMessage(currentUserID, userData["uid"]),
+                        builder: (context, messageSnapshot) {
+                          if (messageSnapshot.hasData &&
+                              messageSnapshot.data!.docs.isNotEmpty) {
+                            // Get the last message
+                            var lastMessage =
+                                messageSnapshot.data!.docs.first.data()
+                                    as Map<String, dynamic>;
+                            String messageText = lastMessage['message'] ?? '';
+                            bool isCurrentUserSender =
+                                lastMessage['senderID'] == currentUserID;
+
+                            // Truncate message if too long
+                            String displayMessage = messageText.length > 30
+                                ? '${messageText.substring(0, 30)}...'
+                                : messageText;
+
+                            return Text(
+                              isCurrentUserSender
+                                  ? 'You: $displayMessage'
+                                  : displayMessage,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          } else {
+                            // No messages yet
+                            return Text(
+                              'Tap to start chatting',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userData['username'],
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        // StreamBuilder to show last message
-                        StreamBuilder<QuerySnapshot>(
-                          stream: _getLastMessage(currentUserID, userData["uid"]),
-                          builder: (context, messageSnapshot) {
-                            if (messageSnapshot.hasData && 
-                                messageSnapshot.data!.docs.isNotEmpty) {
-                              // Get the last message
-                              var lastMessage = messageSnapshot.data!.docs.first.data() 
-                                  as Map<String, dynamic>;
-                              String messageText = lastMessage['message'] ?? '';
-                              bool isCurrentUserSender = 
-                                  lastMessage['senderID'] == currentUserID;
-                              
-                              // Truncate message if too long
-                              String displayMessage = messageText.length > 30
-                                  ? '${messageText.substring(0, 30)}...'
-                                  : messageText;
-                              
-                              return Text(
-                                isCurrentUserSender 
-                                    ? 'You: $displayMessage' 
-                                    : displayMessage,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              );
-                            } else {
-                              // No messages yet
-                              return Text(
-                                'Tap to start chatting',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Colors.grey.shade400,
-                  ),
-                ],
-              ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey.shade400,
+                ),
+              ],
             ),
           ),
         ),
-      );
-    } else {
-      return Container();
-    }
+      ),
+    );
   }
 }

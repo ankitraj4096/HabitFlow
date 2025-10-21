@@ -10,7 +10,7 @@ class AuthService {
     return _auth.currentUser;
   }
 
-  // Sign in with email and password (your existing code)
+  // Sign in with email and password
   Future<UserCredential> signInWithEmailPassword(
     String email,
     String password,
@@ -42,6 +42,7 @@ class AuthService {
         'uid': userCredential.user!.uid,
         'email': email,
         'username': username,
+        'friends': [], // Initialize empty friends list
       });
 
       return userCredential;
