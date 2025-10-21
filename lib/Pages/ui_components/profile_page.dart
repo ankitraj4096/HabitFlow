@@ -1,4 +1,3 @@
-import 'package:demo/Pages/ui_components/setting_page.dart';
 import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
@@ -129,8 +128,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     final gradientColors = (userTier['gradient'] as List<dynamic>?)?.map((e) => e as Color).toList() ??
         [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
     final glowColor = userTier['glow'] as Color? ?? const Color(0xFF7C4DFF);
-    final tierIcon =
-        _firestoreService.getIconFromString(userTier['icon'] ?? 'sparkles');
+    final tierIcon = _firestoreService.getIconFromString(userTier['icon'] ?? 'sparkles');
     final isAnimated = userTier['animated'] == true;
 
     return Container(
