@@ -820,27 +820,30 @@ class _HomepageState extends State<Homepage> {
           ),
         ),
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0xFF7C4DFF).withOpacity(0.4),
-              blurRadius: 15,
-              offset: Offset(0, 8),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80,right: 3),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: NewTask,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Icon(Icons.add, size: 32),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0xFF7C4DFF).withOpacity(0.4),
+                blurRadius: 15,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: FloatingActionButton(
+            onPressed: NewTask,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Icon(Icons.add, size: 32),
+          ),
         ),
       ),
     );
