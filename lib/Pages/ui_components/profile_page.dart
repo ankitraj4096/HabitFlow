@@ -3,16 +3,20 @@ import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:flutter/material.dart';
 
+
 class ProfilePage extends StatefulWidget {
   ProfilePage({super.key});
+
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
+
 class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
+
 
   String username = 'Loading...';
   int currentStreak = 0;
@@ -22,8 +26,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   Map<String, dynamic> userTier = {};
   bool isLoading = true;
 
+
   late AnimationController _glowController;
   late Animation<double> _glowAnimation;
+
 
   @override
   void initState() {
@@ -38,17 +44,20 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     _loadUserData();
   }
 
+
   @override
   void dispose() {
     _glowController.dispose();
     super.dispose();
   }
 
+
   Future<void> _loadUserData() async {
     setState(() => isLoading = true);
     try {
       final name = await _firestoreService.getUsername();
       final stats = await _firestoreService.getUserStatistics();
+
 
       setState(() {
         username = name;
@@ -64,6 +73,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       setState(() => isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +115,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _buildHeader() {
     // Get tier data
     final gradientColors = (userTier['gradient'] as List<dynamic>?)
@@ -114,6 +125,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     final glowColor = userTier['glow'] as Color? ?? const Color(0xFF7C4DFF);
     final tierIcon = _firestoreService.getIconFromString(userTier['icon'] ?? 'sparkles');
     final isAnimated = userTier['animated'] == true;
+
 
     return Container(
       width: double.infinity,
@@ -274,12 +286,15 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                             color: Colors.white,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            userTier['name'] ?? 'The Initiate',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: Text(
+                              userTier['name'] ?? 'The Initiate',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -294,6 +309,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       ),
     );
   }
+
 
   Widget _buildStatsCard() {
     return Transform.translate(
@@ -373,6 +389,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _statItem(
     IconData icon,
     String value,
@@ -425,20 +442,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Expanded(
-            child: _actionBtn(
-              'Refresh',
-              Icons.refresh,
-              const [Color(0xFF667eea), Color(0xFF764ba2)],
-              _loadUserData,
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: _actionBtn(
               'Friends',
@@ -447,7 +456,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               () {},
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: _actionBtn(
               'Settings',
@@ -460,6 +469,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       ),
     );
   }
+
 
   Widget _actionBtn(
     String label,
@@ -506,6 +516,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _buildHeatmapSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -538,6 +549,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               );
             }
 
+
             if (!snap.hasData) {
               return const Center(
                 child: Padding(
@@ -550,9 +562,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               );
             }
 
+
             final heatmapData = snap.data!;
             final totalCompletions =
                 heatmapData.values.fold(0, (sum, count) => sum + count);
+
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
