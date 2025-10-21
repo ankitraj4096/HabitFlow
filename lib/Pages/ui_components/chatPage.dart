@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/profile_page.dart';
-import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:demo/component/chatBubble.dart';
