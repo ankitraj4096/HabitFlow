@@ -15,8 +15,8 @@ class _NavBarState extends State<Navbar> {
 
   final List<Widget> _pages = [
     ChatListPage(),
-    Homepage(),
-    ProfilePage(), 
+    Homepage(),      // stays alive
+    ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
@@ -28,26 +28,21 @@ class _NavBarState extends State<Navbar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green[800],
         onTap: _onItemTapped,
+        selectedItemColor: Colors.green[800],
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }
 }
+
