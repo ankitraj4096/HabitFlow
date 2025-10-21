@@ -14,22 +14,23 @@ class ChatListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    // The entire Scaffold is wrapped in a SafeArea
+    return SafeArea(
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: SafeArea(
           child: Column(
             children: [
               _buildHeader(context),
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30),
@@ -60,7 +61,7 @@ class ChatListPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Messages',
                 style: TextStyle(
                   color: Colors.white,
@@ -70,7 +71,6 @@ class ChatListPage extends StatelessWidget {
               ),
               Row(
                 children: [
-                  // Friend Requests Button with Badge
                   Stack(
                     children: [
                       Container(
@@ -79,7 +79,7 @@ class ChatListPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
-                          icon: Icon(Icons.person_add_alt, color: Colors.white),
+                          icon: const Icon(Icons.person_add_alt, color: Colors.white),
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -90,29 +90,28 @@ class ChatListPage extends StatelessWidget {
                           },
                         ),
                       ),
-                      // Badge showing request count
                       StreamBuilder<int>(
                         stream: _friendService.getFriendRequestsCountStream(),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData || snapshot.data == 0) {
-                            return SizedBox.shrink();
+                            return const SizedBox.shrink();
                           }
                           return Positioned(
                             right: 8,
                             top: 8,
                             child: Container(
-                              padding: EdgeInsets.all(4),
-                              decoration: BoxDecoration(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
                                 color: Colors.red,
                                 shape: BoxShape.circle,
                               ),
-                              constraints: BoxConstraints(
+                              constraints: const BoxConstraints(
                                 minWidth: 18,
                                 minHeight: 18,
                               ),
                               child: Text(
                                 '${snapshot.data}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -125,15 +124,14 @@ class ChatListPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(width: 8),
-                  // Add Friends Button
+                  const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.person_search, color: Colors.white),
+                      icon: const Icon(Icons.person_search, color: Colors.white),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -148,7 +146,7 @@ class ChatListPage extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           StreamBuilder<List<Map<String, dynamic>>>(
             stream: _friendService.getFriendsStream(),
             builder: (context, snapshot) {
@@ -181,7 +179,7 @@ class ChatListPage extends StatelessWidget {
       padding: const EdgeInsets.all(20.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Color(0xFFF5F7FA),
+          color: const Color(0xFFF5F7FA),
           borderRadius: BorderRadius.circular(16),
         ),
         child: TextField(
@@ -190,7 +188,7 @@ class ChatListPage extends StatelessWidget {
             hintStyle: TextStyle(color: Colors.grey.shade500),
             prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
             border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           ),
         ),
       ),
@@ -202,33 +200,24 @@ class ChatListPage extends StatelessWidget {
       stream: _friendService.getFriendsStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              "Error loading friends",
-              style: TextStyle(color: Colors.grey),
-            ),
+          return const Center(
+            child: Text("Error loading friends", style: TextStyle(color: Colors.grey)),
           );
         }
-
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
             ),
           );
         }
-
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.people_outline,
-                  size: 80,
-                  color: Colors.grey.shade400,
-                ),
-                SizedBox(height: 16),
+                Icon(Icons.people_outline, size: 80, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
                 Text(
                   'No friends yet',
                   style: TextStyle(
@@ -237,21 +226,17 @@ class ChatListPage extends StatelessWidget {
                     color: Colors.grey.shade700,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   'Tap the search icon to find friends',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                 ),
               ],
             ),
           );
         }
-
         return ListView(
-          padding: EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           children: snapshot.data!
               .map<Widget>((userData) => _buildFriendListItem(userData, context))
               .toList(),
@@ -260,12 +245,10 @@ class ChatListPage extends StatelessWidget {
     );
   }
 
-  // Get last message for a specific chat
   Stream<QuerySnapshot> _getLastMessage(String userID, String otherUserID) {
     List<String> ids = [userID, otherUserID];
     ids.sort();
     String chatRoomID = ids.join('_');
-
     return FirebaseFirestore.instance
         .collection("chat_rooms")
         .doc(chatRoomID)
@@ -275,14 +258,10 @@ class ChatListPage extends StatelessWidget {
         .snapshots();
   }
 
-  Widget _buildFriendListItem(
-    Map<String, dynamic> userData,
-    BuildContext context,
-  ) {
+  Widget _buildFriendListItem(Map<String, dynamic> userData, BuildContext context) {
     String currentUserID = _authService.getCurrentUser()!.uid;
-
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -306,7 +285,7 @@ class ChatListPage extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -316,7 +295,7 @@ class ChatListPage extends StatelessWidget {
                   child: Center(
                     child: Text(
                       userData['username'][0].toUpperCase(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -324,58 +303,39 @@ class ChatListPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         userData['username'],
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      // StreamBuilder to show last message
+                      const SizedBox(height: 4),
                       StreamBuilder<QuerySnapshot>(
                         stream: _getLastMessage(currentUserID, userData["uid"]),
                         builder: (context, messageSnapshot) {
                           if (messageSnapshot.hasData &&
                               messageSnapshot.data!.docs.isNotEmpty) {
-                            // Get the last message
-                            var lastMessage =
-                                messageSnapshot.data!.docs.first.data()
-                                    as Map<String, dynamic>;
+                            var lastMessage = messageSnapshot.data!.docs.first.data() as Map<String, dynamic>;
                             String messageText = lastMessage['message'] ?? '';
-                            bool isCurrentUserSender =
-                                lastMessage['senderID'] == currentUserID;
-
-                            // Truncate message if too long
-                            String displayMessage = messageText.length > 30
-                                ? '${messageText.substring(0, 30)}...'
-                                : messageText;
-
+                            bool isCurrentUserSender = lastMessage['senderID'] == currentUserID;
+                            String displayMessage = messageText.length > 30 ? '${messageText.substring(0, 30)}...' : messageText;
                             return Text(
-                              isCurrentUserSender
-                                  ? 'You: $displayMessage'
-                                  : displayMessage,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade600,
-                              ),
+                              isCurrentUserSender ? 'You: $displayMessage' : displayMessage,
+                              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             );
                           } else {
-                            // No messages yet
                             return Text(
                               'Tap to start chatting',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade600,
-                              ),
+                              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                             );
                           }
                         },
@@ -383,10 +343,7 @@ class ChatListPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  color: Colors.grey.shade400,
-                ),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
               ],
             ),
           ),

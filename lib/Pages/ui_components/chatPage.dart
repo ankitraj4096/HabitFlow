@@ -1,8 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo/component/chatBubble.dart';
+import 'package:demo/Pages/ui_components/profile_page.dart';
+import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
+import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/component/chatBubble.dart';
 import 'package:demo/services/chat/chat_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 
 class ChatPage extends StatelessWidget {
   final String receiverID;
@@ -17,6 +21,7 @@ class ChatPage extends StatelessWidget {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
+  final FireStoreService _firestoreService = FireStoreService();
 
   void sendMessage() async {
     if (_messageController.text.isNotEmpty) {
@@ -25,6 +30,17 @@ class ChatPage extends StatelessWidget {
     }
   }
 
+void _openUserProfile(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ProfilePageViewer(
+        receiverID: receiverID,
+        receiverUsername: receiverUsername,
+      ),
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,62 +49,73 @@ class ChatPage extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.white,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+        title: GestureDetector(
+          onTap: () => _openUserProfile(context),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  receiverUsername[0].toUpperCase(),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                child: Center(
+                  child: Text(
+                    receiverUsername[0].toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  receiverUsername,
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    receiverUsername,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                Text(
-                  'Online',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
+                  const Text(
+                    'Online',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.more_vert, color: Colors.black87),
-            onPressed: () {},
+            icon: const Icon(Icons.person_add, color: Colors.black87),
+            onPressed: () {
+              // Friend request action
+            },
+          ),
+          IconButton(
+            icon: const Icon(LucideIcons.list_checks, color: Colors.black87),
+            onPressed: () {
+              // Tasks button - future functionality
+            },
           ),
         ],
       ),
@@ -108,14 +135,10 @@ class ChatPage extends StatelessWidget {
       stream: _chatService.getMessages(senderID, receiverID),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              "Error loading messages",
-              style: TextStyle(color: Colors.grey),
-            ),
+          return const Center(
+            child: Text("Error loading messages", style: TextStyle(color: Colors.grey)),
           );
         }
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
@@ -123,12 +146,10 @@ class ChatPage extends StatelessWidget {
             ),
           );
         }
-
+        final docs = snapshot.data!.docs;
         return ListView(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          children: snapshot.data!.docs
-              .map((doc) => _buildMessageItem(doc))
-              .toList(),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          children: docs.map((doc) => _buildMessageItem(doc)).toList(),
         );
       },
     );
@@ -137,7 +158,6 @@ class ChatPage extends StatelessWidget {
   Widget _buildMessageItem(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     bool isCurrentUser = data["senderID"] == _authService.getCurrentUser()!.uid;
-
     return ChatBubble(
       isCurrentUser: isCurrentUser,
       message: data["message"],
@@ -148,43 +168,31 @@ class ChatPage extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, -2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
       ),
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SafeArea(
         child: Row(
           children: [
             Expanded(
               child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0xFFF5F7FA),
-                  borderRadius: BorderRadius.circular(24),
-                ),
+                decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(24)),
                 child: TextField(
                   controller: _messageController,
                   decoration: InputDecoration(
                     hintText: "Type a message...",
                     hintStyle: TextStyle(color: Colors.grey.shade500),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
                   maxLines: null,
                 ),
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -192,7 +200,7 @@ class ChatPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
               ),
               child: IconButton(
-                icon: Icon(Icons.send_rounded, color: Colors.white),
+                icon: const Icon(Icons.send_rounded, color: Colors.white),
                 onPressed: sendMessage,
               ),
             ),
@@ -202,3 +210,24 @@ class ChatPage extends StatelessWidget {
     );
   }
 }
+
+/// Profile page viewer for other users. Shows profile + "Friends" + "Tasks"
+class ProfilePageViewer extends StatelessWidget {
+  final String receiverID;
+  final String receiverUsername;
+
+  const ProfilePageViewer({
+    super.key,
+    required this.receiverID,
+    required this.receiverUsername,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ProfilePage(
+      viewingUserID: receiverID,
+      viewingUsername: receiverUsername,
+    );
+  }
+}
+
