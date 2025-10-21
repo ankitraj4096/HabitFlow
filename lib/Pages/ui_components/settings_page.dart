@@ -38,11 +38,13 @@ class SettingsPage extends StatelessWidget {
               title: 'Sign Out',
               subtitle: 'Logout from your account',
               onTap: () async {
-                await _authService.signOut;
-                                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Mainpage()),
+                await _authService.signOut();
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const Mainpage()),
+                    (Route<dynamic> route) => false,
                   );
+                }
               },
             ),
             const SizedBox(height: 24),
