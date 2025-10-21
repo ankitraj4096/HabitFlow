@@ -23,6 +23,7 @@ class HeatMapPage extends StatelessWidget {
             int.parse(parts[1]),
             int.parse(parts[2]),
           );
+          // The count is passed directly. The widget uses this as a key.
           heatMapDataset[date] = count;
         }
       } catch (e) {
@@ -34,31 +35,42 @@ class HeatMapPage extends StatelessWidget {
       defaultColor: Colors.grey.shade200,
       flexible: true,
       datasets: heatMapDataset,
-      colorMode: ColorMode.opacity,
+      // THE FIX: Use ColorMode.color to select from your colorsets
+      colorMode: ColorMode.color,
       showColorTip: false,
       size: 30,
       fontSize: 10,
       monthFontSize: 12,
       weekFontSize: 11,
+      // Your color map is perfect for ColorMode.color
       colorsets: {
         1: Colors.green.shade100,
-        2: Colors.green.shade300,
-        3: Colors.green.shade500,
-        4: Colors.green.shade700,
-        5: Colors.green.shade900,
+        2: Colors.green.shade200,
+        3: Colors.green.shade300,
+        4: Colors.green.shade500,
+        5: Colors.green.shade700,
+        // Add more shades for higher counts if you want
+        6: Colors.green.shade800,
+        7: Colors.green.shade900,
       },
       onClick: (value) {
-        final count = heatMapDataset[value] ?? 0;
+        // Use the original count for the snackbar message
+        final originalCount = completionData[
+                '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}'] ??
+            0;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              count > 0 
-                  ? '$count task${count > 1 ? 's' : ''} completed on ${value.day}/${value.month}/${value.year}'
+              originalCount > 0
+                  ? '$originalCount task${originalCount > 1 ? 's' : ''} completed on ${value.day}/${value.month}/${value.year}'
                   : 'No tasks completed on ${value.day}/${value.month}/${value.year}',
             ),
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       },

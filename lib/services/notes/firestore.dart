@@ -14,7 +14,11 @@ class FireStoreService {
   }
 
   /// Adds a new task to Firebase
-  Future<String?> addTask(bool isCompleted, String taskName, [int? durationMins]) async {
+  Future<String?> addTask(
+    bool isCompleted,
+    String taskName, [
+    int? durationMins,
+  ]) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
 
@@ -53,7 +57,12 @@ class FireStoreService {
   }
 
   /// Updates a task in Firebase
-  Future<void> updateTask(String docID, bool isCompleted, String taskName, [int? durationMins]) async {
+  Future<void> updateTask(
+    String docID,
+    bool isCompleted,
+    String taskName, [
+    int? durationMins,
+  ]) async {
     try {
       final Map<String, dynamic> updateData = {
         'isCompleted': isCompleted,
@@ -115,7 +124,11 @@ class FireStoreService {
   }
 
   /// Starts or pauses the timer on a task
-  Future<void> toggleTimer(String docId, bool isRunning, int elapsedSeconds) async {
+  Future<void> toggleTimer(
+    String docId,
+    bool isRunning,
+    int elapsedSeconds,
+  ) async {
     try {
       final docRef = _userNotes.doc(docId);
 
@@ -156,39 +169,46 @@ class FireStoreService {
     }
   }
 
-    Future<Map<String, dynamic>> getUserStatistics() async {
+  /// Get user statistics - FIXED: Now uses 'timestamp' consistently
+  Future<Map<String, dynamic>> getUserStatistics() async {
     try {
       final snapshot = await _userNotes.get();
-      
+
       int totalTasks = snapshot.docs.length;
       int completedTasks = 0;
       int totalHours = 0;
       Map<String, int> completionsByDate = {};
-      
+
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        
+
         // Count completed tasks
         if (data['isCompleted'] == true) {
           completedTasks++;
-          
-          // Track completion date for heatmap
-          final timestamp = data['lastUpdated'] as Timestamp?;
+
+          // FIXED: Use 'timestamp' (creation date) not 'lastUpdated'
+          final timestamp = data['timestamp'] as Timestamp?;
           if (timestamp != null) {
             final dateKey = _formatDate(timestamp.toDate());
             completionsByDate[dateKey] = (completionsByDate[dateKey] ?? 0) + 1;
+            
+            // Debug print
+            print('Task completed on $dateKey, new count: ${completionsByDate[dateKey]}');
           }
         }
-        
+
         // Calculate total hours from timer tasks
         if (data['hasTimer'] == true && data['elapsedSeconds'] != null) {
           totalHours += (data['elapsedSeconds'] as int) ~/ 3600;
         }
       }
-      
+
+      // Debug print
+      print('Total completions by date: $completionsByDate');
+
       // Calculate current streak
       int currentStreak = _calculateStreak(completionsByDate);
-      
+
       return {
         'totalTasks': totalTasks,
         'completedTasks': completedTasks,
@@ -208,25 +228,31 @@ class FireStoreService {
     }
   }
 
-  /// Get heatmap data for the last 90 days
+  /// Get heatmap data stream - FIXED: Uses 'timestamp' consistently
   Stream<Map<String, int>> getHeatmapData() {
     return _userNotes
         .where('isCompleted', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      Map<String, int> heatmapData = {};
+      final Map<String, int> heatmap = {};
       
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        final timestamp = data['lastUpdated'] as Timestamp?;
         
-        if (timestamp != null) {
-          final dateKey = _formatDate(timestamp.toDate());
-          heatmapData[dateKey] = (heatmapData[dateKey] ?? 0) + 1;
+        // FIXED: Use 'timestamp' consistently
+        final ts = data['timestamp'] as Timestamp?;
+        if (ts != null) {
+          final d = ts.toDate();
+          final key = _formatDate(d);
+          heatmap[key] = (heatmap[key] ?? 0) + 1;
+          
+          // Debug print
+          print('Heatmap: $key -> ${heatmap[key]}');
         }
       }
       
-      return heatmapData;
+      print('Final heatmap data: $heatmap');
+      return heatmap;
     });
   }
 
@@ -238,15 +264,15 @@ class FireStoreService {
   /// Calculate current streak of consecutive days with completions
   int _calculateStreak(Map<String, int> completionsByDate) {
     if (completionsByDate.isEmpty) return 0;
-    
+
     final today = DateTime.now();
     int streak = 0;
-    
+
     // Check backwards from today
     for (int i = 0; i < 365; i++) {
       final checkDate = today.subtract(Duration(days: i));
       final dateKey = _formatDate(checkDate);
-      
+
       if (completionsByDate.containsKey(dateKey)) {
         streak++;
       } else {
@@ -257,7 +283,7 @@ class FireStoreService {
         break;
       }
     }
-    
+
     return streak;
   }
 
@@ -266,12 +292,12 @@ class FireStoreService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return 'User';
-      
+
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-      
+
       return userDoc.data()?['username'] ?? 'User';
     } catch (e) {
       print('Error getting username: $e');
