@@ -1,32 +1,26 @@
-import 'package:demo/Pages/ui_components/setting_page.dart';
+import 'package:demo/Pages/ui_components/friendTasksManager.dart'; // Make sure this import is correct
+import 'package:demo/Pages/ui_components/settings_page.dart';
 import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:flutter/material.dart';
 
-
 class ProfilePage extends StatefulWidget {
-  final String? viewingUserID; 
-  final String? viewingUsername; 
+  final String? viewingUserID;
+  final String? viewingUsername;
   final bool isOwnProfile; // True if viewing own profile
 
-
-  ProfilePage({
-    super.key,
-    this.viewingUserID,
-    this.viewingUsername,
-  }) : isOwnProfile = viewingUserID == null;
-
+  ProfilePage({super.key, this.viewingUserID, this.viewingUsername})
+      : isOwnProfile = viewingUserID == null;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-
-class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage>
+    with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
-
 
   String username = 'Loading...';
   int currentStreak = 0;
@@ -36,10 +30,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   Map<String, dynamic> userTier = {};
   bool isLoading = true;
 
-
   late AnimationController _glowController;
   late Animation<double> _glowAnimation;
-
 
   @override
   void initState() {
@@ -54,13 +46,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     _loadUserData();
   }
 
-
   @override
   void dispose() {
     _glowController.dispose();
     super.dispose();
   }
-
 
   Future<void> _loadUserData() async {
     setState(() => isLoading = true);
@@ -68,33 +58,34 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       final String name;
       final Map<String, dynamic> stats;
 
-
       if (widget.isOwnProfile) {
-        // Load current user's data
         name = await _firestoreService.getUsername();
         stats = await _firestoreService.getUserStatistics();
       } else {
-        // Load other user's data
         name = widget.viewingUsername ?? 'User';
-        stats = await _firestoreService.getUserStatisticsForUser(widget.viewingUserID!);
+        stats = await _firestoreService.getUserStatisticsForUser(
+          widget.viewingUserID!,
+        );
       }
 
-
-      setState(() {
-        username = name;
-        currentStreak = stats['currentStreak'];
-        totalTasks = stats['totalTasks'];
-        completedTasks = stats['completedTasks'];
-        totalHours = stats['totalHours'];
-        userTier = _firestoreService.getUserTier(completedTasks);
-      });
+      if (mounted) {
+        setState(() {
+          username = name;
+          currentStreak = stats['currentStreak'];
+          totalTasks = stats['totalTasks'];
+          completedTasks = stats['completedTasks'];
+          totalHours = stats['totalHours'];
+          userTier = _firestoreService.getUserTier(completedTasks);
+        });
+      }
     } catch (e) {
       print('Error loading user data: $e');
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +103,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           child: isLoading
               ? const Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF7C4DFF),
+                    ),
                   ),
                 )
               : RefreshIndicator(
@@ -137,14 +130,16 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-
   Widget _buildHeader() {
-    final gradientColors = (userTier['gradient'] as List<dynamic>?)?.map((e) => e as Color).toList() ??
+    final gradientColors = (userTier['gradient'] as List<dynamic>?)
+            ?.map((e) => e as Color)
+            .toList() ??
         [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
     final glowColor = userTier['glow'] as Color? ?? const Color(0xFF7C4DFF);
-    final tierIcon = _firestoreService.getIconFromString(userTier['icon'] ?? 'sparkles');
+    final tierIcon = _firestoreService.getIconFromString(
+      userTier['icon'] ?? 'sparkles',
+    );
     final isAnimated = userTier['animated'] == true;
-
 
     return Container(
       width: double.infinity,
@@ -176,7 +171,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.isOwnProfile ? 'Your Profile' : '$username\'s Profile',
+                    widget.isOwnProfile
+                        ? 'Your Profile'
+                        : '$username\'s Profile',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -185,12 +182,13 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.isOwnProfile ? 'Keep building great habits! 🚀' : 'View their progress',
+                    widget.isOwnProfile
+                        ? 'Keep building great habits! 🚀'
+                        : 'View their progress',
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
               ),
-              // Only show logout for own profile
               if (widget.isOwnProfile)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -223,7 +221,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       gradient: LinearGradient(colors: gradientColors),
                       boxShadow: [
                         BoxShadow(
-                          color: glowColor.withOpacity(isAnimated ? _glowAnimation.value : 0.5),
+                          color: glowColor.withOpacity(
+                            isAnimated ? _glowAnimation.value : 0.5,
+                          ),
                           blurRadius: 25,
                           spreadRadius: 3,
                         ),
@@ -237,7 +237,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                           bottom: 4,
                           right: 4,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.7),
                               borderRadius: BorderRadius.circular(10),
@@ -276,11 +279,17 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                     Text(
                       '@${username.toLowerCase().replaceAll(' ', '')}',
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
@@ -314,7 +323,6 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       ),
     );
   }
-
 
   Widget _buildStatsCard() {
     return Transform.translate(
@@ -394,8 +402,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-
-  Widget _statItem(IconData icon, String value, String label, Color color, Color bg) {
+  Widget _statItem(
+      IconData icon, String value, String label, Color color, Color bg) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -410,7 +418,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+            decoration:
+                BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -435,7 +444,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-
+  // *** THIS IS THE CORRECTED METHOD ***
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -447,7 +456,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               Icons.people,
               const [Color(0xFFf093fb), Color(0xFFf5576c)],
               () {
-                // Navigate to Friends page
+                // Navigate to Friends page (future implementation)
               },
             ),
           ),
@@ -459,13 +468,22 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               const [Color(0xFF4facfe), Color(0xFF00f2fe)],
               () {
                 if (widget.isOwnProfile) {
-                  // Navigate to Settings page
+                  // Navigate to the user's own settings page
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => SettingsPage()),
                   );
                 } else {
-                  // View other user's tasks
+                  // Navigate to the friend's task manager page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FriendTasksManagerPage(
+                        friendUserID: widget.viewingUserID!,
+                        friendUsername: widget.viewingUsername ?? 'Friend',
+                      ),
+                    ),
+                  );
                 }
               },
             ),
@@ -475,8 +493,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-
-  Widget _actionBtn(String label, IconData icon, List<Color> colors, VoidCallback onTap) {
+  Widget _actionBtn(
+      String label, IconData icon, List<Color> colors, VoidCallback onTap) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: colors),
@@ -516,7 +534,6 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-
   Widget _buildHeatmapSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -543,20 +560,27 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               : _firestoreService.getHeatmapDataForUser(widget.viewingUserID!),
           builder: (context, snap) {
             if (snap.hasError) {
-              return const Center(child: Text('Error loading heatmap', style: TextStyle(color: Colors.red)));
+              return const Center(
+                  child: Text('Error loading heatmap',
+                      style: TextStyle(color: Colors.red)));
             }
             if (!snap.hasData) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20.0),
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF7C4DFF),
+                    ),
                   ),
                 ),
               );
             }
             final heatmapData = snap.data!;
-            final totalCompletions = heatmapData.values.fold(0, (sum, count) => sum + count);
+            final totalCompletions = heatmapData.values.fold(
+              0,
+              (sum, count) => sum + count,
+            );
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -582,7 +606,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.calendar_today, color: Color(0xFF7C4DFF), size: 20),
+                        const Icon(Icons.calendar_today,
+                            color: Color(0xFF7C4DFF), size: 20),
                       ],
                     ),
                   ],
@@ -593,7 +618,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Less', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    Text('Less',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                     const SizedBox(width: 8),
                     ...List.generate(
                       5,
@@ -608,7 +634,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text('More', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    Text('More',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                   ],
                 ),
               ],

@@ -1,8 +1,9 @@
+import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatelessWidget {
-  final AuthService _authService =AuthService();
+  final AuthService _authService = AuthService();
   SettingsPage({super.key});
 
   @override
@@ -36,7 +37,13 @@ class SettingsPage extends StatelessWidget {
               icon: Icons.logout,
               title: 'Sign Out',
               subtitle: 'Logout from your account',
-              onTap: () async=>await _authService.signOut(),
+              onTap: () async {
+                await _authService.signOut;
+                                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Mainpage()),
+                  );
+              },
             ),
             const SizedBox(height: 24),
             _buildSectionTitle('Preferences'),
@@ -117,11 +124,13 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildListTile(BuildContext context,
-      {required IconData icon,
-      required String title,
-      String? subtitle,
-      VoidCallback? onTap}) {
+  Widget _buildListTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       leading: Icon(icon, color: const Color(0xFF7C4DFF)),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
