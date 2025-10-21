@@ -1,12 +1,15 @@
+import 'package:demo/Pages/ui_components/setting_page.dart';
 import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:flutter/material.dart';
 
+
 class ProfilePage extends StatefulWidget {
   final String? viewingUserID; 
   final String? viewingUsername; 
   final bool isOwnProfile; // True if viewing own profile
+
 
   ProfilePage({
     super.key,
@@ -14,13 +17,16 @@ class ProfilePage extends StatefulWidget {
     this.viewingUsername,
   }) : isOwnProfile = viewingUserID == null;
 
+
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
+
 class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
+
 
   String username = 'Loading...';
   int currentStreak = 0;
@@ -30,8 +36,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   Map<String, dynamic> userTier = {};
   bool isLoading = true;
 
+
   late AnimationController _glowController;
   late Animation<double> _glowAnimation;
+
 
   @override
   void initState() {
@@ -46,17 +54,20 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     _loadUserData();
   }
 
+
   @override
   void dispose() {
     _glowController.dispose();
     super.dispose();
   }
 
+
   Future<void> _loadUserData() async {
     setState(() => isLoading = true);
     try {
       final String name;
       final Map<String, dynamic> stats;
+
 
       if (widget.isOwnProfile) {
         // Load current user's data
@@ -67,6 +78,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         name = widget.viewingUsername ?? 'User';
         stats = await _firestoreService.getUserStatisticsForUser(widget.viewingUserID!);
       }
+
 
       setState(() {
         username = name;
@@ -82,6 +94,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       setState(() => isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -124,12 +137,14 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _buildHeader() {
     final gradientColors = (userTier['gradient'] as List<dynamic>?)?.map((e) => e as Color).toList() ??
         [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
     final glowColor = userTier['glow'] as Color? ?? const Color(0xFF7C4DFF);
     final tierIcon = _firestoreService.getIconFromString(userTier['icon'] ?? 'sparkles');
     final isAnimated = userTier['animated'] == true;
+
 
     return Container(
       width: double.infinity,
@@ -300,6 +315,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _buildStatsCard() {
     return Transform.translate(
       offset: const Offset(0, -20),
@@ -378,6 +394,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _statItem(IconData icon, String value, String label, Color color, Color bg) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -418,6 +435,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
+
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -429,7 +447,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               Icons.people,
               const [Color(0xFFf093fb), Color(0xFFf5576c)],
               () {
-                // Friends functionality
+                // Navigate to Friends page
               },
             ),
           ),
@@ -440,7 +458,15 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               widget.isOwnProfile ? Icons.settings : Icons.task_alt,
               const [Color(0xFF4facfe), Color(0xFF00f2fe)],
               () {
-                // Settings or Tasks functionality
+                if (widget.isOwnProfile) {
+                  // Navigate to Settings page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SettingsPage()),
+                  );
+                } else {
+                  // View other user's tasks
+                }
               },
             ),
           ),
@@ -448,6 +474,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       ),
     );
   }
+
 
   Widget _actionBtn(String label, IconData icon, List<Color> colors, VoidCallback onTap) {
     return Container(
@@ -488,6 +515,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       ),
     );
   }
+
 
   Widget _buildHeatmapSection() {
     return Padding(
