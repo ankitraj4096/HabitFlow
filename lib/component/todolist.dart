@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'dart:async';
 
+
 class Todolist extends StatefulWidget {
   final String TaskName;
   final bool IsChecked;
@@ -20,6 +21,7 @@ class Todolist extends StatefulWidget {
   // Sync status
   final bool isSynced;
 
+
   const Todolist({
     super.key,
     required this.TaskName,
@@ -33,16 +35,19 @@ class Todolist extends StatefulWidget {
     this.isRunning = false,
     this.onTimerToggle,
     this.onTimerReset,
-    this.isSynced = true, // Default to synced
+    this.isSynced = true,
   });
+
 
   @override
   State<Todolist> createState() => _TodolistState();
 }
 
+
 class _TodolistState extends State<Todolist> {
   Timer? _timer;
   int _currentElapsed = 0;
+
 
   @override
   void initState() {
@@ -53,11 +58,11 @@ class _TodolistState extends State<Todolist> {
     }
   }
 
+
   @override
   void didUpdateWidget(Todolist oldWidget) {
     super.didUpdateWidget(oldWidget);
     
-    // Handle timer state changes
     if (widget.isRunning != oldWidget.isRunning) {
       if (widget.isRunning) {
         _startTimer();
@@ -66,7 +71,6 @@ class _TodolistState extends State<Todolist> {
       }
     }
     
-    // Update elapsed time if changed externally
     if (widget.elapsedSeconds != oldWidget.elapsedSeconds) {
       setState(() {
         _currentElapsed = widget.elapsedSeconds;
@@ -74,20 +78,20 @@ class _TodolistState extends State<Todolist> {
     }
   }
 
+
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
 
+
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      // Check if timer has completed
       if (widget.totalDuration != null && _currentElapsed >= widget.totalDuration!) {
         _stopTimer();
         widget.onTimerToggle?.call();
-        // Show completion notification
         _showTimerCompleteSnackbar();
         return;
       }
@@ -98,9 +102,11 @@ class _TodolistState extends State<Todolist> {
     });
   }
 
+
   void _stopTimer() {
     _timer?.cancel();
   }
+
 
   void _showTimerCompleteSnackbar() {
     if (mounted) {
@@ -129,6 +135,7 @@ class _TodolistState extends State<Todolist> {
     }
   }
 
+
   String _formatTime(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
@@ -140,6 +147,7 @@ class _TodolistState extends State<Todolist> {
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
+
   double _getProgress() {
     if (widget.totalDuration == null || widget.totalDuration == 0) {
       return 0.0;
@@ -147,16 +155,18 @@ class _TodolistState extends State<Todolist> {
     return (_currentElapsed / widget.totalDuration!).clamp(0.0, 1.0);
   }
 
+
   Color _getTimerColor() {
     final progress = _getProgress();
     if (progress < 0.5) {
-      return Color(0xFF4CAF50); // Green
+      return Color(0xFF4CAF50);
     } else if (progress < 0.8) {
-      return Color(0xFFFFA726); // Orange
+      return Color(0xFFFFA726);
     } else {
-      return Color(0xFFEF5350); // Red
+      return Color(0xFFEF5350);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -188,14 +198,8 @@ class _TodolistState extends State<Todolist> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: widget.IsChecked
-                  ? [
-                      Color(0xFFE8EAF6),
-                      Color(0xFFC5CAE9),
-                    ]
-                  : [
-                      Colors.white,
-                      Color(0xFFFAFAFA),
-                    ],
+                  ? [Color(0xFFE8EAF6), Color(0xFFC5CAE9)]
+                  : [Colors.white, Color(0xFFFAFAFA)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -205,7 +209,7 @@ class _TodolistState extends State<Todolist> {
                   ? Color(0xFF7C4DFF).withOpacity(0.3)
                   : widget.isSynced
                       ? Colors.grey.withOpacity(0.2)
-                      : Colors.orange.withOpacity(0.4), // Orange border if not synced
+                      : Colors.orange.withOpacity(0.4),
               width: 1.5,
             ),
             boxShadow: [
@@ -227,9 +231,12 @@ class _TodolistState extends State<Todolist> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Main Task Row
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Custom Checkbox
                         Container(
@@ -262,24 +269,21 @@ class _TodolistState extends State<Todolist> {
                                 : [],
                           ),
                           child: widget.IsChecked
-                              ? Icon(
-                                  Icons.check_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                )
+                              ? Icon(Icons.check_rounded, color: Colors.white, size: 20)
                               : null,
                         ),
-                        SizedBox(width: 16),
+                        SizedBox(width: 12),
                         
-                        // Task Text
+                        // Task Text - Flexible to prevent overflow
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 widget.TaskName,
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   color: widget.IsChecked
                                       ? Colors.grey.shade600
@@ -290,10 +294,13 @@ class _TodolistState extends State<Todolist> {
                                   decorationColor: Colors.grey.shade400,
                                   decorationThickness: 2,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               if (widget.IsChecked) ...[
                                 SizedBox(height: 4),
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
                                       Icons.check_circle,
@@ -304,7 +311,7 @@ class _TodolistState extends State<Todolist> {
                                     Text(
                                       'Completed',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 10,
                                         color: Color(0xFF4CAF50),
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -316,101 +323,97 @@ class _TodolistState extends State<Todolist> {
                           ),
                         ),
                         
-                        // Sync Status Indicator
-                        if (!widget.isSynced) ...[
-                          Tooltip(
-                            message: 'Syncing to cloud...',
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.orange.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 12,
-                                    height: 12,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                        SizedBox(width: 8),
+                        
+                        // Right side badges column
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Sync Status Indicator
+                            if (!widget.isSynced) ...[
+                              Tooltip(
+                                message: 'Syncing to cloud...',
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: Colors.orange.withOpacity(0.3),
+                                      width: 1,
                                     ),
                                   ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Syncing',
-                                    style: TextStyle(
-                                      color: Colors.orange.shade700,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 10,
+                                        height: 10,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                                        ),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Sync',
+                                        style: TextStyle(
+                                          color: Colors.orange.shade700,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                            ],
+                            
+                            // Timer Badge
+                            if (widget.hasTimer)
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Color(0xFF7C4DFF).withOpacity(0.15),
+                                      Color(0xFF448AFF).withOpacity(0.15),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: Color(0xFF7C4DFF).withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.timer, size: 12, color: Color(0xFF7C4DFF)),
+                                    SizedBox(width: 3),
+                                    Text(
+                                      'Timer',
+                                      style: TextStyle(
+                                        color: Color(0xFF7C4DFF),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                        ],
-                        
-                        // Timer Badge
-                        if (widget.hasTimer) ...[
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Color(0xFF7C4DFF).withOpacity(0.15),
-                                  Color(0xFF448AFF).withOpacity(0.15),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Color(0xFF7C4DFF).withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.timer,
-                                  size: 14,
-                                  color: Color(0xFF7C4DFF),
+                                  ],
                                 ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Timer',
-                                  style: TextStyle(
-                                    color: Color(0xFF7C4DFF),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                        ],
-                        
-                        // Swipe Indicator
-                        Icon(
-                          Icons.chevron_left,
-                          color: Colors.grey.shade400,
-                          size: 20,
+                              ),
+                          ],
                         ),
                       ],
                     ),
                     
                     // Timer Section
                     if (widget.hasTimer && widget.totalDuration != null) ...[
-                      SizedBox(height: 16),
+                      SizedBox(height: 12),
                       Container(
-                        padding: EdgeInsets.all(12),
+                        padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -427,116 +430,122 @@ class _TodolistState extends State<Todolist> {
                           ),
                         ),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             // Progress Bar
-                            Stack(
-                              children: [
-                                Container(
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                                FractionallySizedBox(
-                                  widthFactor: _getProgress(),
-                                  child: Container(
-                                    height: 8,
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 6,
                                     decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          _getTimerColor(),
-                                          _getTimerColor().withOpacity(0.7),
-                                        ],
-                                      ),
+                                      color: Colors.white,
                                       borderRadius: BorderRadius.circular(4),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: _getTimerColor().withOpacity(0.3),
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
                                     ),
                                   ),
-                                ),
-                              ],
+                                  FractionallySizedBox(
+                                    widthFactor: _getProgress(),
+                                    child: Container(
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            _getTimerColor(),
+                                            _getTimerColor().withOpacity(0.7),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            SizedBox(height: 12),
+                            SizedBox(height: 10),
                             
                             // Timer Controls Row
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 // Time Display
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: _getTimerColor().withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        widget.isRunning 
-                                            ? Icons.play_circle_filled 
-                                            : Icons.access_time,
-                                        size: 18,
-                                        color: _getTimerColor(),
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _formatTime(_currentElapsed),
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: _getTimerColor(),
-                                            letterSpacing: 0.5,
-                                          ),
+                                Flexible(
+                                  flex: 2,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(5),
+                                        decoration: BoxDecoration(
+                                          color: _getTimerColor().withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(6),
                                         ),
-                                        Text(
-                                          'of ${_formatTime(widget.totalDuration!)}',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.grey.shade600,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                        child: Icon(
+                                          widget.isRunning 
+                                              ? Icons.play_circle_filled 
+                                              : Icons.access_time,
+                                          size: 16,
+                                          color: _getTimerColor(),
                                         ),
-                                      ],
-                                    ),
-                                  ],
+                                      ),
+                                      SizedBox(width: 6),
+                                      Flexible(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              _formatTime(_currentElapsed),
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: _getTimerColor(),
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                            Text(
+                                              'of ${_formatTime(widget.totalDuration!)}',
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                color: Colors.grey.shade600,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                                 
                                 // Control Buttons
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     // Play/Pause Button
                                     Material(
                                       color: Colors.transparent,
                                       child: InkWell(
                                         onTap: widget.onTimerToggle,
-                                        borderRadius: BorderRadius.circular(24),
+                                        borderRadius: BorderRadius.circular(20),
                                         child: Container(
-                                          padding: EdgeInsets.all(10),
+                                          padding: EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: widget.isRunning
                                                   ? [Color(0xFFFFA726), Color(0xFFFF9800)]
                                                   : [Color(0xFF4CAF50), Color(0xFF66BB6A)],
                                             ),
-                                            borderRadius: BorderRadius.circular(24),
+                                            borderRadius: BorderRadius.circular(20),
                                             boxShadow: [
                                               BoxShadow(
                                                 color: (widget.isRunning 
                                                     ? Color(0xFFFFA726) 
                                                     : Color(0xFF4CAF50))
-                                                    .withOpacity(0.4),
-                                                blurRadius: 8,
-                                                offset: Offset(0, 3),
+                                                    .withOpacity(0.3),
+                                                blurRadius: 6,
+                                                offset: Offset(0, 2),
                                               ),
                                             ],
                                           ),
@@ -545,19 +554,18 @@ class _TodolistState extends State<Todolist> {
                                                 ? Icons.pause_rounded 
                                                 : Icons.play_arrow_rounded,
                                             color: Colors.white,
-                                            size: 22,
+                                            size: 18,
                                           ),
                                         ),
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    SizedBox(width: 6),
                                     
                                     // Reset Button
                                     Material(
                                       color: Colors.transparent,
                                       child: InkWell(
                                         onTap: () {
-                                          // Show confirmation dialog
                                           showDialog(
                                             context: context,
                                             builder: (context) => AlertDialog(
@@ -565,6 +573,7 @@ class _TodolistState extends State<Todolist> {
                                                 borderRadius: BorderRadius.circular(16),
                                               ),
                                               title: Row(
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   Icon(
                                                     Icons.warning_amber_rounded,
@@ -605,26 +614,26 @@ class _TodolistState extends State<Todolist> {
                                             ),
                                           );
                                         },
-                                        borderRadius: BorderRadius.circular(24),
+                                        borderRadius: BorderRadius.circular(20),
                                         child: Container(
-                                          padding: EdgeInsets.all(10),
+                                          padding: EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: [Color(0xFFEF5350), Color(0xFFE53935)],
                                             ),
-                                            borderRadius: BorderRadius.circular(24),
+                                            borderRadius: BorderRadius.circular(20),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Color(0xFFEF5350).withOpacity(0.4),
-                                                blurRadius: 8,
-                                                offset: Offset(0, 3),
+                                                color: Color(0xFFEF5350).withOpacity(0.3),
+                                                blurRadius: 6,
+                                                offset: Offset(0, 2),
                                               ),
                                             ],
                                           ),
                                           child: Icon(
                                             Icons.refresh_rounded,
                                             color: Colors.white,
-                                            size: 22,
+                                            size: 18,
                                           ),
                                         ),
                                       ),
@@ -636,30 +645,31 @@ class _TodolistState extends State<Todolist> {
                             
                             // Timer Status Text
                             if (widget.isRunning) ...[
-                              SizedBox(height: 8),
+                              SizedBox(height: 6),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    width: 6,
-                                    height: 6,
+                                    width: 5,
+                                    height: 5,
                                     decoration: BoxDecoration(
                                       color: Color(0xFF4CAF50),
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
                                           color: Color(0xFF4CAF50).withOpacity(0.5),
-                                          blurRadius: 4,
+                                          blurRadius: 3,
                                           spreadRadius: 1,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  SizedBox(width: 6),
+                                  SizedBox(width: 4),
                                   Text(
                                     'Timer Running',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       color: Color(0xFF4CAF50),
                                       fontWeight: FontWeight.w600,
                                     ),
