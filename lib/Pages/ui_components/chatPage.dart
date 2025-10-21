@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/friendTasksManager.dart';
 import 'package:demo/Pages/ui_components/profile_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
-import 'package:demo/services/notes/firestore.dart';
 import 'package:demo/component/chatBubble.dart';
 import 'package:demo/services/chat/chat_service.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +20,6 @@ class ChatPage extends StatelessWidget {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
-  final FireStoreService _firestoreService = FireStoreService();
 
   void sendMessage() async {
     if (_messageController.text.isNotEmpty) {

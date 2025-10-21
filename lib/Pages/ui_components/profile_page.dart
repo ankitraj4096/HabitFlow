@@ -1,4 +1,4 @@
-import 'package:demo/Pages/ui_components/friendTasksManager.dart'; // Make sure this import is correct
+import 'package:demo/Pages/ui_components/friendTasksManager.dart';
 import 'package:demo/Pages/ui_components/settings_page.dart';
 import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 class ProfilePage extends StatefulWidget {
   final String? viewingUserID;
   final String? viewingUsername;
-  final bool isOwnProfile; // True if viewing own profile
+  final bool isOwnProfile; 
 
   ProfilePage({super.key, this.viewingUserID, this.viewingUsername})
       : isOwnProfile = viewingUserID == null;
