@@ -38,6 +38,7 @@ class ChatService {
 
     // construct chat room ID for the two users (sorted to ensure uniqueness)
     List<String> ids = [currentUserID, receiverID];
+    ids.sort();
     String chatRoomID = ids.join('_');
 
     // add new message to database

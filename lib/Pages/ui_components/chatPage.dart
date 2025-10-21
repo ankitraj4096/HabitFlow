@@ -105,7 +105,7 @@ class ChatPage extends StatelessWidget {
   Widget _buildMessageList() {
     String senderID = _authService.getCurrentUser()!.uid;
     return StreamBuilder(
-      stream: _chatService.getMessages(receiverID, senderID),
+      stream: _chatService.getMessages(senderID, receiverID),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
