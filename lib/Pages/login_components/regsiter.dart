@@ -51,6 +51,7 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     @override
+    // ignore: unused_element
     void dispose() {
       confirmPasswordController.dispose();
       usernameController.dispose();

@@ -37,6 +37,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     @override
+    // ignore: unused_element
     void dispose() {
       emailController.dispose();
       passwordController.dispose();

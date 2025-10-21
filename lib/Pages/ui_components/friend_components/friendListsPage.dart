@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.dart';
 import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
