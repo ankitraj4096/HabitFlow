@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'dart:async';
 
-
 class Todolist extends StatefulWidget {
   final String TaskName;
   final bool IsChecked;
   final Function(bool?)? onChanged;
   final Function(BuildContext)? Delete_Fun;
   final Function(BuildContext)? Update_Fun;
-  
+
   // Timer properties
   final bool hasTimer;
   final int? totalDuration; // in seconds
@@ -17,10 +16,10 @@ class Todolist extends StatefulWidget {
   final bool isRunning;
   final VoidCallback? onTimerToggle;
   final VoidCallback? onTimerReset;
-  
+  final String? assignedByUsername;
+
   // Sync status
   final bool isSynced;
-
 
   const Todolist({
     super.key,
@@ -36,18 +35,16 @@ class Todolist extends StatefulWidget {
     this.onTimerToggle,
     this.onTimerReset,
     this.isSynced = true,
+    required this.assignedByUsername,
   });
-
 
   @override
   State<Todolist> createState() => _TodolistState();
 }
 
-
 class _TodolistState extends State<Todolist> {
   Timer? _timer;
   int _currentElapsed = 0;
-
 
   @override
   void initState() {
@@ -58,11 +55,10 @@ class _TodolistState extends State<Todolist> {
     }
   }
 
-
   @override
   void didUpdateWidget(Todolist oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (widget.isRunning != oldWidget.isRunning) {
       if (widget.isRunning) {
         _startTimer();
@@ -70,7 +66,7 @@ class _TodolistState extends State<Todolist> {
         _stopTimer();
       }
     }
-    
+
     if (widget.elapsedSeconds != oldWidget.elapsedSeconds) {
       setState(() {
         _currentElapsed = widget.elapsedSeconds;
@@ -78,13 +74,11 @@ class _TodolistState extends State<Todolist> {
     }
   }
 
-
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
-
 
   void _startTimer() {
     _timer?.cancel();
@@ -95,18 +89,16 @@ class _TodolistState extends State<Todolist> {
         _showTimerCompleteSnackbar();
         return;
       }
-      
+
       setState(() {
         _currentElapsed++;
       });
     });
   }
 
-
   void _stopTimer() {
     _timer?.cancel();
   }
-
 
   void _showTimerCompleteSnackbar() {
     if (mounted) {
@@ -135,18 +127,16 @@ class _TodolistState extends State<Todolist> {
     }
   }
 
-
   String _formatTime(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
     final secs = seconds % 60;
-    
+
     if (hours > 0) {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
     }
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
-
 
   double _getProgress() {
     if (widget.totalDuration == null || widget.totalDuration == 0) {
@@ -154,7 +144,6 @@ class _TodolistState extends State<Todolist> {
     }
     return (_currentElapsed / widget.totalDuration!).clamp(0.0, 1.0);
   }
-
 
   Color _getTimerColor() {
     final progress = _getProgress();
@@ -166,7 +155,6 @@ class _TodolistState extends State<Todolist> {
       return Color(0xFFEF5350);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +261,7 @@ class _TodolistState extends State<Todolist> {
                               : null,
                         ),
                         SizedBox(width: 12),
-                        
+
                         // Task Text - Flexible to prevent overflow
                         Expanded(
                           child: Column(
@@ -297,6 +285,26 @@ class _TodolistState extends State<Todolist> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
+
+                              // NEW: Show who assigned this task
+                              if (widget.assignedByUsername != null) ...[
+                                SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.person, size: 14, color: Colors.purple),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'From: ${widget.assignedByUsername}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.purple,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+
                               if (widget.IsChecked) ...[
                                 SizedBox(height: 4),
                                 Row(
@@ -322,9 +330,9 @@ class _TodolistState extends State<Todolist> {
                             ],
                           ),
                         ),
-                        
+
                         SizedBox(width: 8),
-                        
+
                         // Right side badges column
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -370,7 +378,7 @@ class _TodolistState extends State<Todolist> {
                               ),
                               SizedBox(height: 4),
                             ],
-                            
+
                             // Timer Badge
                             if (widget.hasTimer)
                               Container(
@@ -408,7 +416,7 @@ class _TodolistState extends State<Todolist> {
                         ),
                       ],
                     ),
-                    
+
                     // Timer Section
                     if (widget.hasTimer && widget.totalDuration != null) ...[
                       SizedBox(height: 12),
@@ -463,7 +471,7 @@ class _TodolistState extends State<Todolist> {
                               ),
                             ),
                             SizedBox(height: 10),
-                            
+
                             // Timer Controls Row
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -481,8 +489,8 @@ class _TodolistState extends State<Todolist> {
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Icon(
-                                          widget.isRunning 
-                                              ? Icons.play_circle_filled 
+                                          widget.isRunning
+                                              ? Icons.play_circle_filled
                                               : Icons.access_time,
                                           size: 16,
                                           color: _getTimerColor(),
@@ -518,7 +526,7 @@ class _TodolistState extends State<Todolist> {
                                     ],
                                   ),
                                 ),
-                                
+
                                 // Control Buttons
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -540,9 +548,9 @@ class _TodolistState extends State<Todolist> {
                                             borderRadius: BorderRadius.circular(20),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: (widget.isRunning 
-                                                    ? Color(0xFFFFA726) 
-                                                    : Color(0xFF4CAF50))
+                                                color: (widget.isRunning
+                                                        ? Color(0xFFFFA726)
+                                                        : Color(0xFF4CAF50))
                                                     .withOpacity(0.3),
                                                 blurRadius: 6,
                                                 offset: Offset(0, 2),
@@ -550,8 +558,8 @@ class _TodolistState extends State<Todolist> {
                                             ],
                                           ),
                                           child: Icon(
-                                            widget.isRunning 
-                                                ? Icons.pause_rounded 
+                                            widget.isRunning
+                                                ? Icons.pause_rounded
                                                 : Icons.play_arrow_rounded,
                                             color: Colors.white,
                                             size: 18,
@@ -560,7 +568,7 @@ class _TodolistState extends State<Todolist> {
                                       ),
                                     ),
                                     SizedBox(width: 6),
-                                    
+
                                     // Reset Button
                                     Material(
                                       color: Colors.transparent,
@@ -642,7 +650,7 @@ class _TodolistState extends State<Todolist> {
                                 ),
                               ],
                             ),
-                            
+
                             // Timer Status Text
                             if (widget.isRunning) ...[
                               SizedBox(height: 6),

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:demo/Pages/ui_components/friendTasksManager.dart';
 import 'package:demo/Pages/ui_components/profile_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
@@ -29,17 +30,18 @@ class ChatPage extends StatelessWidget {
     }
   }
 
-void _openUserProfile(BuildContext context) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ProfilePageViewer(
-        receiverID: receiverID,
-        receiverUsername: receiverUsername,
+  void _openUserProfile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePageViewer(
+          receiverID: receiverID,
+          receiverUsername: receiverUsername,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,7 +109,15 @@ void _openUserProfile(BuildContext context) {
           IconButton(
             icon: const Icon(LucideIcons.list_checks, color: Colors.black87),
             onPressed: () {
-              // Tasks button - future functionality
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FriendTasksManagerPage(
+                    friendUserID: receiverID,
+                    friendUsername: receiverUsername,
+                  ),
+                ),
+              );
             },
           ),
         ],
@@ -129,7 +139,10 @@ void _openUserProfile(BuildContext context) {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Center(
-            child: Text("Error loading messages", style: TextStyle(color: Colors.grey)),
+            child: Text(
+              "Error loading messages",
+              style: TextStyle(color: Colors.grey),
+            ),
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -151,17 +164,20 @@ void _openUserProfile(BuildContext context) {
   Widget _buildMessageItem(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     bool isCurrentUser = data["senderID"] == _authService.getCurrentUser()!.uid;
-    return ChatBubble(
-      isCurrentUser: isCurrentUser,
-      message: data["message"],
-    );
+    return ChatBubble(isCurrentUser: isCurrentUser, message: data["message"]);
   }
 
   Widget _buildUserInput() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SafeArea(
@@ -169,14 +185,20 @@ void _openUserProfile(BuildContext context) {
           children: [
             Expanded(
               child: Container(
-                decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(24)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F7FA),
+                  borderRadius: BorderRadius.circular(24),
+                ),
                 child: TextField(
                   controller: _messageController,
                   decoration: InputDecoration(
                     hintText: "Type a message...",
                     hintStyle: TextStyle(color: Colors.grey.shade500),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                   ),
                   maxLines: null,
                 ),
@@ -223,4 +245,3 @@ class ProfilePageViewer extends StatelessWidget {
     );
   }
 }
-
