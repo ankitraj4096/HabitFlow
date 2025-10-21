@@ -10,7 +10,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
 
@@ -19,13 +19,29 @@ class _ProfilePageState extends State<ProfilePage> {
   int totalTasks = 0;
   int completedTasks = 0;
   int totalHours = 0;
-  int userLevel = 1;
+  Map<String, dynamic> userTier = {};
   bool isLoading = true;
+
+  late AnimationController _glowController;
+  late Animation<double> _glowAnimation;
 
   @override
   void initState() {
     super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -40,7 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
         totalTasks = stats['totalTasks'];
         completedTasks = stats['completedTasks'];
         totalHours = stats['totalHours'];
-        userLevel = _firestoreService.getUserLevel(completedTasks);
+        userTier = _firestoreService.getUserTier(completedTasks);
       });
     } catch (e) {
       print('Error loading user data: $e');
@@ -90,11 +106,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildHeader() {
+    // Get tier data
+    final gradientColors = (userTier['gradient'] as List<dynamic>?)
+            ?.map((e) => e as Color)
+            .toList() ??
+        [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+    final glowColor = userTier['glow'] as Color? ?? const Color(0xFF7C4DFF);
+    final tierIcon = _firestoreService.getIconFromString(userTier['icon'] ?? 'sparkles');
+    final isAnimated = userTier['animated'] == true;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+        gradient: LinearGradient(
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -104,7 +129,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C4DFF).withOpacity(0.3),
+            color: glowColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -154,46 +179,57 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 24),
           Row(
             children: [
-              Stack(
-                children: [
-                  Container(
+              // Animated Tier Badge
+              AnimatedBuilder(
+                animation: _glowAnimation,
+                builder: (context, child) {
+                  return Container(
+                    width: 80,
+                    height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      gradient: LinearGradient(colors: gradientColors),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
+                          color: glowColor.withOpacity(
+                            isAnimated ? _glowAnimation.value : 0.5,
+                          ),
+                          blurRadius: 25,
+                          spreadRadius: 3,
                         ),
                       ],
                     ),
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white,
-                      child: Text(
-                        username.isNotEmpty ? username[0].toUpperCase() : 'U',
-                        style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF7C4DFF),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(tierIcon, color: Colors.white, size: 36),
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.white30),
+                            ),
+                            child: Text(
+                              "T${userTier['id'] ?? 1}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -211,11 +247,42 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '@${username.toLowerCase().replaceAll(' ', '')} • Level $userLevel Achiever',
+                      '@${username.toLowerCase().replaceAll(' ', '')}',
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            tierIcon,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            userTier['name'] ?? 'The Initiate',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -476,14 +543,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Padding(
                   padding: EdgeInsets.all(20.0),
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
                   ),
                 ),
               );
             }
 
             final heatmapData = snap.data!;
-            final totalCompletions = heatmapData.values.fold(0, (sum, count) => sum + count);
+            final totalCompletions =
+                heatmapData.values.fold(0, (sum, count) => sum + count);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
