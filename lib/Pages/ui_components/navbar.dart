@@ -1,6 +1,6 @@
 import 'package:demo/Pages/ui_components/home_page.dart';
-import 'package:demo/Pages/ui_components/chatListPage.dart';
-import 'package:demo/Pages/ui_components/profile_page.dart';
+import 'package:demo/Pages/ui_components/chat_page_components/chatListPage.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
 import 'package:flutter/material.dart';
 
 class Navbar extends StatefulWidget {

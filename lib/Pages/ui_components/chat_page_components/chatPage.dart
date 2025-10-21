@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo/Pages/ui_components/friendTasksManager.dart';
-import 'package:demo/Pages/ui_components/profile_page.dart';
+import 'package:demo/Pages/ui_components/friend_components/friendTasksManager.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/component/chatBubble.dart';
 import 'package:demo/services/chat/chat_service.dart';

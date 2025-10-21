@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo/Pages/ui_components/chatPage.dart';
-import 'package:demo/Pages/ui_components/search_users_page.dart';
-import 'package:demo/Pages/ui_components/friend_requests_page.dart';
+import 'package:demo/Pages/ui_components/chat_page_components/chatPage.dart';
+import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
+import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/friends/friend_service.dart';
 import 'package:flutter/material.dart';
