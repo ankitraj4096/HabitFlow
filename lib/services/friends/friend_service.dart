@@ -17,8 +17,8 @@ class FriendService {
         .where('username', isLessThanOrEqualTo: query + '\uf8ff')
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) => doc.data()).toList();
-        });
+      return snapshot.docs.map((doc) => doc.data()).toList();
+    });
   }
 
   /// Get all users (for browsing)
@@ -29,9 +29,7 @@ class FriendService {
     return _firestore.collection('users').snapshots().map((snapshot) {
       return snapshot.docs
           .map((doc) => doc.data())
-          .where(
-            (user) => user['uid'] != currentUser.uid,
-          ) // Exclude current user
+          .where((user) => user['uid'] != currentUser.uid) // Exclude current user
           .toList();
     });
   }
@@ -73,10 +71,7 @@ class FriendService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return false;
 
-    final userDoc = await _firestore
-        .collection('users')
-        .doc(currentUser.uid)
-        .get();
+    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
 
     if (!userDoc.exists || userDoc.data()?['friends'] == null) {
       return false;
@@ -104,10 +99,7 @@ class FriendService {
     }
 
     // Get current user's username
-    final userDoc = await _firestore
-        .collection('users')
-        .doc(currentUser.uid)
-        .get();
+    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
     final username = userDoc.data()?['username'] ?? 'Unknown User';
 
     // Create the friend request
@@ -126,14 +118,9 @@ class FriendService {
     if (currentUser == null) return;
 
     try {
-      // Use a transaction to ensure both users' friend lists are updated atomically
       await _firestore.runTransaction((transaction) async {
-        final requestRef = _firestore
-            .collection('friend_requests')
-            .doc(requestId);
-        final currentUserRef = _firestore
-            .collection('users')
-            .doc(currentUser.uid);
+        final requestRef = _firestore.collection('friend_requests').doc(requestId);
+        final currentUserRef = _firestore.collection('users').doc(currentUser.uid);
         final friendUserRef = _firestore.collection('users').doc(fromUserId);
 
         // 1. Update the request status to "accepted"
@@ -182,7 +169,6 @@ class FriendService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return Stream.empty();
 
-    // Remove orderBy to avoid index requirement issue
     return _firestore
         .collection('friend_requests')
         .where('to_uid', isEqualTo: currentUser.uid)
@@ -213,48 +199,46 @@ class FriendService {
         .doc(currentUser.uid)
         .snapshots()
         .asyncMap((userDoc) async {
-          if (!userDoc.exists || userDoc.data()?['friends'] == null) {
-            return [];
-          }
+      if (!userDoc.exists || userDoc.data()?['friends'] == null) {
+        return [];
+      }
 
-          List<String> friendIds = List<String>.from(
-            userDoc.data()!['friends'],
-          );
-          if (friendIds.isEmpty) {
-            return [];
-          }
+      List<String> friendIds = List<String>.from(userDoc.data()!['friends']);
+      if (friendIds.isEmpty) {
+        return [];
+      }
 
-          // Firestore 'whereIn' has a limit of 10 items, so we need to batch if more friends
-          List<Map<String, dynamic>> allFriends = [];
+      // Firestore 'whereIn' has a limit of 10 items, so we need to batch if more friends
+      List<Map<String, dynamic>> allFriends = [];
 
-          for (int i = 0; i < friendIds.length; i += 10) {
-            final batch = friendIds.sublist(
-              i,
-              i + 10 > friendIds.length ? friendIds.length : i + 10,
-            );
-            final friendDocs = await _firestore
-                .collection('users')
-                .where('uid', whereIn: batch)
-                .get();
+      for (int i = 0; i < friendIds.length; i += 10) {
+        final batch = friendIds.sublist(
+          i,
+          i + 10 > friendIds.length ? friendIds.length : i + 10,
+        );
+        final friendDocs = await _firestore
+            .collection('users')
+            .where('uid', whereIn: batch)
+            .get();
 
-            allFriends.addAll(
-              friendDocs.docs.map((doc) => doc.data()).toList(),
-            );
-          }
+        allFriends.addAll(friendDocs.docs.map((doc) => doc.data()).toList());
+      }
 
-          return allFriends;
-        });
+      return allFriends;
+    });
   }
 
-  /// Remove a friend
-  Future<void> removeFriend(String friendId) async {
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) return;
+  /// Remove a friend (takes two parameters for compatibility)
+  Future<void> removeFriend(String currentUserId, String friendId) async {
+    // Use the provided currentUserId or fall back to authenticated user
+    final userId = currentUserId.isNotEmpty 
+        ? currentUserId 
+        : _auth.currentUser?.uid;
+    
+    if (userId == null) return;
 
     await _firestore.runTransaction((transaction) async {
-      final currentUserRef = _firestore
-          .collection('users')
-          .doc(currentUser.uid);
+      final currentUserRef = _firestore.collection('users').doc(userId);
       final friendUserRef = _firestore.collection('users').doc(friendId);
 
       // Remove each user from the other's friend list
@@ -262,8 +246,51 @@ class FriendService {
         'friends': FieldValue.arrayRemove([friendId]),
       });
       transaction.update(friendUserRef, {
-        'friends': FieldValue.arrayRemove([currentUser.uid]),
+        'friends': FieldValue.arrayRemove([userId]),
       });
+    });
+  }
+
+  /// Get friends stream for a specific user (for viewing other's friend lists)
+  /// CORRECTED VERSION - uses same data structure as getFriendsStream
+  Stream<List<Map<String, dynamic>>> getFriendsStreamForUser(String userID) {
+    return _firestore
+        .collection('users')
+        .doc(userID)
+        .snapshots()
+        .asyncMap((userDoc) async {
+      // If user doesn't exist or has no friends
+      if (!userDoc.exists || userDoc.data()?['friends'] == null) {
+        return [];
+      }
+
+      List<String> friendIds = List<String>.from(userDoc.data()!['friends']);
+      if (friendIds.isEmpty) {
+        return [];
+      }
+
+      // Batch fetch friends (Firestore whereIn limit is 10)
+      List<Map<String, dynamic>> allFriends = [];
+
+      for (int i = 0; i < friendIds.length; i += 10) {
+        final batch = friendIds.sublist(
+          i,
+          i + 10 > friendIds.length ? friendIds.length : i + 10,
+        );
+        
+        try {
+          final friendDocs = await _firestore
+              .collection('users')
+              .where('uid', whereIn: batch)
+              .get();
+
+          allFriends.addAll(friendDocs.docs.map((doc) => doc.data()).toList());
+        } catch (e) {
+          print('Error fetching friends batch: $e');
+        }
+      }
+
+      return allFriends;
     });
   }
 }

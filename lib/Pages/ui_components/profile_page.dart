@@ -1,3 +1,4 @@
+import 'package:demo/Pages/ui_components/friendListsPage.dart';
 import 'package:demo/Pages/ui_components/friendTasksManager.dart';
 import 'package:demo/Pages/ui_components/settings_page.dart';
 import 'package:demo/component/heatmap.dart';
@@ -8,10 +9,10 @@ import 'package:flutter/material.dart';
 class ProfilePage extends StatefulWidget {
   final String? viewingUserID;
   final String? viewingUsername;
-  final bool isOwnProfile; 
+  final bool isOwnProfile;
 
   ProfilePage({super.key, this.viewingUserID, this.viewingUsername})
-      : isOwnProfile = viewingUserID == null;
+    : isOwnProfile = viewingUserID == null;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -131,7 +132,8 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildHeader() {
-    final gradientColors = (userTier['gradient'] as List<dynamic>?)
+    final gradientColors =
+        (userTier['gradient'] as List<dynamic>?)
             ?.map((e) => e as Color)
             .toList() ??
         [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
@@ -403,7 +405,12 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _statItem(
-      IconData icon, String value, String label, Color color, Color bg) {
+    IconData icon,
+    String value,
+    String label,
+    Color color,
+    Color bg,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -418,8 +425,10 @@ class _ProfilePageState extends State<ProfilePage>
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration:
-                BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -435,7 +444,10 @@ class _ProfilePageState extends State<ProfilePage>
                     color: Color(0xFF2C3E50),
                   ),
                 ),
-                Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
               ],
             ),
           ),
@@ -456,10 +468,23 @@ class _ProfilePageState extends State<ProfilePage>
               Icons.people,
               const [Color(0xFFf093fb), Color(0xFFf5576c)],
               () {
-                // Navigate to Friends page (future implementation)
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FriendsListPage(
+                      viewingUserID: widget.isOwnProfile
+                          ? null
+                          : widget.viewingUserID,
+                      viewingUsername: widget.isOwnProfile
+                          ? null
+                          : widget.viewingUsername,
+                    ),
+                  ),
+                );
               },
             ),
           ),
+
           const SizedBox(width: 16),
           Expanded(
             child: _actionBtn(
@@ -494,7 +519,11 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _actionBtn(
-      String label, IconData icon, List<Color> colors, VoidCallback onTap) {
+    String label,
+    IconData icon,
+    List<Color> colors,
+    VoidCallback onTap,
+  ) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: colors),
@@ -561,8 +590,11 @@ class _ProfilePageState extends State<ProfilePage>
           builder: (context, snap) {
             if (snap.hasError) {
               return const Center(
-                  child: Text('Error loading heatmap',
-                      style: TextStyle(color: Colors.red)));
+                child: Text(
+                  'Error loading heatmap',
+                  style: TextStyle(color: Colors.red),
+                ),
+              );
             }
             if (!snap.hasData) {
               return const Center(
@@ -606,8 +638,11 @@ class _ProfilePageState extends State<ProfilePage>
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.calendar_today,
-                            color: Color(0xFF7C4DFF), size: 20),
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Color(0xFF7C4DFF),
+                          size: 20,
+                        ),
                       ],
                     ),
                   ],
@@ -618,8 +653,10 @@ class _ProfilePageState extends State<ProfilePage>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Less',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    Text(
+                      'Less',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    ),
                     const SizedBox(width: 8),
                     ...List.generate(
                       5,
@@ -634,8 +671,10 @@ class _ProfilePageState extends State<ProfilePage>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text('More',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    Text(
+                      'More',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    ),
                   ],
                 ),
               ],
