@@ -1,20 +1,17 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
+import 'package:demo/component/achievements.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
 
-
 class SettingsPage extends StatefulWidget {
   SettingsPage({super.key});
-
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-
 class _SettingsPageState extends State<SettingsPage> {
   final AuthService _authService = AuthService();
-
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +85,14 @@ class _SettingsPageState extends State<SettingsPage> {
               icon: Icons.emoji_events,
               title: 'Achievements',
               subtitle: 'View unlocked badges & tiers',
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AchievementPage(),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
             _buildSectionTitle('App Info'),
@@ -120,7 +124,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
@@ -138,7 +141,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
   Widget _buildListTile(
     BuildContext context, {
     required IconData icon,
@@ -155,17 +157,14 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
   // Edit Username Dialog
   void _showEditUsernameDialog(BuildContext context) async {
     final TextEditingController usernameController = TextEditingController();
     bool isLoading = false;
 
-
     // Get current username
     final currentUsername = await _authService.getCurrentUsername();
     usernameController.text = currentUsername;
-
 
     showDialog(
       context: context,
@@ -182,10 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   color: const Color(0xFF7C4DFF).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF7C4DFF),
-                ),
+                child: const Icon(Icons.person, color: Color(0xFF7C4DFF)),
               ),
               const SizedBox(width: 12),
               const Text('Edit Username'),
@@ -231,7 +227,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   : () async {
                       final newUsername = usernameController.text.trim();
 
-
                       if (newUsername.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -242,15 +237,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         return;
                       }
 
-
                       if (newUsername == currentUsername) {
                         Navigator.pop(context);
                         return;
                       }
 
-
                       setState(() => isLoading = true);
-
 
                       try {
                         await _authService.updateUsername(newUsername);
@@ -268,7 +260,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(e.toString().replaceAll('Exception: ', '')),
+                              content: Text(
+                                e.toString().replaceAll('Exception: ', ''),
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -299,7 +293,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
   // Change Password Dialog (Instagram Style)
   void _showChangePasswordDialog(BuildContext context) {
     final TextEditingController currentPasswordController =
@@ -311,7 +304,6 @@ class _SettingsPageState extends State<SettingsPage> {
     bool showCurrentPassword = false;
     bool showNewPassword = false;
     bool showConfirmPassword = false;
-
 
     showDialog(
       context: context,
@@ -328,10 +320,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   color: const Color(0xFF7C4DFF).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.lock_outline,
-                  color: Color(0xFF7C4DFF),
-                ),
+                child: const Icon(Icons.lock_outline, color: Color(0xFF7C4DFF)),
               ),
               const SizedBox(width: 12),
               const Text('Change Password'),
@@ -360,7 +349,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             : Icons.visibility,
                       ),
                       onPressed: () {
-                        setState(() => showCurrentPassword = !showCurrentPassword);
+                        setState(
+                          () => showCurrentPassword = !showCurrentPassword,
+                        );
                       },
                     ),
                     border: OutlineInputBorder(
@@ -385,7 +376,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     prefixIcon: const Icon(Icons.lock_reset),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        showNewPassword ? Icons.visibility_off : Icons.visibility,
+                        showNewPassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
                       onPressed: () {
                         setState(() => showNewPassword = !showNewPassword);
@@ -419,7 +412,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       onPressed: () {
                         setState(
-                            () => showConfirmPassword = !showConfirmPassword);
+                          () => showConfirmPassword = !showConfirmPassword,
+                        );
                       },
                     ),
                     border: OutlineInputBorder(
@@ -447,12 +441,11 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: isLoading
                   ? null
                   : () async {
-                      final currentPassword =
-                          currentPasswordController.text.trim();
+                      final currentPassword = currentPasswordController.text
+                          .trim();
                       final newPassword = newPasswordController.text.trim();
-                      final confirmPassword =
-                          confirmPasswordController.text.trim();
-
+                      final confirmPassword = confirmPasswordController.text
+                          .trim();
 
                       // Validation
                       if (currentPassword.isEmpty ||
@@ -467,19 +460,19 @@ class _SettingsPageState extends State<SettingsPage> {
                         return;
                       }
 
-
                       // Check if new password is same as current password
                       if (currentPassword == newPassword) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('New password must be different from current password'),
+                            content: Text(
+                              'New password must be different from current password',
+                            ),
                             backgroundColor: Colors.orange,
                             duration: Duration(seconds: 3),
                           ),
                         );
                         return;
                       }
-
 
                       if (newPassword != confirmPassword) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -491,21 +484,19 @@ class _SettingsPageState extends State<SettingsPage> {
                         return;
                       }
 
-
                       if (newPassword.length < 6) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                                'Password must be at least 6 characters'),
+                              'Password must be at least 6 characters',
+                            ),
                             backgroundColor: Colors.red,
                           ),
                         );
                         return;
                       }
 
-
                       setState(() => isLoading = true);
-
 
                       try {
                         await _authService.changePassword(
@@ -527,7 +518,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  e.toString().replaceAll('Exception: ', '')),
+                                e.toString().replaceAll('Exception: ', ''),
+                              ),
                               backgroundColor: Colors.red,
                             ),
                           );
