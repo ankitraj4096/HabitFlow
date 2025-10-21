@@ -21,7 +21,7 @@ class _HomepageState extends State<Homepage> {
   final TextEditingController timerController = TextEditingController();
 
   final FireStoreService firestoreService = FireStoreService();
-  
+
   bool _isSyncing = false;
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
   Set<String> _pendingSyncIds = {};
@@ -63,7 +63,7 @@ class _HomepageState extends State<Homepage> {
     final data = mybox.get("ToDoList");
     if (data != null && data is List) {
       tasklist = List<Map<String, dynamic>>.from(
-        data.map((item) => Map<String, dynamic>.from(item))
+        data.map((item) => Map<String, dynamic>.from(item)),
       );
     } else {
       tasklist = [];
@@ -77,40 +77,65 @@ class _HomepageState extends State<Homepage> {
 
   void _listenToFirebaseChanges() {
     _firebaseSubscription?.cancel();
-    
+
     _firebaseSubscription = firestoreService.getTasksStream().listen(
       (snapshot) {
         List<Map<String, dynamic>> updatedTasks = [];
-        
+
+        // Get today's date (for filtering completed tasks)
+        final now = DateTime.now();
+        final todayStart = DateTime(now.year, now.month, now.day);
+        final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
         for (var doc in snapshot.docs) {
           final data = doc.data() as Map<String, dynamic>;
-          
-          // FILTER: Only show accepted tasks OR tasks without status field (old tasks)
+
+          // FILTER 1: Skip pending tasks (shown in TaskRequestsPage)
           final status = data['status'];
           if (status == 'pending') {
-            continue; // Skip pending tasks - they're shown in TaskRequestsPage
+            continue;
           }
-          
+
+          // FILTER 2: Handle completed tasks
+          final isCompleted = data['isCompleted'] ?? false;
+          if (isCompleted) {
+            // Only show if completed today
+            final completedAt = data['completedAt'] as Timestamp?;
+            if (completedAt != null) {
+              final completedDate = completedAt.toDate();
+              // Skip if not completed today
+              if (completedDate.isBefore(todayStart) ||
+                  completedDate.isAfter(todayEnd)) {
+                continue;
+              }
+            } else {
+              // Old completed task without completedAt timestamp - hide it
+              continue;
+            }
+          }
+
+          // Add task to list
           updatedTasks.add({
             'firebaseId': doc.id,
-            'isCompleted': data['isCompleted'] ?? false,
+            'isCompleted': isCompleted,
             'taskName': data['taskName'] ?? '',
             'hasTimer': data['hasTimer'] ?? false,
             'totalDuration': data['totalDuration'],
             'elapsedSeconds': data['elapsedSeconds'] ?? 0,
             'isRunning': data['isRunning'] ?? false,
             'lastUpdated': data['lastUpdated'],
+            'completedAt': data['completedAt'], // NEW
             'isSynced': true,
             'assignedByUserID': data['assignedByUserID'],
             'assignedByUsername': data['assignedByUsername'],
-            'status': status ?? 'accepted', // Old tasks default to accepted
+            'status': status ?? 'accepted',
           });
         }
 
         setState(() {
           tasklist = updatedTasks;
         });
-        
+
         _saveLocalData();
       },
       onError: (error) {
@@ -121,29 +146,31 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _syncPendingChangesToFirebase() async {
     try {
-      final pendingTasks = tasklist.where((task) => 
-        task['isSynced'] != true || task['firebaseId'] == null
-      ).toList();
+      final pendingTasks = tasklist
+          .where(
+            (task) => task['isSynced'] != true || task['firebaseId'] == null,
+          )
+          .toList();
 
       for (var task in pendingTasks) {
         if (task['firebaseId'] == null) {
-          final timerMinutes = task['totalDuration'] != null 
-              ? (task['totalDuration'] / 60).round() 
+          final timerMinutes = task['totalDuration'] != null
+              ? (task['totalDuration'] / 60).round()
               : null;
-          
+
           final firebaseId = await firestoreService.addTask(
             task['isCompleted'] ?? false,
             task['taskName'] ?? '',
             timerMinutes,
           );
-          
+
           if (firebaseId != null) {
             task['firebaseId'] = firebaseId;
             task['isSynced'] = true;
           }
         }
       }
-      
+
       _saveLocalData();
     } catch (e) {
       print('Error syncing pending changes: $e');
@@ -157,8 +184,8 @@ class _HomepageState extends State<Homepage> {
     }
 
     final taskName = control.text;
-    final timerMinutes = timerController.text.isNotEmpty 
-        ? int.tryParse(timerController.text) 
+    final timerMinutes = timerController.text.isNotEmpty
+        ? int.tryParse(timerController.text)
         : null;
 
     Navigator.of(context).pop();
@@ -185,8 +212,12 @@ class _HomepageState extends State<Homepage> {
     });
 
     try {
-      final firebaseId = await firestoreService.addTask(false, taskName, timerMinutes);
-      
+      final firebaseId = await firestoreService.addTask(
+        false,
+        taskName,
+        timerMinutes,
+      );
+
       if (firebaseId != null) {
         setState(() {
           tasklist.removeWhere((task) => task['tempId'] == tempId);
@@ -211,7 +242,7 @@ class _HomepageState extends State<Homepage> {
         });
         _saveLocalData();
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to sync task. Will retry later.'),
@@ -270,7 +301,9 @@ class _HomepageState extends State<Homepage> {
                   labelText: 'Task Name',
                   hintText: 'Enter your task...',
                   prefixIcon: Icon(Icons.edit, color: Color(0xFF7C4DFF)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFF7C4DFF), width: 2),
@@ -285,7 +318,9 @@ class _HomepageState extends State<Homepage> {
                   labelText: 'Timer (minutes) - Optional',
                   hintText: 'e.g., 25 for 25 minutes',
                   prefixIcon: Icon(Icons.timer, color: Color(0xFF448AFF)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFF448AFF), width: 2),
@@ -302,15 +337,23 @@ class _HomepageState extends State<Homepage> {
                       control.clear();
                       timerController.clear();
                     },
-                    child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: Add_Task,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF7C4DFF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
                     child: Text('Save', style: TextStyle(color: Colors.white)),
                   ),
@@ -326,29 +369,45 @@ class _HomepageState extends State<Homepage> {
   void CheckBoxChanged(bool? value, int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-    
+
     if (firebaseId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please wait for task to sync...'), duration: Duration(seconds: 1)),
+        SnackBar(
+          content: Text('Please wait for task to sync...'),
+          duration: Duration(seconds: 1),
+        ),
       );
       return;
     }
 
+    final newCompletedStatus = !tasklist[index]['isCompleted'];
+
     setState(() {
-      tasklist[index]['isCompleted'] = !tasklist[index]['isCompleted'];
+      tasklist[index]['isCompleted'] = newCompletedStatus;
       tasklist[index]['isSynced'] = false;
+
+      // NEW: Track completion time locally
+      if (newCompletedStatus) {
+        tasklist[index]['completedAt'] = Timestamp.now();
+      } else {
+        tasklist[index]['completedAt'] = null;
+      }
     });
 
     try {
-      await firestoreService.toggleCompletion(firebaseId, !tasklist[index]['isCompleted']);
+      await firestoreService.toggleCompletion(firebaseId, !newCompletedStatus);
     } catch (e) {
       print('Error updating Firebase: $e');
       setState(() {
-        tasklist[index]['isCompleted'] = !tasklist[index]['isCompleted'];
+        tasklist[index]['isCompleted'] = !newCompletedStatus;
+        tasklist[index]['completedAt'] = null; // Revert
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update task. Please try again.'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Failed to update task. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -356,7 +415,7 @@ class _HomepageState extends State<Homepage> {
   void DeleteTask(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-    
+
     final deletedTask = tasklist[index];
     setState(() {
       tasklist.removeAt(index);
@@ -372,9 +431,12 @@ class _HomepageState extends State<Homepage> {
           tasklist.insert(index, deletedTask);
         });
         _saveLocalData();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete task. Please try again.'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Failed to delete task. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -383,7 +445,7 @@ class _HomepageState extends State<Homepage> {
   void UpdateTask(int index) {
     final task = tasklist[index];
     control.text = task['taskName'];
-    
+
     if (task['hasTimer'] == true && task['totalDuration'] != null) {
       timerController.text = (task['totalDuration'] / 60).round().toString();
     }
@@ -411,7 +473,9 @@ class _HomepageState extends State<Homepage> {
                   Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)]),
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                      ),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(Icons.edit, color: Colors.white, size: 24),
@@ -419,7 +483,11 @@ class _HomepageState extends State<Homepage> {
                   SizedBox(width: 12),
                   Text(
                     'Update Task',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF7C4DFF)),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF7C4DFF),
+                    ),
                   ),
                 ],
               ),
@@ -429,7 +497,9 @@ class _HomepageState extends State<Homepage> {
                 decoration: InputDecoration(
                   labelText: 'Task Name',
                   prefixIcon: Icon(Icons.edit, color: Color(0xFF7C4DFF)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFF7C4DFF), width: 2),
@@ -444,7 +514,9 @@ class _HomepageState extends State<Homepage> {
                   labelText: 'Timer (minutes) - Optional',
                   hintText: 'Leave empty to remove timer',
                   prefixIcon: Icon(Icons.timer, color: Color(0xFF448AFF)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFF448AFF), width: 2),
@@ -461,28 +533,36 @@ class _HomepageState extends State<Homepage> {
                       control.clear();
                       timerController.clear();
                     },
-                    child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () async {
                       final firebaseId = tasklist[index]['firebaseId'];
-                      
+
                       if (firebaseId == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Please wait for task to sync...')),
+                          SnackBar(
+                            content: Text('Please wait for task to sync...'),
+                          ),
                         );
                         return;
                       }
 
-                      final timerMinutes = timerController.text.isNotEmpty 
-                          ? int.tryParse(timerController.text) 
+                      final timerMinutes = timerController.text.isNotEmpty
+                          ? int.tryParse(timerController.text)
                           : null;
 
                       setState(() {
                         tasklist[index]['taskName'] = control.text;
-                        tasklist[index]['hasTimer'] = timerMinutes != null && timerMinutes > 0;
-                        tasklist[index]['totalDuration'] = timerMinutes != null ? timerMinutes * 60 : null;
+                        tasklist[index]['hasTimer'] =
+                            timerMinutes != null && timerMinutes > 0;
+                        tasklist[index]['totalDuration'] = timerMinutes != null
+                            ? timerMinutes * 60
+                            : null;
                         tasklist[index]['isSynced'] = false;
                       });
 
@@ -501,7 +581,9 @@ class _HomepageState extends State<Homepage> {
                         print('Error updating Firebase: $e');
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Failed to update task. Changes saved locally.'),
+                            content: Text(
+                              'Failed to update task. Changes saved locally.',
+                            ),
                             backgroundColor: Colors.orange,
                           ),
                         );
@@ -509,10 +591,18 @@ class _HomepageState extends State<Homepage> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF7C4DFF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
-                    child: Text('Update', style: TextStyle(color: Colors.white)),
+                    child: Text(
+                      'Update',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -585,16 +675,23 @@ class _HomepageState extends State<Homepage> {
                                 children: [
                                   Text(
                                     'Stay organized and productive 📝',
-                                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                    ),
                                   ),
-                                  if (_isSyncing || _pendingSyncIds.isNotEmpty) ...[
+                                  if (_isSyncing ||
+                                      _pendingSyncIds.isNotEmpty) ...[
                                     SizedBox(width: 8),
                                     SizedBox(
                                       width: 12,
                                       height: 12,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white70,
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -615,15 +712,21 @@ class _HomepageState extends State<Homepage> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => TaskRequestsPage(),
+                                        builder: (context) =>
+                                            TaskRequestsPage(),
                                       ),
                                     );
                                   },
-                                  child: Icon(Icons.inbox, color: Colors.white, size: 28),
+                                  child: Icon(
+                                    Icons.inbox,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
                               StreamBuilder<int>(
-                                stream: firestoreService.getPendingTaskRequestsCount(),
+                                stream: firestoreService
+                                    .getPendingTaskRequestsCount(),
                                 builder: (context, snapshot) {
                                   if (!snapshot.hasData || snapshot.data == 0) {
                                     return SizedBox.shrink();
@@ -637,7 +740,10 @@ class _HomepageState extends State<Homepage> {
                                         color: Colors.red,
                                         shape: BoxShape.circle,
                                       ),
-                                      constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+                                      constraints: BoxConstraints(
+                                        minWidth: 18,
+                                        minHeight: 18,
+                                      ),
                                       child: Text(
                                         '${snapshot.data}',
                                         style: TextStyle(
@@ -661,16 +767,40 @@ class _HomepageState extends State<Homepage> {
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildStatChip(icon: Icons.format_list_bulleted, label: 'Total', value: tasklist.length.toString()),
-                            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.3)),
-                            _buildStatChip(icon: Icons.check_circle, label: 'Completed', value: completedTasksCount.toString()),
-                            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.3)),
-                            _buildStatChip(icon: Icons.pending_actions, label: 'Pending', value: (tasklist.length - completedTasksCount).toString()),
+                            _buildStatChip(
+                              icon: Icons.format_list_bulleted,
+                              label: 'Total',
+                              value: tasklist.length.toString(),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 30,
+                              color: Colors.white.withOpacity(0.3),
+                            ),
+                            _buildStatChip(
+                              icon: Icons.check_circle,
+                              label: 'Completed',
+                              value: completedTasksCount.toString(),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 30,
+                              color: Colors.white.withOpacity(0.3),
+                            ),
+                            _buildStatChip(
+                              icon: Icons.pending_actions,
+                              label: 'Pending',
+                              value: (tasklist.length - completedTasksCount)
+                                  .toString(),
+                            ),
                           ],
                         ),
                       ),
@@ -690,17 +820,28 @@ class _HomepageState extends State<Homepage> {
                                 color: Color(0xFF7C4DFF).withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.task_alt, size: 64, color: Color(0xFF7C4DFF)),
+                              child: Icon(
+                                Icons.task_alt,
+                                size: 64,
+                                color: Color(0xFF7C4DFF),
+                              ),
                             ),
                             SizedBox(height: 24),
                             Text(
                               'No tasks yet',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[700],
+                              ),
                             ),
                             SizedBox(height: 8),
                             Text(
                               'Tap the + button to add your first task',
-                              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
                             ),
                           ],
                         ),
@@ -733,7 +874,7 @@ class _HomepageState extends State<Homepage> {
         ),
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80,right: 3),
+        padding: const EdgeInsets.only(bottom: 80, right: 3),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -761,14 +902,25 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  Widget _buildStatChip({required IconData icon, required String label, required String value}) {
+  Widget _buildStatChip({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
     return Column(
       children: [
         Row(
           children: [
             Icon(icon, color: Colors.white, size: 18),
             SizedBox(width: 4),
-            Text(value, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         SizedBox(height: 4),
@@ -780,16 +932,20 @@ class _HomepageState extends State<Homepage> {
   void _toggleTimer(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-    
+
     if (firebaseId == null) return;
-    
+
     setState(() {
       tasklist[index]['isRunning'] = !tasklist[index]['isRunning'];
       tasklist[index]['isSynced'] = false;
     });
 
     try {
-      await firestoreService.toggleTimer(firebaseId, !task['isRunning'], task['elapsedSeconds'] ?? 0);
+      await firestoreService.toggleTimer(
+        firebaseId,
+        !task['isRunning'],
+        task['elapsedSeconds'] ?? 0,
+      );
     } catch (e) {
       print('Error toggling timer: $e');
     }
@@ -797,9 +953,9 @@ class _HomepageState extends State<Homepage> {
 
   void _resetTimer(int index) async {
     final firebaseId = tasklist[index]['firebaseId'];
-    
+
     if (firebaseId == null) return;
-    
+
     setState(() {
       tasklist[index]['isRunning'] = false;
       tasklist[index]['elapsedSeconds'] = 0;

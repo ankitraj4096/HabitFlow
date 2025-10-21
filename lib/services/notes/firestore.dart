@@ -232,14 +232,25 @@ class FireStoreService {
       rethrow;
     }
   }
-
+  
   /// Toggle task completion status
   Future<void> toggleCompletion(String docID, bool currentStatus) async {
     try {
-      await _userNotes.doc(docID).update({
+      final Map<String, dynamic> updateData = {
         'isCompleted': !currentStatus,
         'lastUpdated': Timestamp.now(),
-      });
+      };
+
+      // NEW: Track when task was completed
+      if (!currentStatus) {
+        // Task is being marked as complete
+        updateData['completedAt'] = Timestamp.now();
+      } else {
+        // Task is being marked as incomplete - remove completedAt
+        updateData['completedAt'] = FieldValue.delete();
+      }
+
+      await _userNotes.doc(docID).update(updateData);
     } catch (e) {
       print('Error toggling completion in Firebase: $e');
       rethrow;
