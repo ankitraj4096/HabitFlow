@@ -23,14 +23,32 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
-
   final ChatService _chatService = ChatService();
-
   final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Mark all messages from this friend as read when chat opens
+    _markMessagesAsRead();
+  }
+
+  Future<void> _markMessagesAsRead() async {
+    try {
+      final currentUserID = _authService.getCurrentUser()!.uid;
+      await _chatService.markMessagesAsRead(currentUserID, widget.receiverID);
+      print('✅ Messages marked as read for ${widget.receiverUsername}');
+    } catch (e) {
+      print('❌ Error marking messages as read: $e');
+    }
+  }
 
   void sendMessage() async {
     if (_messageController.text.isNotEmpty) {
-      await _chatService.sendMessage(widget.receiverID, _messageController.text);
+      await _chatService.sendMessage(
+        widget.receiverID,
+        _messageController.text,
+      );
       _messageController.clear();
     }
   }
@@ -150,6 +168,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
           );
         }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
@@ -157,6 +176,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
           );
         }
+
         final docs = snapshot.data!.docs;
         return ListView(
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -231,7 +251,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-/// Profile page viewer for other users. Shows profile + "Friends" + "Tasks"
+/// Profile page viewer for other users
 class ProfilePageViewer extends StatelessWidget {
   final String receiverID;
   final String receiverUsername;
