@@ -191,9 +191,11 @@ class FireStoreService {
           if (timestamp != null) {
             final dateKey = _formatDate(timestamp.toDate());
             completionsByDate[dateKey] = (completionsByDate[dateKey] ?? 0) + 1;
-            
+
             // Debug print
-            print('Task completed on $dateKey, new count: ${completionsByDate[dateKey]}');
+            print(
+              'Task completed on $dateKey, new count: ${completionsByDate[dateKey]}',
+            );
           }
         }
 
@@ -230,27 +232,26 @@ class FireStoreService {
 
   /// Get heatmap data stream - FIXED: Uses 'timestamp' consistently
   Stream<Map<String, int>> getHeatmapData() {
-    return _userNotes
-        .where('isCompleted', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) {
+    return _userNotes.where('isCompleted', isEqualTo: true).snapshots().map((
+      snapshot,
+    ) {
       final Map<String, int> heatmap = {};
-      
+
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        
+
         // FIXED: Use 'timestamp' consistently
         final ts = data['timestamp'] as Timestamp?;
         if (ts != null) {
           final d = ts.toDate();
           final key = _formatDate(d);
           heatmap[key] = (heatmap[key] ?? 0) + 1;
-          
+
           // Debug print
           print('Heatmap: $key -> ${heatmap[key]}');
         }
       }
-      
+
       print('Final heatmap data: $heatmap');
       return heatmap;
     });
@@ -307,7 +308,14 @@ class FireStoreService {
 
   /// Get user level based on completed tasks
   int getUserLevel(int completedTasks) {
-    // Level up every 10 completed tasks
-    return (completedTasks ~/ 10) + 1;
+    // Define tier thresholds
+    const tierThresholds = [0, 50, 150, 300, 600, 1000];
+
+    for (int i = 0; i < tierThresholds.length; i++) {
+      if (completedTasks < tierThresholds[i]) {
+        return i; // return the level index
+      }
+    }
+    return tierThresholds.length; // max level if user exceeds all tiers
   }
 }
