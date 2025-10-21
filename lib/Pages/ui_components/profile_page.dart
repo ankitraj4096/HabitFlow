@@ -638,6 +638,7 @@ class _ProfilePageState extends State<ProfilePage>
                         style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                   ],
                 ),
+                const SizedBox(height: 50,)
               ],
             );
           },
