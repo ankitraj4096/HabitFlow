@@ -106,12 +106,6 @@ void _openUserProfile(BuildContext context) {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add, color: Colors.black87),
-            onPressed: () {
-              // Friend request action
-            },
-          ),
-          IconButton(
             icon: const Icon(LucideIcons.list_checks, color: Colors.black87),
             onPressed: () {
               // Tasks button - future functionality
