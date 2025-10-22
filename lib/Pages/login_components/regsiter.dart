@@ -118,7 +118,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -128,8 +128,8 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                         children: [
                           // Outer glow circle
                           Container(
-                            width: 120,
-                            height: 120,
+                            width: 90,
+                            height: 90,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
@@ -144,8 +144,8 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                           // Main logo container
                           Container(
-                            width: 100,
-                            height: 100,
+                            width: 75,
+                            height: 75,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: const LinearGradient(
@@ -183,7 +183,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                 child: const Text(
                                   'H',
                                   style: TextStyle(
-                                    fontSize: 60,
+                                    fontSize: 45,
                                     fontWeight: FontWeight.w900,
                                     color: Colors.white,
                                     letterSpacing: -2,
@@ -195,11 +195,11 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                           // Inner highlight
                           Positioned(
-                            top: 15,
-                            left: 25,
+                            top: 12,
+                            left: 20,
                             child: Container(
-                              width: 30,
-                              height: 30,
+                              width: 20,
+                              height: 20,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: LinearGradient(
@@ -215,29 +215,29 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       
                       // App Title
                       const Text(
                         "Build Better",
                         style: TextStyle(
-                          fontSize: 32,
+                          fontSize: 26,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 5),
                       Text(
                         "Join us and start building",
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           color: Colors.white.withOpacity(0.9),
                           fontWeight: FontWeight.w300,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 50),
+                      const SizedBox(height: 30),
                       
                       // Register Card
                       Container(
@@ -253,55 +253,55 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ],
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(35),
+                          padding: const EdgeInsets.all(25),
                           child: Column(
                             children: [
                               const Text(
                                 'Create Account',
                                 style: TextStyle(
                                   color: Color(0xFF667eea),
-                                  fontSize: 28,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                               Text(
                                 'Sign up to get started',
                                 style: TextStyle(
                                   color: Colors.grey[600],
-                                  fontSize: 15,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
-                              const SizedBox(height: 30),
+                              const SizedBox(height: 20),
                               
                               MyTextField(
                                 controller: usernameController,
                                 hintText: "Username",
                                 obscureText: false,
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 12),
                               
                               MyTextField(
                                 controller: emailController,
                                 hintText: "Email Address",
                                 obscureText: false,
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 12),
                               
                               MyTextField(
                                 controller: passwordController,
                                 hintText: 'Password',
                                 obscureText: true,
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 12),
                               
                               MyTextField(
                                 controller: confirmPasswordController,
                                 hintText: 'Confirm Password',
                                 obscureText: true,
                               ),
-                              const SizedBox(height: 30),
+                              const SizedBox(height: 20),
                               
                               // Sign Up Button
                               Container(
@@ -325,7 +325,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
                                     shadowColor: Colors.transparent,
-                                    minimumSize: const Size.fromHeight(55),
+                                    minimumSize: const Size.fromHeight(50),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(15),
                                     ),
@@ -335,14 +335,14 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                     'Sign Up',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 18,
+                                      fontSize: 17,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 1,
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 25),
+                              const SizedBox(height: 18),
                               
                               // Login Link
                               GestureDetector(
@@ -352,7 +352,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                     text: "Already have an account? ",
                                     style: TextStyle(
                                       color: Colors.grey[700],
-                                      fontSize: 15,
+                                      fontSize: 14,
                                     ),
                                     children: const [
                                       TextSpan(
@@ -360,7 +360,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                         style: TextStyle(
                                           color: Color(0xFF667eea),
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 15,
+                                          fontSize: 14,
                                         ),
                                       ),
                                     ],
@@ -371,7 +371,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
