@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class DailyCompletedTasksPage extends StatelessWidget {
   final DateTime selectedDate;
@@ -18,6 +20,8 @@ class DailyCompletedTasksPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -30,7 +34,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(context),
+              _buildHeader(context, tierProvider),
               Expanded(child: _buildTasksList(context)),
             ],
           ),
@@ -39,14 +43,15 @@ class DailyCompletedTasksPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final dateStr = '${selectedDate.day} ${_getMonthName(selectedDate.month)} ${selectedDate.year}';
+  Widget _buildHeader(BuildContext context, TierThemeProvider tierProvider) {
+    final dateStr =
+        '${selectedDate.day} ${_getMonthName(selectedDate.month)} ${selectedDate.year}';
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+        gradient: LinearGradient(
+          colors: tierProvider.gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -56,7 +61,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C4DFF).withOpacity(0.3),
+            color: tierProvider.glowColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -78,7 +83,9 @@ class DailyCompletedTasksPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isOwnProfile ? 'Your Completed Tasks' : '${viewingUsername}\'s Tasks',
+                        isOwnProfile
+                            ? 'Your Completed Tasks'
+                            : '${viewingUsername}\'s Tasks',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -88,7 +95,11 @@ class DailyCompletedTasksPage extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today, color: Colors.white70, size: 14),
+                          const Icon(
+                            Icons.calendar_today,
+                            color: Colors.white70,
+                            size: 14,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             dateStr,
@@ -111,15 +122,18 @@ class DailyCompletedTasksPage extends StatelessWidget {
   }
 
   Widget _buildTasksList(BuildContext context) {
-    final userID = isOwnProfile ? FirebaseAuth.instance.currentUser?.uid : viewingUserID;
-    
+    final userID =
+        isOwnProfile ? FirebaseAuth.instance.currentUser?.uid : viewingUserID;
+
     if (userID == null) {
-      return _buildEmptyState('Unable to load tasks');
+      return _buildEmptyState('Unable to load tasks', context);
     }
 
     // Get start and end of the selected date
-    final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-    final endOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 23, 59, 59);
+    final startOfDay =
+        DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    final endOfDay = DateTime(
+        selectedDate.year, selectedDate.month, selectedDate.day, 23, 59, 59);
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -131,13 +145,15 @@ class DailyCompletedTasksPage extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return _buildEmptyState('Error loading tasks');
+          return _buildEmptyState('Error loading tasks', context);
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
+          final tierProvider = context.watch<TierThemeProvider>();
+          return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(tierProvider.primaryColor),
             ),
           );
         }
@@ -146,15 +162,16 @@ class DailyCompletedTasksPage extends StatelessWidget {
         final completedTasksOnDate = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final completedAt = data['completedAt'] as Timestamp?;
-          
+
           if (completedAt == null) return false;
-          
+
           final completedDate = completedAt.toDate();
-          return completedDate.isAfter(startOfDay) && completedDate.isBefore(endOfDay);
+          return completedDate.isAfter(startOfDay) &&
+              completedDate.isBefore(endOfDay);
         }).toList();
 
         if (completedTasksOnDate.isEmpty) {
-          return _buildEmptyState('No tasks completed on this day');
+          return _buildEmptyState('No tasks completed on this day', context);
         }
 
         return ListView.builder(
@@ -180,7 +197,8 @@ class DailyCompletedTasksPage extends StatelessWidget {
     String timeStr = 'Unknown time';
     if (completedAt != null) {
       final completedDate = completedAt.toDate();
-      timeStr = '${completedDate.hour.toString().padLeft(2, '0')}:${completedDate.minute.toString().padLeft(2, '0')}';
+      timeStr =
+          '${completedDate.hour.toString().padLeft(2, '0')}:${completedDate.minute.toString().padLeft(2, '0')}';
     }
 
     return Container(
@@ -219,7 +237,11 @@ class DailyCompletedTasksPage extends StatelessWidget {
                     color: Color(0xFF4CAF50),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.check,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 // Task Name
@@ -237,7 +259,8 @@ class DailyCompletedTasksPage extends StatelessWidget {
                 ),
                 // Time Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(8),
@@ -245,7 +268,11 @@ class DailyCompletedTasksPage extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.access_time, size: 12, color: Color(0xFF4CAF50)),
+                      const Icon(
+                        Icons.access_time,
+                        size: 12,
+                        color: Color(0xFF4CAF50),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         timeStr,
@@ -260,14 +287,18 @@ class DailyCompletedTasksPage extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             // Additional Info Row
             if (assignedBy != null || hasTimer) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
                   if (assignedBy != null) ...[
-                    Icon(Icons.person, size: 14, color: Colors.purple.shade700),
+                    Icon(
+                      Icons.person,
+                      size: 14,
+                      color: Colors.purple.shade700,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'By: $assignedBy',
@@ -300,7 +331,9 @@ class DailyCompletedTasksPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState(String message, BuildContext context) {
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -308,13 +341,17 @@ class DailyCompletedTasksPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFF7C4DFF).withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: tierProvider.gradientColors
+                    .map((c) => c.withOpacity(0.2))
+                    .toList(),
+              ),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_circle_outline,
               size: 80,
-              color: Color(0xFF7C4DFF),
+              color: tierProvider.primaryColor,
             ),
           ),
           const SizedBox(height: 24),
@@ -344,7 +381,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
   String _formatDuration(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
-    
+
     if (hours > 0) {
       return '${hours}h ${minutes}m';
     }
@@ -353,8 +390,18 @@ class DailyCompletedTasksPage extends StatelessWidget {
 
   String _getMonthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
     ];
     return months[month - 1];
   }
