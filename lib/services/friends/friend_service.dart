@@ -29,7 +29,7 @@ class FriendService {
     return _firestore.collection('users').snapshots().map((snapshot) {
       return snapshot.docs
           .map((doc) => doc.data())
-          .where((user) => user['uid'] != currentUser.uid) // Exclude current user
+          .where((user) => user['uid'] != currentUser.uid)
           .toList();
     });
   }
@@ -39,7 +39,6 @@ class FriendService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return null;
 
-    // Check if current user sent a request to this user
     final sentRequest = await _firestore
         .collection('friend_requests')
         .where('from_uid', isEqualTo: currentUser.uid)
@@ -48,10 +47,9 @@ class FriendService {
         .get();
 
     if (sentRequest.docs.isNotEmpty) {
-      return 'sent'; // You sent a request
+      return 'sent';
     }
 
-    // Check if this user sent a request to current user
     final receivedRequest = await _firestore
         .collection('friend_requests')
         .where('from_uid', isEqualTo: toUserId)
@@ -60,10 +58,10 @@ class FriendService {
         .get();
 
     if (receivedRequest.docs.isNotEmpty) {
-      return 'received'; // You received a request
+      return 'received';
     }
 
-    return null; // No pending request
+    return null;
   }
 
   /// Check if two users are already friends
@@ -71,7 +69,8 @@ class FriendService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return false;
 
-    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+    final userDoc =
+        await _firestore.collection('users').doc(currentUser.uid).get();
 
     if (!userDoc.exists || userDoc.data()?['friends'] == null) {
       return false;
@@ -86,23 +85,20 @@ class FriendService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return;
 
-    // Check if a request already exists
     final existingRequest = await checkExistingRequest(toUserId);
     if (existingRequest != null) {
       throw Exception('A friend request already exists');
     }
 
-    // Check if already friends
     final alreadyFriends = await areFriends(toUserId);
     if (alreadyFriends) {
       throw Exception('Already friends with this user');
     }
 
-    // Get current user's username
-    final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+    final userDoc =
+        await _firestore.collection('users').doc(currentUser.uid).get();
     final username = userDoc.data()?['username'] ?? 'Unknown User';
 
-    // Create the friend request
     await _firestore.collection('friend_requests').add({
       'from_uid': currentUser.uid,
       'from_username': username,
@@ -119,14 +115,14 @@ class FriendService {
 
     try {
       await _firestore.runTransaction((transaction) async {
-        final requestRef = _firestore.collection('friend_requests').doc(requestId);
-        final currentUserRef = _firestore.collection('users').doc(currentUser.uid);
+        final requestRef =
+            _firestore.collection('friend_requests').doc(requestId);
+        final currentUserRef =
+            _firestore.collection('users').doc(currentUser.uid);
         final friendUserRef = _firestore.collection('users').doc(fromUserId);
 
-        // 1. Update the request status to "accepted"
         transaction.update(requestRef, {'status': 'accepted'});
 
-        // 2. Add each user to the other's friend list
         transaction.update(currentUserRef, {
           'friends': FieldValue.arrayUnion([fromUserId]),
         });
@@ -208,7 +204,6 @@ class FriendService {
         return [];
       }
 
-      // Firestore 'whereIn' has a limit of 10 items, so we need to batch if more friends
       List<Map<String, dynamic>> allFriends = [];
 
       for (int i = 0; i < friendIds.length; i += 10) {
@@ -228,38 +223,71 @@ class FriendService {
     });
   }
 
-  /// Remove a friend (takes two parameters for compatibility)
-  Future<void> removeFriend(String currentUserId, String friendId) async {
-    // Use the provided currentUserId or fall back to authenticated user
-    final userId = currentUserId.isNotEmpty 
-        ? currentUserId 
-        : _auth.currentUser?.uid;
-    
-    if (userId == null) return;
+  /// NEW: Delete chat room between two users
+  Future<void> _deleteChatRoom(String userId1, String userId2) async {
+    try {
+      // Construct chat room ID
+      List<String> ids = [userId1, userId2];
+      ids.sort();
+      String chatRoomID = ids.join('_');
 
-    await _firestore.runTransaction((transaction) async {
-      final currentUserRef = _firestore.collection('users').doc(userId);
-      final friendUserRef = _firestore.collection('users').doc(friendId);
+      // Get the chat room reference
+      final chatRoomRef = _firestore.collection('chat_rooms').doc(chatRoomID);
 
-      // Remove each user from the other's friend list
-      transaction.update(currentUserRef, {
-        'friends': FieldValue.arrayRemove([friendId]),
-      });
-      transaction.update(friendUserRef, {
-        'friends': FieldValue.arrayRemove([userId]),
-      });
-    });
+      // Delete all messages in the chat room
+      final messagesSnapshot =
+          await chatRoomRef.collection('messages').get();
+
+      for (var doc in messagesSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Delete the chat room document itself
+      await chatRoomRef.delete();
+
+      print('✅ Chat room deleted: $chatRoomID');
+    } catch (e) {
+      print('Error deleting chat room: $e');
+    }
   }
 
-  /// Get friends stream for a specific user (for viewing other's friend lists)
-  /// CORRECTED VERSION - uses same data structure as getFriendsStream
+  /// UPDATED: Remove a friend AND delete their chat history
+  Future<void> removeFriend(String currentUserId, String friendId) async {
+    final userId = currentUserId.isNotEmpty ? currentUserId : _auth.currentUser?.uid;
+
+    if (userId == null) return;
+
+    try {
+      // 1. Remove from friends list
+      await _firestore.runTransaction((transaction) async {
+        final currentUserRef = _firestore.collection('users').doc(userId);
+        final friendUserRef = _firestore.collection('users').doc(friendId);
+
+        transaction.update(currentUserRef, {
+          'friends': FieldValue.arrayRemove([friendId]),
+        });
+        transaction.update(friendUserRef, {
+          'friends': FieldValue.arrayRemove([userId]),
+        });
+      });
+
+      // 2. Delete chat history between them
+      await _deleteChatRoom(userId, friendId);
+
+      print('✅ Friend removed and chat deleted');
+    } catch (e) {
+      print('Error removing friend: $e');
+      rethrow;
+    }
+  }
+
+  /// Get friends stream for a specific user
   Stream<List<Map<String, dynamic>>> getFriendsStreamForUser(String userID) {
     return _firestore
         .collection('users')
         .doc(userID)
         .snapshots()
         .asyncMap((userDoc) async {
-      // If user doesn't exist or has no friends
       if (!userDoc.exists || userDoc.data()?['friends'] == null) {
         return [];
       }
@@ -269,7 +297,6 @@ class FriendService {
         return [];
       }
 
-      // Batch fetch friends (Firestore whereIn limit is 10)
       List<Map<String, dynamic>> allFriends = [];
 
       for (int i = 0; i < friendIds.length; i += 10) {
@@ -277,14 +304,15 @@ class FriendService {
           i,
           i + 10 > friendIds.length ? friendIds.length : i + 10,
         );
-        
+
         try {
           final friendDocs = await _firestore
               .collection('users')
               .where('uid', whereIn: batch)
               .get();
 
-          allFriends.addAll(friendDocs.docs.map((doc) => doc.data()).toList());
+          allFriends
+              .addAll(friendDocs.docs.map((doc) => doc.data()).toList());
         } catch (e) {
           print('Error fetching friends batch: $e');
         }

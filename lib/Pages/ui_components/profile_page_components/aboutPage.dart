@@ -6,6 +6,18 @@ import 'package:url_launcher/url_launcher.dart';
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
+  Future<void> _launchURL(String urlString) async {
+    try {
+      final url = Uri.parse(urlString);
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tierProvider = context.watch<TierThemeProvider>();
@@ -230,16 +242,8 @@ class AboutPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     InkWell(
-                      onTap: () async {
-                        final url =
-                            Uri.parse('https://github.com/ankitraj4096/HabitFlow');
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(
-                            url,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        }
-                      },
+                      onTap: () =>
+                          _launchURL('https://github.com/ankitraj4096/HabitFlow'),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -254,7 +258,11 @@ class AboutPage extends StatelessWidget {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.open_in_new, color: Colors.white, size: 18),
+                            Icon(
+                              Icons.open_in_new,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                             SizedBox(width: 8),
                             Text(
                               'View on GitHub',
@@ -534,12 +542,7 @@ class AboutPage extends StatelessWidget {
     String url,
   ) {
     return InkWell(
-      onTap: () async {
-        final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
+      onTap: () => _launchURL(url),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(

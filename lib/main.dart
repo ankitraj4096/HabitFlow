@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/firebase_options.dart';
+import 'package:demo/services/cleanUpService.dart';
 import 'package:demo/services/notes/userStatsProvider.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +9,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+
+// Global timer for periodic cleanup
+Timer? _cleanupTimer;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +25,9 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('mybox');
 
+  // ✅ Initialize cleanup timer (runs every 24 hours)
+  _initializeCleanupTimer();
+
   // ✅ Run app with MultiProvider
   runApp(
     MultiProvider(
@@ -30,6 +38,44 @@ void main() async {
       child: const MyApp(),
     ),
   );
+}
+
+/// Initialize the periodic cleanup timer
+void _initializeCleanupTimer() {
+  // Cancel existing timer if any
+  _cleanupTimer?.cancel();
+
+  // Run cleanup every 24 hours
+  _cleanupTimer = Timer.periodic(const Duration(hours: 24), (timer) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final cleanupService = CleanupService();
+        print('🧹 Running scheduled cleanup...');
+        await cleanupService.runFullCleanup(user.uid);
+        print('✅ Scheduled cleanup completed');
+      }
+    } catch (e) {
+      print('❌ Error during scheduled cleanup: $e');
+    }
+  });
+
+  // Also run cleanup once on app start (with delay to not block startup)
+  Future.delayed(const Duration(minutes: 2), () async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final cleanupService = CleanupService();
+        print('🧹 Running initial cleanup...');
+        await cleanupService.runFullCleanup(user.uid);
+        print('✅ Initial cleanup completed');
+      }
+    } catch (e) {
+      print('❌ Error during initial cleanup: $e');
+    }
+  });
+
+  print('✅ Cleanup timer initialized');
 }
 
 class MyApp extends StatelessWidget {
@@ -195,8 +241,7 @@ class _AppInitializerState extends State<AppInitializer>
                     width: 40,
                     height: 40,
                     child: CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation(Color(0xFF7C4DFF)),
+                      valueColor: AlwaysStoppedAnimation(Color(0xFF7C4DFF)),
                       strokeWidth: 3,
                     ),
                   ),
