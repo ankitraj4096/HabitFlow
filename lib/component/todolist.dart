@@ -1,3 +1,4 @@
+import 'package:demo/component/water_droplet.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -23,6 +24,7 @@ class Todolist extends StatefulWidget {
   final VoidCallback? onTimerStart;
   final VoidCallback? onTimerPause;
   final VoidCallback? onTimerStop;
+  final int resetKey;
 
   // Sync status
   final bool isSynced;
@@ -44,6 +46,7 @@ class Todolist extends StatefulWidget {
     this.isSynced = true,
     required this.assignedByUsername,
     required this.onTimerComplete,
+    this.resetKey = 0,
   });
 
   @override
@@ -157,15 +160,56 @@ class _TodolistState extends State<Todolist> {
     return (_currentElapsed / widget.totalDuration!).clamp(0.0, 1.0);
   }
 
-  Color _getTimerColor() {
+  Color _getWaterColor() {
     final progress = _getProgress();
-    if (progress < 0.5) {
-      return const Color(0xFF4CAF50);
-    } else if (progress < 0.8) {
-      return const Color(0xFFFFA726);
+    if (progress < 0.33) {
+      return const Color(0xFF4FC3F7);
+    } else if (progress < 0.66) {
+      return const Color(0xFF29B6F6);
     } else {
-      return const Color(0xFFEF5350);
+      return const Color(0xFF0288D1);
     }
+  }
+
+  void _showResetDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFFFA726)),
+            SizedBox(width: 8),
+            Text('Reset Timer?'),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to reset the timer? Water will drain and restart.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              widget.onTimerStop?.call();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF5350),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Reset', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -198,16 +242,6 @@ class _TodolistState extends State<Todolist> {
         ),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: widget.IsChecked
-                  ? [
-                      tierProvider.primaryColor.withOpacity(0.15),
-                      tierProvider.glowColor.withOpacity(0.1),
-                    ]
-                  : [Colors.white, const Color(0xFFFAFAFA)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: widget.IsChecked
@@ -228,492 +262,467 @@ class _TodolistState extends State<Todolist> {
               ),
             ],
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => widget.onChanged?.call(!widget.IsChecked),
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Main Task Row
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Custom Checkbox
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            gradient: widget.IsChecked
-                                ? LinearGradient(
-                                    colors: tierProvider.gradientColors,
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                : null,
-                            color: widget.IsChecked ? null : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: widget.IsChecked
-                                  ? Colors.transparent
-                                  : Colors.grey.shade400,
-                              width: 2,
-                            ),
-                            boxShadow: widget.IsChecked
-                                ? [
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              children: [
+                // ✅ Water droplet background
+                if (widget.hasTimer && widget.totalDuration != null)
+                  Positioned.fill(
+                    child: WaterDropletEffect(
+                      progress: _getProgress(),
+                      isRunning: widget.isRunning,
+                      waterColor: _getWaterColor(),
+                      resetKey: widget.resetKey,
+                    ),
+                  ),
+
+                // ✅ Gradient overlay for non-timer tasks
+                if (!widget.hasTimer || widget.totalDuration == null)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: widget.IsChecked
+                              ? [
+                                  tierProvider.primaryColor.withOpacity(0.15),
+                                  tierProvider.glowColor.withOpacity(0.1),
+                                ]
+                              : [Colors.white, const Color(0xFFFAFAFA)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // ✅ Content overlay with TIGHT text wrapping
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => widget.onChanged?.call(!widget.IsChecked),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // ✅ Main Task Row
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Checkbox
+                              Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  gradient: widget.IsChecked
+                                      ? LinearGradient(
+                                          colors: tierProvider.gradientColors,
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : null,
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(7),
+                                  border: Border.all(
+                                    color: widget.IsChecked
+                                        ? Colors.transparent
+                                        : Colors.grey.shade400,
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
                                     BoxShadow(
-                                      color: tierProvider.glowColor
-                                          .withOpacity(0.3),
-                                      blurRadius: 8,
+                                      color: widget.IsChecked
+                                          ? tierProvider.glowColor
+                                              .withOpacity(0.3)
+                                          : Colors.black.withOpacity(0.12),
+                                      blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
-                                  ]
-                                : [],
-                          ),
-                          child: widget.IsChecked
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-
-                        // Task Text
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                widget.TaskName,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: widget.IsChecked
-                                      ? Colors.grey.shade600
-                                      : const Color(0xFF2C3E50),
-                                  decoration: widget.IsChecked
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                  decorationColor: Colors.grey.shade400,
-                                  decorationThickness: 2,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-
-                              // Assigned by badge
-                              if (widget.assignedByUsername != null) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.person,
-                                      size: 14,
-                                      color: tierProvider.primaryColor,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'From: ${widget.assignedByUsername}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: tierProvider.primaryColor,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
                                   ],
                                 ),
-                              ],
+                                child: widget.IsChecked
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 10),
 
-                              if (widget.IsChecked) ...[
-                                const SizedBox(height: 4),
-                                Row(
+                              // ✅ Task text - WRAPS TIGHTLY using Wrap widget
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      size: 12,
-                                      color: tierProvider.primaryColor,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Completed',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: tierProvider.primaryColor,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 8),
-
-                        // Right side badges
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Sync Status
-                            if (!widget.isSynced) ...[
-                              Tooltip(
-                                message: 'Syncing to cloud...',
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: Colors.orange.withOpacity(0.3),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const SizedBox(
-                                        width: 10,
-                                        height: 10,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 1.5,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                            Colors.orange,
+                                    // Task name - tight wrap
+                                    Wrap(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
                                           ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Sync',
-                                        style: TextStyle(
-                                          color: Colors.orange.shade700,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                            ],
-
-                            // Timer Badge
-                            if (widget.hasTimer)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      tierProvider.primaryColor
-                                          .withOpacity(0.15),
-                                      tierProvider.glowColor.withOpacity(0.15),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: tierProvider.primaryColor
-                                        .withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.timer,
-                                      size: 12,
-                                      color: tierProvider.primaryColor,
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'Timer',
-                                      style: TextStyle(
-                                        color: tierProvider.primaryColor,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    // Timer Section
-                    if (widget.hasTimer && widget.totalDuration != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              _getTimerColor().withOpacity(0.1),
-                              _getTimerColor().withOpacity(0.05),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _getTimerColor().withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Progress Bar
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                  FractionallySizedBox(
-                                    widthFactor: _getProgress(),
-                                    child: Container(
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            _getTimerColor(),
-                                            _getTimerColor().withOpacity(0.7),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-
-                            // Timer Controls Row
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Time Display
-                                Flexible(
-                                  flex: 2,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(5),
-                                        decoration: BoxDecoration(
-                                          color: _getTimerColor()
-                                              .withOpacity(0.15),
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                        child: Icon(
-                                          widget.isRunning
-                                              ? Icons.play_circle_filled
-                                              : Icons.access_time,
-                                          size: 16,
-                                          color: _getTimerColor(),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              _formatTime(_currentElapsed),
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: _getTimerColor(),
-                                                letterSpacing: 0.3,
-                                              ),
-                                            ),
-                                            Text(
-                                              'of ${_formatTime(widget.totalDuration!)}',
-                                              style: TextStyle(
-                                                fontSize: 9,
-                                                color: Colors.grey.shade600,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Control Buttons
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Play/Pause Button
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () {
-                                          if (widget.isRunning) {
-                                            widget.onTimerPause?.call();
-                                          } else {
-                                            widget.onTimerStart?.call();
-                                          }
-                                        },
-                                        borderRadius: BorderRadius.circular(20),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: widget.isRunning
-                                                  ? [
-                                                      const Color(0xFFFFA726),
-                                                      const Color(0xFFFF9800),
-                                                    ]
-                                                  : [
-                                                      const Color(0xFF4CAF50),
-                                                      const Color(0xFF66BB6A),
-                                                    ],
-                                            ),
+                                            color:
+                                                Colors.white.withOpacity(0.95),
                                             borderRadius:
-                                                BorderRadius.circular(20),
+                                                BorderRadius.circular(8),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: (widget.isRunning
-                                                        ? const Color(
-                                                            0xFFFFA726)
-                                                        : const Color(
-                                                            0xFF4CAF50))
-                                                    .withOpacity(0.3),
-                                                blurRadius: 6,
+                                                color: Colors.black
+                                                    .withOpacity(0.08),
+                                                blurRadius: 4,
                                                 offset: const Offset(0, 2),
                                               ),
                                             ],
                                           ),
-                                          child: Icon(
-                                            widget.isRunning
-                                                ? Icons.pause_rounded
-                                                : Icons.play_arrow_rounded,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-
-                                    // Stop/Reset Button
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () {
-                                          widget.onTimerStop?.call();
-                                        },
-                                        borderRadius: BorderRadius.circular(20),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [
-                                                Color(0xFFEF5350),
-                                                Color(0xFFE53935),
-                                              ],
+                                          child: Text(
+                                            widget.TaskName,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: widget.IsChecked
+                                                  ? Colors.grey.shade600
+                                                  : const Color(0xFF2C3E50),
+                                              decoration: widget.IsChecked
+                                                  ? TextDecoration.lineThrough
+                                                  : TextDecoration.none,
+                                              decorationColor:
+                                                  Colors.grey.shade400,
+                                              decorationThickness: 2,
+                                              height: 1.3,
                                             ),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(0xFFEF5350)
-                                                    .withOpacity(0.3),
-                                                blurRadius: 6,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
                                           ),
-                                          child: const Icon(
-                                            Icons.stop_rounded,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-
-                            // Running indicator
-                            if (widget.isRunning) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 5,
-                                    height: 5,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF4CAF50),
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF4CAF50)
-                                              .withOpacity(0.5),
-                                          blurRadius: 3,
-                                          spreadRadius: 1,
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text(
-                                    'Timer Running',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Color(0xFF4CAF50),
-                                      fontWeight: FontWeight.w600,
+
+                                    // Assigned by - tight wrap
+                                    if (widget.assignedByUsername !=
+                                        null) ...[
+                                      const SizedBox(height: 4),
+                                      Wrap(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white
+                                                  .withOpacity(0.95),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.08),
+                                                  blurRadius: 3,
+                                                  offset: const Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.person,
+                                                  size: 11,
+                                                  color: tierProvider
+                                                      .primaryColor,
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  'From: ${widget.assignedByUsername}',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: tierProvider
+                                                        .primaryColor,
+                                                    fontWeight: FontWeight.w500,
+                                                    height: 1.2,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+
+                                    // Completed badge - tight wrap
+                                    if (widget.IsChecked) ...[
+                                      const SizedBox(height: 3),
+                                      Wrap(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white
+                                                  .withOpacity(0.95),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.08),
+                                                  blurRadius: 3,
+                                                  offset: const Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.check_circle,
+                                                  size: 10,
+                                                  color: tierProvider
+                                                      .primaryColor,
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  'Completed',
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    color: tierProvider
+                                                        .primaryColor,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(width: 8),
+
+                              // Badges column
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (!widget.isSynced)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withOpacity(0.96),
+                                        borderRadius: BorderRadius.circular(5),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withOpacity(0.08),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 8,
+                                            height: 8,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 1,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 3),
+                                          Text(
+                                            'Sync',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
+                                  if (!widget.isSynced)
+                                    const SizedBox(height: 3),
+                                  if (widget.hasTimer)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: tierProvider.primaryColor
+                                            .withOpacity(0.96),
+                                        borderRadius: BorderRadius.circular(5),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withOpacity(0.08),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.timer,
+                                            size: 10,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 3),
+                                          Text(
+                                            'Timer',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                 ],
                               ),
                             ],
+                          ),
+
+                          // ✅ Timer controls row
+                          if (widget.hasTimer &&
+                              widget.totalDuration != null) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Time display - tight wrap
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.95),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.water_drop,
+                                        size: 12,
+                                        color: _getWaterColor(),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _formatTime(_currentElapsed),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: _getWaterColor(),
+                                          height: 1,
+                                        ),
+                                      ),
+                                      Text(
+                                        ' / ${_formatTime(widget.totalDuration!)}',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: Colors.grey.shade600,
+                                          height: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Control buttons
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildMicroButton(
+                                      icon: widget.isRunning
+                                          ? Icons.pause_rounded
+                                          : Icons.play_arrow_rounded,
+                                      color: widget.isRunning
+                                          ? const Color(0xFFFFA726)
+                                          : const Color(0xFF4CAF50),
+                                      onTap: () {
+                                        if (widget.isRunning) {
+                                          widget.onTimerPause?.call();
+                                        } else {
+                                          widget.onTimerStart?.call();
+                                        }
+                                      },
+                                    ),
+                                    const SizedBox(width: 5),
+                                    _buildMicroButton(
+                                      icon: Icons.refresh_rounded,
+                                      color: const Color(0xFFEF5350),
+                                      onTap: _showResetDialog,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMicroButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 15),
       ),
     );
   }
