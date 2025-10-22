@@ -354,27 +354,126 @@ class _TodolistState extends State<Todolist> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       child: Slidable(
         endActionPane: ActionPane(
-          motion: const StretchMotion(),
+          motion: const DrawerMotion(),
+          extentRatio: 0.45,
           children: [
-            SlidableAction(
-              onPressed: widget.Update_Fun,
-              icon: Icons.edit_rounded,
-              backgroundColor: tierProvider.primaryColor,
-              foregroundColor: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              label: 'Edit',
+            // Edit Action with gradient
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4, right: 2),
+                child: GestureDetector(
+                  onTap: () => widget.Update_Fun?.call(context),
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minHeight: 80, // Minimum height to prevent overflow
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: tierProvider.gradientColors,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tierProvider.glowColor.withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Edit',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-            SlidableAction(
-              onPressed: widget.Delete_Fun,
-              icon: Icons.delete_rounded,
-              backgroundColor: const Color(0xFFEF5350),
-              foregroundColor: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              label: 'Delete',
+
+            // Delete Action with gradient
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 2, right: 4),
+                child: GestureDetector(
+                  onTap: () => widget.Delete_Fun?.call(context),
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minHeight: 80, // Minimum height to prevent overflow
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEF5350), Color(0xFFE53935)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF5350).withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.delete_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
         child: Container(
+          constraints: const BoxConstraints(
+            minHeight: 80, // Ensures card has minimum height
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -447,7 +546,9 @@ class _TodolistState extends State<Todolist> {
                     },
                     borderRadius: BorderRadius.circular(16),
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(
+                        16,
+                      ), // Increased from 14 to 16
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -789,7 +890,6 @@ class _TodolistState extends State<Todolist> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        // Show full time if completed
                                         widget.IsChecked
                                             ? _formatTime(widget.totalDuration!)
                                             : _formatTime(_currentElapsed),
@@ -812,7 +912,7 @@ class _TodolistState extends State<Todolist> {
                                   ),
                                 ),
 
-                                // Control buttons - disabled if completed
+                                // Control buttons
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
