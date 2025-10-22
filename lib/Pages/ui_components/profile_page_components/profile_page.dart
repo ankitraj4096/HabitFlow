@@ -4,6 +4,7 @@ import 'package:demo/Pages/ui_components/profile_page_components/settings_page.d
 import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/services/notes/userStatsProvider.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -25,16 +26,19 @@ class _ProfilePageState extends State<ProfilePage>
   final AuthService _authService = AuthService();
   final FireStoreService _firestoreService = FireStoreService();
 
-  String username = 'Loading...';
-  int currentStreak = 0;
-  int totalTasks = 0;
-  int completedTasks = 0;
-  int totalHours = 0;
-  Map<String, dynamic> userTier = {};
-  bool isLoading = true;
+  // For viewing friend's profile
+  String friendUsername = 'Loading...';
+  int friendCurrentStreak = 0;
+  int friendTotalTasks = 0;
+  int friendCompletedTasks = 0;
+  int friendTotalHours = 0;
+  Map<String, dynamic> friendUserTier = {};
+  bool isFriendLoading = true;
 
-  // Store the viewed user's tier colors
-  List<Color> viewedUserGradient = [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+  List<Color> viewedUserGradient = [
+    const Color(0xFF7C4DFF),
+    const Color(0xFF448AFF)
+  ];
   Color viewedUserGlowColor = const Color(0xFF7C4DFF);
 
   late AnimationController _glowController;
@@ -50,7 +54,11 @@ class _ProfilePageState extends State<ProfilePage>
     _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
-    _loadUserData();
+    
+    // Load friend data if viewing friend's profile
+    if (!widget.isOwnProfile) {
+      _loadFriendData();
+    }
   }
 
   @override
@@ -59,67 +67,62 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
-  Future<void> _loadUserData() async {
-    setState(() => isLoading = true);
+  Future<void> _loadFriendData() async {
+    setState(() => isFriendLoading = true);
     try {
-      final String name;
-      final Map<String, dynamic> stats;
-
-      if (widget.isOwnProfile) {
-        name = await _firestoreService.getUsername();
-        stats = await _firestoreService.getUserStatistics();
-      } else {
-        name = widget.viewingUsername ?? 'User';
-        stats = await _firestoreService.getUserStatisticsForUser(
-          widget.viewingUserID!,
-        );
-      }
-
-      // Get the tier for the VIEWED user (not current user!)
+      final stats = await _firestoreService
+          .getUserStatisticsForUser(widget.viewingUserID!);
       final tier = _firestoreService.getUserTier(stats['completedTasks']);
 
       if (mounted) {
         setState(() {
-          username = name;
-          currentStreak = stats['currentStreak'];
-          totalTasks = stats['totalTasks'];
-          completedTasks = stats['completedTasks'];
-          totalHours = stats['totalHours'];
-          userTier = tier;
-          
-          // Extract colors from the viewed user's tier
-          viewedUserGlowColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
-          viewedUserGradient = (tier['gradient'] as List<dynamic>?)
-                  ?.map((e) => e as Color)
-                  .toList() ??
-              [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+          friendUsername = widget.viewingUsername ?? 'User';
+          friendCurrentStreak = stats['currentStreak'];
+          friendTotalTasks = stats['totalTasks'];
+          friendCompletedTasks = stats['completedTasks'];
+          friendTotalHours = stats['totalHours'];
+          friendUserTier = tier;
+
+          viewedUserGlowColor =
+              tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
+          viewedUserGradient =
+              (tier['gradient'] as List<dynamic>?)?.map((e) => e as Color).toList() ??
+                  [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+          isFriendLoading = false;
         });
       }
     } catch (e) {
-      print('Error loading user data: $e');
-    } finally {
+      print('Error loading friend data: $e');
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() => isFriendLoading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get YOUR tier colors from provider ONLY for own profile
-    // For friend's profile, use their tier colors stored in state
     final tierProvider = context.watch<TierThemeProvider>();
-    
+
+    // For own profile, use provider data
+    final statsProvider = widget.isOwnProfile ? context.watch<UserStatsProvider>() : null;
+
+    // Decide which data to use
+    final username = widget.isOwnProfile ? statsProvider!.username : friendUsername;
+    final currentStreak = widget.isOwnProfile ? statsProvider!.currentStreak : friendCurrentStreak;
+    final totalTasks = widget.isOwnProfile ? statsProvider!.totalTasks : friendTotalTasks;
+    final completedTasks = widget.isOwnProfile ? statsProvider!.completedTasks : friendCompletedTasks;
+    final totalHours = widget.isOwnProfile ? statsProvider!.totalHours : friendTotalHours;
+    final userTier = widget.isOwnProfile ? statsProvider!.userTier : friendUserTier;
+    final isLoading = widget.isOwnProfile ? statsProvider!.isLoading : isFriendLoading;
+
     // Decide which colors to use
-    final displayGradient = widget.isOwnProfile 
-        ? tierProvider.gradientColors 
+    final displayGradient = widget.isOwnProfile
+        ? tierProvider.gradientColors
         : viewedUserGradient;
-    final displayGlowColor = widget.isOwnProfile 
-        ? tierProvider.glowColor 
-        : viewedUserGlowColor;
-    final displayPrimaryColor = widget.isOwnProfile 
-        ? tierProvider.primaryColor 
-        : viewedUserGlowColor;
+    final displayGlowColor =
+        widget.isOwnProfile ? tierProvider.glowColor : viewedUserGlowColor;
+    final displayPrimaryColor =
+        widget.isOwnProfile ? tierProvider.primaryColor : viewedUserGlowColor;
 
     return Scaffold(
       body: Container(
@@ -135,21 +138,40 @@ class _ProfilePageState extends State<ProfilePage>
           child: isLoading
               ? Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      displayPrimaryColor,
-                    ),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(displayPrimaryColor),
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: _loadUserData,
+                  onRefresh: () async {
+                    if (widget.isOwnProfile) {
+                      await statsProvider!.refresh();
+                    } else {
+                      await _loadFriendData();
+                    }
+                  },
                   color: displayPrimaryColor,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
                       children: [
-                        _buildHeader(displayGradient, displayGlowColor),
-                        _buildStatsCard(displayPrimaryColor),
-                        _buildActionButtons(displayGradient, displayGlowColor),
+                        _buildHeader(
+                          displayGradient,
+                          displayGlowColor,
+                          username,
+                          userTier,
+                        ),
+                        _buildStatsCard(
+                          displayPrimaryColor,
+                          currentStreak,
+                          completedTasks,
+                          totalHours,
+                          totalTasks,
+                        ),
+                        _buildActionButtons(
+                          displayGradient,
+                          displayGlowColor,
+                        ),
                         const SizedBox(height: 24),
                         _buildHeatmapSection(displayPrimaryColor),
                         const SizedBox(height: 24),
@@ -162,7 +184,12 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildHeader(List<Color> gradientColors, Color glowColor) {
+  Widget _buildHeader(
+    List<Color> gradientColors,
+    Color glowColor,
+    String username,
+    Map<String, dynamic> userTier,
+  ) {
     final tierIcon = _firestoreService.getIconFromString(
       userTier['icon'] ?? 'sparkles',
     );
@@ -213,7 +240,8 @@ class _ProfilePageState extends State<ProfilePage>
                       widget.isOwnProfile
                           ? 'Keep building great habits! 🚀'
                           : 'View their progress',
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
                 ),
@@ -353,7 +381,13 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildStatsCard(Color primaryColor) {
+  Widget _buildStatsCard(
+    Color primaryColor,
+    int currentStreak,
+    int completedTasks,
+    int totalHours,
+    int totalTasks,
+  ) {
     return Transform.translate(
       offset: const Offset(0, -20),
       child: Padding(
@@ -610,109 +644,191 @@ class _ProfilePageState extends State<ProfilePage>
           ),
         ),
         padding: const EdgeInsets.all(20),
-        child: StreamBuilder<Map<String, int>>(
-          stream: widget.isOwnProfile
-              ? _firestoreService.getHeatmapData()
-              : _firestoreService.getHeatmapDataForUser(widget.viewingUserID!),
-          builder: (context, snap) {
-            if (snap.hasError) {
-              return const Center(
-                child: Text(
-                  'Error loading heatmap',
-                  style: TextStyle(color: Colors.red),
-                ),
-              );
-            }
-            if (!snap.hasData) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                  ),
-                ),
-              );
-            }
-            final heatmapData = snap.data!;
-            final totalCompletions = heatmapData.values.fold(
-              0,
-              (sum, count) => sum + count,
-            );
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Activity Heatmap',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2C3E50),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          '$totalCompletions completions',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
+        child: widget.isOwnProfile
+            ? Consumer<UserStatsProvider>(
+                builder: (context, statsProvider, child) {
+                  final heatmapData = statsProvider.heatmapData;
+                  final totalCompletions =
+                      heatmapData.values.fold(0, (sum, count) => sum + count);
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Activity Heatmap',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2C3E50),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.calendar_today,
-                          color: primaryColor,
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                HeatMapPage(
-                  completionData: heatmapData,
-                  viewingUserID:
-                      widget.isOwnProfile ? null : widget.viewingUserID,
-                  viewingUsername:
-                      widget.isOwnProfile ? null : widget.viewingUsername,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Less',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(width: 8),
-                    ...List.generate(
-                      5,
-                      (i) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Color.fromRGBO(76, 175, 80, (i + 1) * 0.2),
-                          borderRadius: BorderRadius.circular(3),
+                          Row(
+                            children: [
+                              Text(
+                                '$totalCompletions completions',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.calendar_today,
+                                color: primaryColor,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      HeatMapPage(
+                        completionData: heatmapData,
+                        viewingUserID: null,
+                        viewingUsername: null,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Less',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600]),
+                          ),
+                          const SizedBox(width: 8),
+                          ...List.generate(
+                            5,
+                            (i) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color:
+                                    Color.fromRGBO(76, 175, 80, (i + 1) * 0.2),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'More',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 50),
+                    ],
+                  );
+                },
+              )
+            : StreamBuilder<Map<String, int>>(
+                stream: _firestoreService
+                    .getHeatmapDataForUser(widget.viewingUserID!),
+                builder: (context, snap) {
+                  if (snap.hasError) {
+                    return const Center(
+                      child: Text(
+                        'Error loading heatmap',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
+                  if (!snap.hasData) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(primaryColor),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'More',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 50),
-              ],
-            );
-          },
-        ),
+                    );
+                  }
+                  final heatmapData = snap.data!;
+                  final totalCompletions =
+                      heatmapData.values.fold(0, (sum, count) => sum + count);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Activity Heatmap',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2C3E50),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                '$totalCompletions completions',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.calendar_today,
+                                color: primaryColor,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      HeatMapPage(
+                        completionData: heatmapData,
+                        viewingUserID: widget.viewingUserID,
+                        viewingUsername: widget.viewingUsername,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Less',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600]),
+                          ),
+                          const SizedBox(width: 8),
+                          ...List.generate(
+                            5,
+                            (i) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color:
+                                    Color.fromRGBO(76, 175, 80, (i + 1) * 0.2),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'More',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 50),
+                    ],
+                  );
+                },
+              ),
       ),
     );
   }

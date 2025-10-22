@@ -1,5 +1,6 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/firebase_options.dart';
+import 'package:demo/services/notes/userStatsProvider.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,10 +20,13 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('mybox');
 
-  // ✅ Run app with Provider
+  // ✅ Run app with MultiProvider
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => TierThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => TierThemeProvider()),
+        ChangeNotifierProvider(create: (_) => UserStatsProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -58,7 +62,7 @@ class _AppInitializerState extends State<AppInitializer>
   @override
   void initState() {
     super.initState();
-    
+
     // Setup animations
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -89,6 +93,7 @@ class _AppInitializerState extends State<AppInitializer>
       final user = FirebaseAuth.instance.currentUser;
       if (user != null && mounted) {
         await context.read<TierThemeProvider>().initializeTierTheme();
+        // UserStatsProvider will initialize automatically via its constructor
       }
 
       // Wait for the minimum splash duration to complete
@@ -162,7 +167,7 @@ class _AppInitializerState extends State<AppInitializer>
                     ),
                   ),
                   const SizedBox(height: 40),
-                  
+
                   // App name or tagline
                   const Text(
                     'HabitFlow',
@@ -174,7 +179,7 @@ class _AppInitializerState extends State<AppInitializer>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   Text(
                     'Loading your experience...',
                     style: TextStyle(
@@ -184,13 +189,14 @@ class _AppInitializerState extends State<AppInitializer>
                     ),
                   ),
                   const SizedBox(height: 40),
-                  
+
                   // Loading indicator
-                  SizedBox(
+                  const SizedBox(
                     width: 40,
                     height: 40,
                     child: CircularProgressIndicator(
-                      valueColor: const AlwaysStoppedAnimation(Color(0xFF7C4DFF)),
+                      valueColor:
+                          AlwaysStoppedAnimation(Color(0xFF7C4DFF)),
                       strokeWidth: 3,
                     ),
                   ),
