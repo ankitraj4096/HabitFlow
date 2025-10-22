@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 
 class FriendTasksManagerPage extends StatefulWidget {
   final String friendUserID;
   final String friendUsername;
-
 
   const FriendTasksManagerPage({
     super.key,
@@ -15,11 +15,9 @@ class FriendTasksManagerPage extends StatefulWidget {
     required this.friendUsername,
   });
 
-
   @override
   State<FriendTasksManagerPage> createState() => _FriendTasksManagerPageState();
 }
-
 
 class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     with SingleTickerProviderStateMixin {
@@ -29,39 +27,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
   final TextEditingController _taskController = TextEditingController();
   final TextEditingController _timerController = TextEditingController();
 
-  // Tier colors
-  List<Color> tierGradient = [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
-  Color tierColor = const Color(0xFF7C4DFF);
-  bool isLoadingTier = true;
-
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadTierColors();
   }
-
-  Future<void> _loadTierColors() async {
-    try {
-      final stats = await _firestoreService.getUserStatistics();
-      final completedTasks = stats['completedTasks'] ?? 0;
-      final tier = _firestoreService.getUserTier(completedTasks);
-
-      setState(() {
-        tierColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
-        tierGradient = (tier['gradient'] as List<dynamic>?)
-                ?.map((e) => e as Color)
-                .toList() ??
-            [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
-        isLoadingTier = false;
-      });
-    } catch (e) {
-      print('Error loading tier colors: $e');
-      setState(() => isLoadingTier = false);
-    }
-  }
-
 
   @override
   void dispose() {
@@ -71,8 +41,9 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     super.dispose();
   }
 
-
   void _showAssignTaskDialog() {
+    final tierProvider = context.read<TierThemeProvider>();
+    
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -96,8 +67,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: tierGradient),
+                      gradient: LinearGradient(
+                        colors: tierProvider.gradientColors,
+                      ),
                       borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tierProvider.glowColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: const Icon(
                       Icons.person_add_alt,
@@ -112,7 +92,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: tierColor,
+                        color: tierProvider.primaryColor,
                       ),
                       maxLines: 2,
                     ),
@@ -125,15 +105,21 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                 decoration: InputDecoration(
                   labelText: 'Task Name',
                   hintText: 'What should they do?',
-                  prefixIcon: Icon(Icons.task, color: tierColor),
+                  prefixIcon: Icon(
+                    Icons.task,
+                    color: tierProvider.primaryColor,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tierColor, width: 2),
+                    borderSide: BorderSide(
+                      color: tierProvider.primaryColor,
+                      width: 2,
+                    ),
                   ),
-                  labelStyle: TextStyle(color: tierColor),
+                  labelStyle: TextStyle(color: tierProvider.primaryColor),
                 ),
                 maxLines: 2,
               ),
@@ -146,7 +132,9 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                   hintText: 'e.g., 30 minutes',
                   prefixIcon: Icon(
                     Icons.timer,
-                    color: tierGradient.length > 1 ? tierGradient[1] : tierColor,
+                    color: tierProvider.gradientColors.length > 1
+                        ? tierProvider.gradientColors[1]
+                        : tierProvider.primaryColor,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -154,12 +142,16 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: tierGradient.length > 1 ? tierGradient[1] : tierColor,
+                      color: tierProvider.gradientColors.length > 1
+                          ? tierProvider.gradientColors[1]
+                          : tierProvider.primaryColor,
                       width: 2,
                     ),
                   ),
                   labelStyle: TextStyle(
-                    color: tierGradient.length > 1 ? tierGradient[1] : tierColor,
+                    color: tierProvider.gradientColors.length > 1
+                        ? tierProvider.gradientColors[1]
+                        : tierProvider.primaryColor,
                   ),
                 ),
               ),
@@ -179,64 +171,82 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (_taskController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter a task name')),
-                        );
-                        return;
-                      }
-
-                      final timerMins = _timerController.text.isNotEmpty
-                          ? int.tryParse(_timerController.text)
-                          : null;
-
-                      try {
-                        await _firestoreService.assignTaskToFriend(
-                          friendUserID: widget.friendUserID,
-                          taskName: _taskController.text,
-                          durationMins: timerMins,
-                        );
-
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          _taskController.clear();
-                          _timerController.clear();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Task assigned to ${widget.friendUsername}!',
-                              ),
-                              backgroundColor: tierColor,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to assign task: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: tierColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: tierProvider.gradientColors,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tierProvider.glowColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: const Text(
-                      'Assign Task',
-                      style: TextStyle(color: Colors.white),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_taskController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a task name'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final timerMins = _timerController.text.isNotEmpty
+                            ? int.tryParse(_timerController.text)
+                            : null;
+
+                        try {
+                          await _firestoreService.assignTaskToFriend(
+                            friendUserID: widget.friendUserID,
+                            taskName: _taskController.text,
+                            durationMins: timerMins,
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            _taskController.clear();
+                            _timerController.clear();
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Task assigned to ${widget.friendUsername}!',
+                                ),
+                                backgroundColor: tierProvider.primaryColor,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to assign task: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text(
+                        'Assign Task',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -248,9 +258,10 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -263,29 +274,28 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
-              _buildTabBar(),
-              Expanded(child: _buildTabBarView()),
+              _buildHeader(tierProvider),
+              _buildTabBar(tierProvider),
+              Expanded(child: _buildTabBarView(tierProvider)),
             ],
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAssignTaskDialog,
-        backgroundColor: tierColor,
+        backgroundColor: tierProvider.primaryColor,
         icon: const Icon(Icons.add),
         label: const Text('Assign Task'),
       ),
     );
   }
 
-
-  Widget _buildHeader() {
+  Widget _buildHeader(TierThemeProvider tierProvider) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: tierGradient,
+          colors: tierProvider.gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -295,7 +305,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         ),
         boxShadow: [
           BoxShadow(
-            color: tierColor.withOpacity(0.3),
+            color: tierProvider.glowColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -342,8 +352,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-
-  Widget _buildTabBar() {
+  Widget _buildTabBar(TierThemeProvider tierProvider) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
@@ -360,11 +369,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          gradient: LinearGradient(colors: tierGradient),
+          gradient: LinearGradient(colors: tierProvider.gradientColors),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: tierColor.withOpacity(0.3),
+              color: tierProvider.glowColor.withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -407,16 +416,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-
-  Widget _buildTabBarView() {
+  Widget _buildTabBarView(TierThemeProvider tierProvider) {
     return TabBarView(
       controller: _tabController,
-      children: [_buildAllTasksTab(), _buildTasksByMeTab()],
+      children: [
+        _buildAllTasksTab(tierProvider),
+        _buildTasksByMeTab(tierProvider),
+      ],
     );
   }
 
-
-  Widget _buildAllTasksTab() {
+  Widget _buildAllTasksTab(TierThemeProvider tierProvider) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('user_notes')
@@ -426,15 +436,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return _buildErrorState('Error loading tasks: ${snapshot.error}');
+          return _buildErrorState(
+            'Error loading tasks: ${snapshot.error}',
+            tierProvider,
+          );
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingState();
+          return _buildLoadingState(tierProvider);
         }
 
-        final allTasks =
-            snapshot.data?.docs.where((doc) {
+        final allTasks = snapshot.data?.docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final status = data['status'];
               return status == 'accepted' || status == null;
@@ -442,7 +454,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             [];
 
         if (allTasks.isEmpty) {
-          return _buildEmptyState('No tasks yet', Icons.task_alt);
+          return _buildEmptyState(
+            'No tasks yet',
+            Icons.task_alt,
+            tierProvider,
+          );
         }
 
         return ListView.builder(
@@ -450,15 +466,14 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           itemCount: allTasks.length,
           itemBuilder: (context, index) {
             final data = allTasks[index].data() as Map<String, dynamic>;
-            return _buildTaskCard(data);
+            return _buildTaskCard(data, tierProvider);
           },
         );
       },
     );
   }
 
-
-  Widget _buildTasksByMeTab() {
+  Widget _buildTasksByMeTab(TierThemeProvider tierProvider) {
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
 
     return StreamBuilder<QuerySnapshot>(
@@ -472,17 +487,19 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         if (snapshot.hasError) {
           return _buildErrorState(
             'Error loading your assigned tasks: ${snapshot.error}',
+            tierProvider,
           );
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingState();
+          return _buildLoadingState(tierProvider);
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyState(
             'You haven\'t assigned any tasks yet',
             Icons.person_add_alt,
+            tierProvider,
           );
         }
 
@@ -492,16 +509,16 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           itemBuilder: (context, index) {
             final doc = snapshot.data!.docs[index];
             final data = doc.data() as Map<String, dynamic>;
-            return _buildTaskCard(data, highlightMyTask: true);
+            return _buildTaskCard(data, tierProvider, highlightMyTask: true);
           },
         );
       },
     );
   }
 
-
   Widget _buildTaskCard(
-    Map<String, dynamic> data, {
+    Map<String, dynamic> data,
+    TierThemeProvider tierProvider, {
     bool highlightMyTask = false,
   }) {
     final taskName = data['taskName'] ?? 'Unnamed Task';
@@ -526,8 +543,10 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           colors: isCompleted
               ? [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)]
               : (highlightMyTask || isMyTask)
-              ? tierGradient.map((c) => c.withOpacity(0.1)).toList()
-              : [Colors.white, const Color(0xFFFAFAFA)],
+                  ? tierProvider.gradientColors
+                      .map((c) => c.withOpacity(0.1))
+                      .toList()
+                  : [Colors.white, const Color(0xFFFAFAFA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -536,8 +555,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           color: isCompleted
               ? const Color(0xFF4CAF50).withOpacity(0.3)
               : (highlightMyTask || isMyTask)
-              ? tierColor.withOpacity(0.4)
-              : Colors.grey.withOpacity(0.2),
+                  ? tierProvider.primaryColor.withOpacity(0.4)
+                  : Colors.grey.withOpacity(0.2),
           width: 2,
         ),
         boxShadow: [
@@ -545,8 +564,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             color: isCompleted
                 ? const Color(0xFF4CAF50).withOpacity(0.1)
                 : (highlightMyTask || isMyTask)
-                ? tierColor.withOpacity(0.15)
-                : Colors.black.withOpacity(0.06),
+                    ? tierProvider.glowColor.withOpacity(0.15)
+                    : Colors.black.withOpacity(0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -565,14 +584,13 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                   width: 5,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: tierGradient,
+                      colors: tierProvider.gradientColors,
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
                   ),
                 ),
               ),
-
             Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
@@ -598,7 +616,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                           boxShadow: isCompleted
                               ? [
                                   BoxShadow(
-                                    color: const Color(0xFF4CAF50).withOpacity(0.3),
+                                    color: const Color(0xFF4CAF50)
+                                        .withOpacity(0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -618,7 +637,6 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                               ),
                       ),
                       const SizedBox(width: 14),
-
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,7 +658,6 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6),
-
                             Wrap(
                               spacing: 8,
                               runSpacing: 6,
@@ -650,54 +667,47 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                     icon: isMyTask
                                         ? Icons.send_rounded
                                         : Icons.person_rounded,
-                                    label: isMyTask
-                                        ? 'By You'
-                                        : 'By $assignedBy',
-                                    color: tierColor,
-                                    backgroundColor: tierColor.withOpacity(0.12),
+                                    label: isMyTask ? 'By You' : 'By $assignedBy',
+                                    color: tierProvider.primaryColor,
+                                    backgroundColor: tierProvider.primaryColor
+                                        .withOpacity(0.12),
                                   )
                                 else
                                   _buildInfoChip(
                                     icon: Icons.person_outline_rounded,
                                     label: 'Self-Created',
-                                    color: tierGradient.length > 1
-                                        ? tierGradient[1]
-                                        : tierColor,
-                                    backgroundColor: (tierGradient.length > 1
-                                            ? tierGradient[1]
-                                            : tierColor)
-                                        .withOpacity(0.12),
+                                    color: tierProvider.gradientColors.length > 1
+                                        ? tierProvider.gradientColors[1]
+                                        : tierProvider.primaryColor,
+                                    backgroundColor:
+                                        (tierProvider.gradientColors.length > 1
+                                                ? tierProvider.gradientColors[1]
+                                                : tierProvider.primaryColor)
+                                            .withOpacity(0.12),
                                   ),
-
                                 if (hasTimer && totalDuration != null)
                                   _buildInfoChip(
                                     icon: Icons.timer_outlined,
-                                    label:
-                                        '${(totalDuration / 60).round()} min',
+                                    label: '${(totalDuration / 60).round()} min',
                                     color: const Color(0xFFFF9800),
-                                    backgroundColor: const Color(
-                                      0xFFFF9800,
-                                    ).withOpacity(0.12),
+                                    backgroundColor:
+                                        const Color(0xFFFF9800).withOpacity(0.12),
                                   ),
-
                                 if (status == 'pending')
                                   _buildInfoChip(
                                     icon: Icons.pending_outlined,
                                     label: 'Awaiting Accept',
                                     color: const Color(0xFFFF6F00),
-                                    backgroundColor: const Color(
-                                      0xFFFF6F00,
-                                    ).withOpacity(0.12),
+                                    backgroundColor:
+                                        const Color(0xFFFF6F00).withOpacity(0.12),
                                   ),
-
                                 if (isCompleted)
                                   _buildInfoChip(
                                     icon: Icons.check_circle_outline,
                                     label: 'Done',
                                     color: const Color(0xFF4CAF50),
-                                    backgroundColor: const Color(
-                                      0xFF4CAF50,
-                                    ).withOpacity(0.12),
+                                    backgroundColor:
+                                        const Color(0xFF4CAF50).withOpacity(0.12),
                                   ),
                               ],
                             ),
@@ -706,7 +716,6 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                       ),
                     ],
                   ),
-
                   if (hasTimer &&
                       totalDuration != null &&
                       timerProgress != null &&
@@ -780,7 +789,6 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-
   Widget _buildInfoChip({
     required IconData icon,
     required String label,
@@ -813,13 +821,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-
   Color _getProgressColor(double progress) {
     if (progress < 0.33) return const Color(0xFF4CAF50);
     if (progress < 0.66) return const Color(0xFFFF9800);
     return const Color(0xFFEF5350);
   }
-
 
   List<Color> _getProgressGradient(double progress) {
     if (progress < 0.33) {
@@ -831,7 +837,6 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     }
   }
 
-
   String _formatDuration(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
@@ -842,17 +847,15 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     return '${minutes}m';
   }
 
-
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(TierThemeProvider tierProvider) {
     return Center(
       child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(tierColor),
+        valueColor: AlwaysStoppedAnimation<Color>(tierProvider.primaryColor),
       ),
     );
   }
 
-
-  Widget _buildErrorState(String message) {
+  Widget _buildErrorState(String message, TierThemeProvider tierProvider) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -881,8 +884,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
     );
   }
 
-
-  Widget _buildEmptyState(String message, IconData icon) {
+  Widget _buildEmptyState(
+    String message,
+    IconData icon,
+    TierThemeProvider tierProvider,
+  ) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -891,11 +897,13 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                colors: tierProvider.gradientColors
+                    .map((c) => c.withOpacity(0.2))
+                    .toList(),
               ),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 64, color: tierColor),
+            child: Icon(icon, size: 64, color: tierProvider.primaryColor),
           ),
           const SizedBox(height: 24),
           Text(

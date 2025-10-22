@@ -1,6 +1,8 @@
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/friends/friend_service.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class SearchUsersPage extends StatefulWidget {
   const SearchUsersPage({super.key});
@@ -14,7 +16,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
   String _query = "";
-  
+
   // Optimistic state management
   Map<String, String> _buttonStates = {}; // uid -> 'loading', 'sent', 'friends', etc.
   Map<String, bool> _isProcessing = {}; // Track if a button is being processed
@@ -59,12 +61,25 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text('Find Friends', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Find Friends',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
-        backgroundColor: Color(0xFF667EEA),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: tierProvider.gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -73,7 +88,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                colors: tierProvider.gradientColors,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -85,9 +100,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: tierProvider.glowColor.withOpacity(0.2),
                     blurRadius: 10,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -96,7 +111,10 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 decoration: InputDecoration(
                   hintText: 'Search by username...',
                   hintStyle: TextStyle(color: Colors.grey.shade400),
-                  prefixIcon: Icon(Icons.search, color: Color(0xFF667EEA)),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: tierProvider.primaryColor,
+                  ),
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
                           icon: Icon(Icons.clear, color: Colors.grey.shade400),
@@ -110,7 +128,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -125,33 +144,35 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           // User List
           Expanded(
             child: _query.isEmpty
-                ? _buildBrowseAllUsers()
-                : _buildSearchResults(),
+                ? _buildBrowseAllUsers(tierProvider)
+                : _buildSearchResults(tierProvider),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBrowseAllUsers() {
+  Widget _buildBrowseAllUsers(TierThemeProvider tierProvider) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _friendService.getAllUsers(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                tierProvider.primaryColor,
+              ),
             ),
           );
         }
-        
+
         if (snapshot.hasError) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.error_outline, size: 80, color: Colors.red.shade300),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
                   'Error loading users',
                   style: TextStyle(fontSize: 18, color: Colors.red.shade700),
@@ -160,14 +181,29 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             ),
           );
         }
-        
+
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline, size: 80, color: Colors.grey.shade400),
-                SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: tierProvider.gradientColors
+                          .map((c) => c.withOpacity(0.2))
+                          .toList(),
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.people_outline,
+                    size: 64,
+                    color: tierProvider.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'No users found',
                   style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
@@ -178,41 +214,58 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         }
 
         return ListView.builder(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           itemCount: snapshot.data!.length,
           itemBuilder: (context, index) {
             final user = snapshot.data![index];
-            return _buildUserCard(user);
+            return _buildUserCard(user, tierProvider);
           },
         );
       },
     );
   }
 
-  Widget _buildSearchResults() {
+  Widget _buildSearchResults(TierThemeProvider tierProvider) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _friendService.searchUsers(_query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                tierProvider.primaryColor,
+              ),
             ),
           );
         }
-        
+
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.search_off, size: 80, color: Colors.grey.shade400),
-                SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: tierProvider.gradientColors
+                          .map((c) => c.withOpacity(0.2))
+                          .toList(),
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.search_off,
+                    size: 64,
+                    color: tierProvider.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'No users found',
                   style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   'Try a different username',
                   style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
@@ -232,8 +285,23 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.person_off, size: 80, color: Colors.grey.shade400),
-                SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: tierProvider.gradientColors
+                          .map((c) => c.withOpacity(0.2))
+                          .toList(),
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.person_off,
+                    size: 64,
+                    color: tierProvider.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'No other users found',
                   style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
@@ -244,35 +312,42 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         }
 
         return ListView.builder(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           itemCount: filteredUsers.length,
           itemBuilder: (context, index) {
             final user = filteredUsers[index];
-            return _buildUserCard(user);
+            return _buildUserCard(user, tierProvider);
           },
         );
       },
     );
   }
 
-  Widget _buildUserCard(Map<String, dynamic> user) {
+  Widget _buildUserCard(
+    Map<String, dynamic> user,
+    TierThemeProvider tierProvider,
+  ) {
     final userId = user['uid'];
     final isProcessing = _isProcessing[userId] ?? false;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [Colors.white, Color(0xFFFAFAFA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: tierProvider.primaryColor.withOpacity(0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: tierProvider.primaryColor.withOpacity(0.08),
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -280,29 +355,29 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            // Avatar with shimmer effect
+            // Avatar with tier gradient
             Container(
               width: 56,
               height: 56,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  colors: tierProvider.gradientColors,
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0xFF667EEA).withOpacity(0.3),
+                    color: tierProvider.glowColor.withOpacity(0.3),
                     blurRadius: 8,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Center(
                 child: Text(
                   user['username'][0].toUpperCase(),
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -310,8 +385,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 ),
               ),
             ),
-            SizedBox(width: 16),
-            
+            const SizedBox(width: 16),
+
             // User Info
             Expanded(
               child: Column(
@@ -319,13 +394,13 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 children: [
                   Text(
                     user['username'],
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     user['email'],
                     style: TextStyle(
@@ -337,8 +412,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 ],
               ),
             ),
-            SizedBox(width: 12),
-            
+            const SizedBox(width: 12),
+
             // Action Button - Now with instant feedback
             FutureBuilder<String>(
               future: _getButtonState(userId),
@@ -349,7 +424,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                     height: 28,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        tierProvider.primaryColor,
+                      ),
                     ),
                   );
                 }
@@ -363,7 +440,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                     height: 28,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        tierProvider.primaryColor,
+                      ),
                     ),
                   );
                 }
@@ -375,7 +454,11 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                     color: Colors.green,
                   );
                 } else if (state == 'sent') {
-                  return _buildCancelableChip(userId, user['username']);
+                  return _buildCancelableChip(
+                    userId,
+                    user['username'],
+                    tierProvider,
+                  );
                 } else if (state == 'received') {
                   return _buildStatusChip(
                     icon: Icons.mail,
@@ -384,7 +467,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                   );
                 } else {
                   // 'none' - can send request
-                  return _buildAddButton(user);
+                  return _buildAddButton(user, tierProvider);
                 }
               },
             ),
@@ -400,7 +483,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     required MaterialColor color,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.shade50,
         borderRadius: BorderRadius.circular(12),
@@ -410,7 +493,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: color.shade700),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
@@ -424,11 +507,15 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     );
   }
 
-  Widget _buildCancelableChip(String userId, String username) {
+  Widget _buildCancelableChip(
+    String userId,
+    String username,
+    TierThemeProvider tierProvider,
+  ) {
     return GestureDetector(
-      onTap: () => _showCancelDialog(userId, username),
+      onTap: () => _showCancelDialog(userId, username, tierProvider),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.orange.shade50,
           borderRadius: BorderRadius.circular(12),
@@ -438,7 +525,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.schedule, size: 16, color: Colors.orange.shade700),
-            SizedBox(width: 6),
+            const SizedBox(width: 6),
             Text(
               'Pending',
               style: TextStyle(
@@ -447,7 +534,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 fontSize: 13,
               ),
             ),
-            SizedBox(width: 4),
+            const SizedBox(width: 4),
             Icon(Icons.close, size: 14, color: Colors.orange.shade700),
           ],
         ),
@@ -455,30 +542,33 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     );
   }
 
-  Widget _buildAddButton(Map<String, dynamic> user) {
+  Widget _buildAddButton(
+    Map<String, dynamic> user,
+    TierThemeProvider tierProvider,
+  ) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _sendFriendRequest(user),
+        onTap: () => _sendFriendRequest(user, tierProvider),
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+              colors: tierProvider.gradientColors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF667EEA).withOpacity(0.3),
+                color: tierProvider.glowColor.withOpacity(0.3),
                 blurRadius: 8,
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.person_add, size: 16, color: Colors.white),
@@ -498,9 +588,12 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     );
   }
 
-  Future<void> _sendFriendRequest(Map<String, dynamic> user) async {
+  Future<void> _sendFriendRequest(
+    Map<String, dynamic> user,
+    TierThemeProvider tierProvider,
+  ) async {
     final userId = user['uid'];
-    
+
     // Set processing state immediately for instant UI feedback
     setState(() {
       _isProcessing[userId] = true;
@@ -520,20 +613,35 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: tierProvider.gradientColors,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Friend request sent to ${user['username']}',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: tierProvider.primaryColor,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            duration: Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -548,57 +656,80 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
                 Expanded(child: Text('Error: ${e.toString()}')),
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
     }
   }
 
-  void _showCancelDialog(String userId, String username) {
+  void _showCancelDialog(
+    String userId,
+    String username,
+    TierThemeProvider tierProvider,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.cancel_outlined, color: Colors.orange),
-            SizedBox(width: 12),
-            Text('Cancel Request?'),
+            Icon(Icons.cancel_outlined, color: tierProvider.primaryColor),
+            const SizedBox(width: 12),
+            const Text('Cancel Request?'),
           ],
         ),
         content: Text(
           'Do you want to cancel the friend request sent to $username?',
-          style: TextStyle(fontSize: 15),
+          style: const TextStyle(fontSize: 15),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'No',
-              style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _cancelFriendRequest(userId, username);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              elevation: 0,
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.orange.shade400, Colors.orange.shade600],
+              ),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(
-              'Yes, Cancel',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _cancelFriendRequest(userId, username);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Yes, Cancel',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ],
@@ -626,20 +757,22 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.white),
-                SizedBox(width: 12),
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Friend request to $username cancelled',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
             backgroundColor: Colors.grey.shade700,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            duration: Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -652,7 +785,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
                 Icon(Icons.error_outline, color: Colors.white),
                 SizedBox(width: 12),
@@ -661,7 +794,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }

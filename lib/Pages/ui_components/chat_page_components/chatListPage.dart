@@ -5,9 +5,9 @@ import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/chat/chat_service.dart';
 import 'package:demo/services/friends/friend_service.dart';
-import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -19,54 +19,25 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> {
   final FriendService _friendService = FriendService();
   final AuthService _authService = AuthService();
-  final FireStoreService _firestoreService = FireStoreService();
-
-  // Tier colors
-  List<Color> tierGradient = [const Color(0xFF667EEA), const Color(0xFF764BA2)];
-  Color tierColor = const Color(0xFF667EEA);
-  bool isLoadingTier = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTierColors();
-  }
-
-  Future<void> _loadTierColors() async {
-    try {
-      final stats = await _firestoreService.getUserStatistics();
-      final completedTasks = stats['completedTasks'] ?? 0;
-      final tier = _firestoreService.getUserTier(completedTasks);
-
-      setState(() {
-        tierColor = tier['glow'] as Color? ?? const Color(0xFF667EEA);
-        tierGradient = (tier['gradient'] as List<dynamic>?)
-                ?.map((e) => e as Color)
-                .toList() ??
-            [const Color(0xFF667EEA), const Color(0xFF764BA2)];
-        isLoadingTier = false;
-      });
-    } catch (e) {
-      print('Error loading tier colors: $e');
-      setState(() => isLoadingTier = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
+    // Watch the tier theme provider for color updates
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return SafeArea(
       child: Scaffold(
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: tierGradient,
+              colors: tierProvider.gradientColors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: Column(
             children: [
-              _buildHeader(context),
+              _buildHeader(context, tierProvider),
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
@@ -78,8 +49,10 @@ class _ChatListPageState extends State<ChatListPage> {
                   ),
                   child: Column(
                     children: [
-                      _buildSearchBar(),
-                      Expanded(child: _buildFriendsList()),
+                      _buildSearchBar(tierProvider),
+                      Expanded(
+                        child: _buildFriendsList(tierProvider),
+                      ),
                     ],
                   ),
                 ),
@@ -91,7 +64,7 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, TierThemeProvider tierProvider) {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
@@ -219,7 +192,7 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(TierThemeProvider tierProvider) {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Container(
@@ -227,7 +200,7 @@ class _ChatListPageState extends State<ChatListPage> {
           color: const Color(0xFFF5F7FA),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: tierColor.withOpacity(0.1),
+            color: tierProvider.primaryColor.withOpacity(0.1),
             width: 1,
           ),
         ),
@@ -235,7 +208,10 @@ class _ChatListPageState extends State<ChatListPage> {
           decoration: InputDecoration(
             hintText: 'Search friends...',
             hintStyle: TextStyle(color: Colors.grey.shade500),
-            prefixIcon: Icon(Icons.search, color: tierColor.withOpacity(0.7)),
+            prefixIcon: Icon(
+              Icons.search,
+              color: tierProvider.primaryColor.withOpacity(0.7),
+            ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -247,7 +223,7 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 
-  Widget _buildFriendsList() {
+  Widget _buildFriendsList(TierThemeProvider tierProvider) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _friendService.getFriendsStream(),
       builder: (context, snapshot) {
@@ -262,7 +238,9 @@ class _ChatListPageState extends State<ChatListPage> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(tierColor),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                tierProvider.primaryColor,
+              ),
             ),
           );
         }
@@ -276,14 +254,16 @@ class _ChatListPageState extends State<ChatListPage> {
                   height: 100,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                      colors: tierProvider.gradientColors
+                          .map((c) => c.withOpacity(0.2))
+                          .toList(),
                     ),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.people_outline,
                     size: 50,
-                    color: tierColor,
+                    color: tierProvider.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -298,7 +278,10 @@ class _ChatListPageState extends State<ChatListPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Tap the search icon to find friends',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
                 ),
               ],
             ),
@@ -308,7 +291,11 @@ class _ChatListPageState extends State<ChatListPage> {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           children: snapshot.data!
               .map<Widget>(
-                (userData) => _buildFriendListItem(userData, context),
+                (userData) => _buildFriendListItem(
+                  userData,
+                  context,
+                  tierProvider,
+                ),
               )
               .toList(),
         );
@@ -332,6 +319,7 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget _buildFriendListItem(
     Map<String, dynamic> userData,
     BuildContext context,
+    TierThemeProvider tierProvider,
   ) {
     String currentUserID = _authService.getCurrentUser()!.uid;
 
@@ -340,7 +328,7 @@ class _ChatListPageState extends State<ChatListPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tierColor.withOpacity(0.1),
+          color: tierProvider.primaryColor.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -348,7 +336,7 @@ class _ChatListPageState extends State<ChatListPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: tierColor.withOpacity(0.1),
+          splashColor: tierProvider.primaryColor.withOpacity(0.1),
           onTap: () {
             Navigator.push(
               context,
@@ -372,14 +360,14 @@ class _ChatListPageState extends State<ChatListPage> {
                       height: 56,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: tierGradient,
+                          colors: tierProvider.gradientColors,
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: tierColor.withOpacity(0.2),
+                            color: tierProvider.glowColor.withOpacity(0.2),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -490,7 +478,7 @@ class _ChatListPageState extends State<ChatListPage> {
                               'Tap to start chatting',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: tierColor.withOpacity(0.6),
+                                color: tierProvider.primaryColor.withOpacity(0.6),
                                 fontWeight: FontWeight.w500,
                               ),
                             );
@@ -500,7 +488,10 @@ class _ChatListPageState extends State<ChatListPage> {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: tierColor.withOpacity(0.5)),
+                Icon(
+                  Icons.chevron_right,
+                  color: tierProvider.primaryColor.withOpacity(0.5),
+                ),
               ],
             ),
           ),

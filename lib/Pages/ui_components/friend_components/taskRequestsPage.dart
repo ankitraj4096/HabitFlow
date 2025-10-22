@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class TaskRequestsPage extends StatelessWidget {
   TaskRequestsPage({super.key});
@@ -9,9 +11,12 @@ class TaskRequestsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get tier colors from provider
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -26,19 +31,19 @@ class TaskRequestsPage extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                    colors: tierProvider.gradientColors,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0xFF7C4DFF).withOpacity(0.3),
+                      color: tierProvider.glowColor.withOpacity(0.3),
                       blurRadius: 20,
-                      offset: Offset(0, 10),
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -47,11 +52,11 @@ class TaskRequestsPage extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back, color: Colors.white),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      SizedBox(width: 8),
-                      Column(
+                      const SizedBox(width: 8),
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -65,7 +70,10 @@ class TaskRequestsPage extends StatelessWidget {
                           SizedBox(height: 4),
                           Text(
                             'Tasks assigned by friends',
-                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
                           ),
                         ],
                       ),
@@ -79,7 +87,7 @@ class TaskRequestsPage extends StatelessWidget {
                   stream: _firestoreService.getPendingTaskRequestsStream(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return Center(
+                      return const Center(
                         child: Text(
                           'Error loading requests',
                           style: TextStyle(color: Colors.red),
@@ -90,7 +98,9 @@ class TaskRequestsPage extends StatelessWidget {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            tierProvider.primaryColor,
+                          ),
                         ),
                       );
                     }
@@ -101,14 +111,22 @@ class TaskRequestsPage extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Color(0xFF7C4DFF).withOpacity(0.1),
+                                gradient: LinearGradient(
+                                  colors: tierProvider.gradientColors
+                                      .map((c) => c.withOpacity(0.2))
+                                      .toList(),
+                                ),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.inbox, size: 64, color: Color(0xFF7C4DFF)),
+                              child: Icon(
+                                Icons.inbox,
+                                size: 64,
+                                color: tierProvider.primaryColor,
+                              ),
                             ),
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
                             Text(
                               'No pending requests',
                               style: TextStyle(
@@ -117,10 +135,13 @@ class TaskRequestsPage extends StatelessWidget {
                                 color: Colors.grey[700],
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               'Friends can assign tasks to you',
-                              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
                             ),
                           ],
                         ),
@@ -128,14 +149,15 @@ class TaskRequestsPage extends StatelessWidget {
                     }
 
                     return ListView.builder(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       itemCount: snapshot.data!.docs.length,
                       itemBuilder: (context, index) {
                         final doc = snapshot.data!.docs[index];
                         final data = doc.data() as Map<String, dynamic>;
-                        
+
                         return _buildRequestCard(
                           context,
+                          tierProvider,
                           docId: doc.id,
                           taskName: data['taskName'] ?? '',
                           assignedBy: data['assignedByUsername'] ?? 'Unknown',
@@ -156,7 +178,8 @@ class TaskRequestsPage extends StatelessWidget {
   }
 
   Widget _buildRequestCard(
-    BuildContext context, {
+    BuildContext context,
+    TierThemeProvider tierProvider, {
     required String docId,
     required String taskName,
     required String assignedBy,
@@ -164,23 +187,25 @@ class TaskRequestsPage extends StatelessWidget {
     int? totalDuration,
     Timestamp? timestamp,
   }) {
-    final timeAgo = timestamp != null
-        ? _getTimeAgo(timestamp.toDate())
-        : 'Just now';
+    final timeAgo =
+        timestamp != null ? _getTimeAgo(timestamp.toDate()) : 'Just now';
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: tierProvider.primaryColor.withOpacity(0.1),
             blurRadius: 15,
-            offset: Offset(0, 5),
+            offset: const Offset(0, 5),
           ),
         ],
-        border: Border.all(color: Color(0xFF7C4DFF).withOpacity(0.2), width: 1),
+        border: Border.all(
+          color: tierProvider.primaryColor.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -191,20 +216,31 @@ class TaskRequestsPage extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                      colors: tierProvider.gradientColors,
                     ),
                     borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: tierProvider.glowColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: Icon(Icons.task_alt, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.task_alt,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     taskName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2C3E50),
@@ -213,7 +249,7 @@ class TaskRequestsPage extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Assigned by
             Row(
@@ -223,14 +259,21 @@ class TaskRequestsPage extends StatelessWidget {
                   height: 32,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFFf093fb), Color(0xFFf5576c)],
+                      colors: tierProvider.gradientColors,
                     ),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: tierProvider.glowColor.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
                       assignedBy[0].toUpperCase(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -238,7 +281,7 @@ class TaskRequestsPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'From: $assignedBy',
                   style: TextStyle(
@@ -247,7 +290,7 @@ class TaskRequestsPage extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Spacer(),
+                const Spacer(),
                 Text(
                   timeAgo,
                   style: TextStyle(fontSize: 12, color: Colors.grey[500]),
@@ -256,23 +299,32 @@ class TaskRequestsPage extends StatelessWidget {
             ),
 
             if (hasTimer && totalDuration != null) ...[
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Color(0xFF448AFF).withOpacity(0.1),
+                  color: tierProvider.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: tierProvider.primaryColor.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.timer, size: 16, color: Color(0xFF448AFF)),
-                    SizedBox(width: 4),
+                    Icon(
+                      Icons.timer,
+                      size: 16,
+                      color: tierProvider.primaryColor,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
                       '${(totalDuration / 60).round()} minutes',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF448AFF),
+                        color: tierProvider.primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -281,75 +333,147 @@ class TaskRequestsPage extends StatelessWidget {
               ),
             ],
 
-            SizedBox(height: 16),
-            Divider(),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            Divider(color: tierProvider.primaryColor.withOpacity(0.1)),
+            const SizedBox(height: 8),
 
             // Action Buttons
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: () async {
                       try {
                         await _firestoreService.declineTaskRequest(docId);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Task declined'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text('Task declined'),
+                                ],
+                              ),
+                              backgroundColor: Colors.orange,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error declining task'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Error declining task'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
-                    icon: Icon(Icons.close, size: 20),
-                    label: Text('Decline'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[300],
-                      foregroundColor: Colors.grey[800],
+                    icon: const Icon(Icons.close, size: 20),
+                    label: const Text('Decline'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey[700],
+                      side: BorderSide(
+                        color: tierProvider.primaryColor.withOpacity(0.3),
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        await _firestoreService.acceptTaskRequest(docId);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Task accepted! Check your task list'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error accepting task'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-                    icon: Icon(Icons.check, size: 20),
-                    label: Text('Accept'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF4CAF50),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: tierProvider.gradientColors,
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tierProvider.glowColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await _firestoreService.acceptTaskRequest(docId);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
+                                      child: Text(
+                                        'Task accepted! Check your task list',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                backgroundColor: tierProvider.primaryColor,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Error accepting task'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.check, size: 20),
+                      label: const Text('Accept'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                     ),
                   ),
                 ),

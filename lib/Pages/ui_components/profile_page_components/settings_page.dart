@@ -1,63 +1,31 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/component/achievements.dart';
 import 'package:demo/services/auth/auth_service.dart';
-import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 
 class SettingsPage extends StatefulWidget {
-  SettingsPage({super.key});
-
+  const SettingsPage({super.key});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-
 class _SettingsPageState extends State<SettingsPage> {
   final AuthService _authService = AuthService();
-  final FireStoreService _firestoreService = FireStoreService();
-
-  Color tierColor = const Color(0xFF7C4DFF); // Default color
-  List<Color> tierGradient = [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTierColor();
-  }
-
-  Future<void> _loadTierColor() async {
-    try {
-      final stats = await _firestoreService.getUserStatistics();
-      final completedTasks = stats['completedTasks'] ?? 0;
-      final tier = _firestoreService.getUserTier(completedTasks);
-
-      setState(() {
-        tierColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
-        tierGradient = (tier['gradient'] as List<dynamic>?)
-                ?.map((e) => e as Color)
-                .toList() ??
-            [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error loading tier color: $e');
-      setState(() => isLoading = false);
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: tierGradient,
+              colors: tierProvider.gradientColors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -66,10 +34,12 @@ class _SettingsPageState extends State<SettingsPage> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: isLoading
+      body: tierProvider.isLoading
           ? Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(tierColor),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  tierProvider.primaryColor,
+                ),
               ),
             )
           : SingleChildScrollView(
@@ -79,20 +49,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   _buildSectionTitle('Account'),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.person,
                     title: 'Profile',
                     subtitle: 'Edit your profile information',
-                    onTap: () => _showEditUsernameDialog(context),
+                    onTap: () => _showEditUsernameDialog(context, tierProvider),
                   ),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.lock,
                     title: 'Change Password',
                     subtitle: 'Update your password',
-                    onTap: () => _showChangePasswordDialog(context),
+                    onTap: () => _showChangePasswordDialog(context, tierProvider),
                   ),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.logout,
                     title: 'Sign Out',
                     subtitle: 'Logout from your account',
@@ -111,6 +84,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _buildSectionTitle('Preferences'),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.notifications,
                     title: 'Notifications',
                     subtitle: 'Manage notifications',
@@ -120,6 +94,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _buildSectionTitle('App Features'),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.people,
                     title: 'Friends',
                     subtitle: 'Manage friends & social features',
@@ -127,6 +102,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.task_alt,
                     title: 'Tasks',
                     subtitle: 'Manage your tasks & habits',
@@ -134,6 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.emoji_events,
                     title: 'Achievements',
                     subtitle: 'View unlocked badges & tiers',
@@ -150,6 +127,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _buildSectionTitle('App Info'),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.info_outline,
                     title: 'About',
                     subtitle: 'App version & info',
@@ -157,6 +135,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
                     subtitle: 'Read our privacy policy',
@@ -164,6 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   _buildListTile(
                     context,
+                    tierProvider,
                     icon: Icons.help_outline,
                     title: 'Help & Support',
                     subtitle: 'FAQs and support',
@@ -175,7 +155,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
     );
   }
-
 
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -194,9 +173,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
   Widget _buildListTile(
-    BuildContext context, {
+    BuildContext context,
+    TierThemeProvider tierProvider, {
     required IconData icon,
     required String title,
     String? subtitle,
@@ -213,15 +192,21 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: tierGradient.map((c) => c.withOpacity(0.15)).toList(),
+              colors: tierProvider.gradientColors
+                  .map((c) => c.withOpacity(0.15))
+                  .toList(),
             ),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: tierColor, size: 24),
+          child: Icon(icon, color: tierProvider.primaryColor, size: 24),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
         subtitle: subtitle != null ? Text(subtitle) : null,
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: tierColor),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: tierProvider.primaryColor,
+        ),
         onTap: onTap,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -230,16 +215,16 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
   // Edit Username Dialog
-  void _showEditUsernameDialog(BuildContext context) async {
+  void _showEditUsernameDialog(
+    BuildContext context,
+    TierThemeProvider tierProvider,
+  ) async {
     final TextEditingController usernameController = TextEditingController();
     bool isLoading = false;
 
-
     final currentUsername = await _authService.getCurrentUsername();
     usernameController.text = currentUsername;
-
 
     showDialog(
       context: context,
@@ -254,11 +239,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                    colors: tierProvider.gradientColors
+                        .map((c) => c.withOpacity(0.2))
+                        .toList(),
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.person, color: tierColor),
+                child: Icon(Icons.person, color: tierProvider.primaryColor),
               ),
               const SizedBox(width: 12),
               const Text('Edit Username'),
@@ -277,15 +264,21 @@ class _SettingsPageState extends State<SettingsPage> {
                 controller: usernameController,
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  prefixIcon: Icon(Icons.person_outline, color: tierColor),
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    color: tierProvider.primaryColor,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tierColor, width: 2),
+                    borderSide: BorderSide(
+                      color: tierProvider.primaryColor,
+                      width: 2,
+                    ),
                   ),
-                  labelStyle: TextStyle(color: tierColor),
+                  labelStyle: TextStyle(color: tierProvider.primaryColor),
                 ),
                 enabled: !isLoading,
               ),
@@ -296,76 +289,98 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: isLoading ? null : () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      final newUsername = usernameController.text.trim();
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: tierProvider.gradientColors,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final newUsername = usernameController.text.trim();
 
-
-                      if (newUsername.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Username cannot be empty'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-
-                      if (newUsername == currentUsername) {
-                        Navigator.pop(context);
-                        return;
-                      }
-
-
-                      setState(() => isLoading = true);
-
-
-                      try {
-                        await _authService.updateUsername(newUsername);
-                        if (context.mounted) {
-                          Navigator.pop(context);
+                        if (newUsername.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                                  const Text('Username updated successfully!'),
-                              backgroundColor: tierColor,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        setState(() => isLoading = false);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                e.toString().replaceAll('Exception: ', ''),
-                              ),
+                            const SnackBar(
+                              content: Text('Username cannot be empty'),
                               backgroundColor: Colors.red,
                             ),
                           );
+                          return;
                         }
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: tierColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+
+                        if (newUsername == currentUsername) {
+                          Navigator.pop(context);
+                          return;
+                        }
+
+                        setState(() => isLoading = true);
+
+                        try {
+                          await _authService.updateUsername(newUsername);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text('Username updated successfully!'),
+                                  ],
+                                ),
+                                backgroundColor: tierProvider.primaryColor,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setState(() => isLoading = false);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceAll('Exception: ', ''),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Save'),
               ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text('Save'),
             ),
           ],
         ),
@@ -373,9 +388,11 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
-  // Change Password Dialog (Instagram Style)
-  void _showChangePasswordDialog(BuildContext context) {
+  // Change Password Dialog
+  void _showChangePasswordDialog(
+    BuildContext context,
+    TierThemeProvider tierProvider,
+  ) {
     final TextEditingController currentPasswordController =
         TextEditingController();
     final TextEditingController newPasswordController = TextEditingController();
@@ -385,7 +402,6 @@ class _SettingsPageState extends State<SettingsPage> {
     bool showCurrentPassword = false;
     bool showNewPassword = false;
     bool showConfirmPassword = false;
-
 
     showDialog(
       context: context,
@@ -400,11 +416,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                    colors: tierProvider.gradientColors
+                        .map((c) => c.withOpacity(0.2))
+                        .toList(),
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.lock_outline, color: tierColor),
+                child: Icon(
+                  Icons.lock_outline,
+                  color: tierProvider.primaryColor,
+                ),
               ),
               const SizedBox(width: 12),
               const Text('Change Password'),
@@ -425,13 +446,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   obscureText: !showCurrentPassword,
                   decoration: InputDecoration(
                     labelText: 'Current Password',
-                    prefixIcon: Icon(Icons.lock_outline, color: tierColor),
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      color: tierProvider.primaryColor,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         showCurrentPassword
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: tierColor,
+                        color: tierProvider.primaryColor,
                       ),
                       onPressed: () {
                         setState(
@@ -444,9 +468,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: tierColor, width: 2),
+                      borderSide: BorderSide(
+                        color: tierProvider.primaryColor,
+                        width: 2,
+                      ),
                     ),
-                    labelStyle: TextStyle(color: tierColor),
+                    labelStyle: TextStyle(color: tierProvider.primaryColor),
                   ),
                   enabled: !isLoading,
                 ),
@@ -456,13 +483,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   obscureText: !showNewPassword,
                   decoration: InputDecoration(
                     labelText: 'New Password',
-                    prefixIcon: Icon(Icons.lock_reset, color: tierColor),
+                    prefixIcon: Icon(
+                      Icons.lock_reset,
+                      color: tierProvider.primaryColor,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         showNewPassword
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: tierColor,
+                        color: tierProvider.primaryColor,
                       ),
                       onPressed: () {
                         setState(() => showNewPassword = !showNewPassword);
@@ -473,9 +503,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: tierColor, width: 2),
+                      borderSide: BorderSide(
+                        color: tierProvider.primaryColor,
+                        width: 2,
+                      ),
                     ),
-                    labelStyle: TextStyle(color: tierColor),
+                    labelStyle: TextStyle(color: tierProvider.primaryColor),
                   ),
                   enabled: !isLoading,
                 ),
@@ -485,14 +518,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   obscureText: !showConfirmPassword,
                   decoration: InputDecoration(
                     labelText: 'Confirm New Password',
-                    prefixIcon:
-                        Icon(Icons.check_circle_outline, color: tierColor),
+                    prefixIcon: Icon(
+                      Icons.check_circle_outline,
+                      color: tierProvider.primaryColor,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         showConfirmPassword
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: tierColor,
+                        color: tierProvider.primaryColor,
                       ),
                       onPressed: () {
                         setState(
@@ -505,9 +540,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: tierColor, width: 2),
+                      borderSide: BorderSide(
+                        color: tierProvider.primaryColor,
+                        width: 2,
+                      ),
                     ),
-                    labelStyle: TextStyle(color: tierColor),
+                    labelStyle: TextStyle(color: tierProvider.primaryColor),
                   ),
                   enabled: !isLoading,
                 ),
@@ -519,117 +557,137 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: isLoading ? null : () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      final currentPassword =
-                          currentPasswordController.text.trim();
-                      final newPassword = newPasswordController.text.trim();
-                      final confirmPassword =
-                          confirmPasswordController.text.trim();
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: tierProvider.gradientColors,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final currentPassword =
+                            currentPasswordController.text.trim();
+                        final newPassword = newPasswordController.text.trim();
+                        final confirmPassword =
+                            confirmPasswordController.text.trim();
 
-
-                      if (currentPassword.isEmpty ||
-                          newPassword.isEmpty ||
-                          confirmPassword.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('All fields are required'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-
-                      if (currentPassword == newPassword) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'New password must be different from current password',
-                            ),
-                            backgroundColor: Colors.orange,
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                        return;
-                      }
-
-
-                      if (newPassword != confirmPassword) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('New passwords do not match'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-
-                      if (newPassword.length < 6) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Password must be at least 6 characters',
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-
-                      setState(() => isLoading = true);
-
-
-                      try {
-                        await _authService.changePassword(
-                          currentPassword,
-                          newPassword,
-                        );
-                        if (context.mounted) {
-                          Navigator.pop(context);
+                        if (currentPassword.isEmpty ||
+                            newPassword.isEmpty ||
+                            confirmPassword.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                                  const Text('Password changed successfully!'),
-                              backgroundColor: tierColor,
+                            const SnackBar(
+                              content: Text('All fields are required'),
+                              backgroundColor: Colors.red,
                             ),
                           );
+                          return;
                         }
-                      } catch (e) {
-                        setState(() => isLoading = false);
-                        if (context.mounted) {
+
+                        if (currentPassword == newPassword) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
-                                e.toString().replaceAll('Exception: ', ''),
+                                'New password must be different from current password',
+                              ),
+                              backgroundColor: Colors.orange,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (newPassword != confirmPassword) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('New passwords do not match'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (newPassword.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Password must be at least 6 characters',
                               ),
                               backgroundColor: Colors.red,
                             ),
                           );
+                          return;
                         }
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: tierColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+
+                        setState(() => isLoading = true);
+
+                        try {
+                          await _authService.changePassword(
+                            currentPassword,
+                            newPassword,
+                          );
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text('Password changed successfully!'),
+                                  ],
+                                ),
+                                backgroundColor: tierProvider.primaryColor,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setState(() => isLoading = false);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceAll('Exception: ', ''),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Change Password'),
               ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text('Change Password'),
             ),
           ],
         ),

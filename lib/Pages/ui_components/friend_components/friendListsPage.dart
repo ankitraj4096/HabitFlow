@@ -2,15 +2,14 @@ import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.
 import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
 import 'package:demo/services/friends/friend_service.dart';
-import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 
 class FriendsListPage extends StatefulWidget {
   final String? viewingUserID; // null if viewing own friends
   final String? viewingUsername; // null if viewing own friends
-
 
   const FriendsListPage({
     super.key,
@@ -23,44 +22,13 @@ class FriendsListPage extends StatefulWidget {
 }
 
 class _FriendsListPageState extends State<FriendsListPage> {
-  final FireStoreService _firestoreService = FireStoreService();
-
-  // Tier colors
-  List<Color> tierGradient = [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
-  Color tierColor = const Color(0xFF7C4DFF);
-  bool isLoadingTier = true;
-
   bool get isOwnProfile => widget.viewingUserID == null;
 
   @override
-  void initState() {
-    super.initState();
-    _loadTierColors();
-  }
-
-  Future<void> _loadTierColors() async {
-    try {
-      final stats = await _firestoreService.getUserStatistics();
-      final completedTasks = stats['completedTasks'] ?? 0;
-      final tier = _firestoreService.getUserTier(completedTasks);
-
-      setState(() {
-        tierColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
-        tierGradient = (tier['gradient'] as List<dynamic>?)
-                ?.map((e) => e as Color)
-                .toList() ??
-            [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
-        isLoadingTier = false;
-      });
-    } catch (e) {
-      print('Error loading tier colors: $e');
-      setState(() => isLoadingTier = false);
-    }
-  }
-
-
-  @override
   Widget build(BuildContext context) {
+    // Get tier colors from provider
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -73,8 +41,8 @@ class _FriendsListPageState extends State<FriendsListPage> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(context),
-              Expanded(child: _buildFriendsList(context)),
+              _buildHeader(context, tierProvider),
+              Expanded(child: _buildFriendsList(context, tierProvider)),
             ],
           ),
         ),
@@ -82,16 +50,14 @@ class _FriendsListPageState extends State<FriendsListPage> {
     );
   }
 
-
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, TierThemeProvider tierProvider) {
     final FriendService friendService = FriendService();
-
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: tierGradient,
+          colors: tierProvider.gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -101,7 +67,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: tierColor.withOpacity(0.3),
+            color: tierProvider.glowColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -138,7 +104,8 @@ class _FriendsListPageState extends State<FriendsListPage> {
                       StreamBuilder<List<Map<String, dynamic>>>(
                         stream: isOwnProfile
                             ? friendService.getFriendsStream()
-                            : friendService.getFriendsStreamForUser(widget.viewingUserID!),
+                            : friendService.getFriendsStreamForUser(
+                                widget.viewingUserID!),
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             int count = snapshot.data!.length;
@@ -174,12 +141,14 @@ class _FriendsListPageState extends State<FriendsListPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.person_add_alt, color: Colors.white),
+                          icon: const Icon(Icons.person_add_alt,
+                              color: Colors.white),
                           onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const FriendRequestsPage(),
+                                builder: (context) =>
+                                    const FriendRequestsPage(),
                               ),
                             );
                           },
@@ -227,7 +196,8 @@ class _FriendsListPageState extends State<FriendsListPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.person_search, color: Colors.white),
+                      icon: const Icon(Icons.person_search,
+                          color: Colors.white),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -247,10 +217,9 @@ class _FriendsListPageState extends State<FriendsListPage> {
     );
   }
 
-
-  Widget _buildFriendsList(BuildContext context) {
+  Widget _buildFriendsList(
+      BuildContext context, TierThemeProvider tierProvider) {
     final FriendService friendService = FriendService();
-
 
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: isOwnProfile
@@ -273,15 +242,15 @@ class _FriendsListPageState extends State<FriendsListPage> {
           );
         }
 
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(tierColor),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                tierProvider.primaryColor,
+              ),
             ),
           );
         }
-
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
@@ -292,14 +261,16 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: tierGradient.map((c) => c.withOpacity(0.2)).toList(),
+                      colors: tierProvider.gradientColors
+                          .map((c) => c.withOpacity(0.2))
+                          .toList(),
                     ),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.people_outline,
                     size: 80,
-                    color: tierColor,
+                    color: tierProvider.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -327,28 +298,27 @@ class _FriendsListPageState extends State<FriendsListPage> {
           );
         }
 
-
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: snapshot.data!.length,
           itemBuilder: (context, index) {
             final friendData = snapshot.data![index];
-            return _buildFriendCard(context, friendData, friendService);
+            return _buildFriendCard(
+                context, friendData, friendService, tierProvider);
           },
         );
       },
     );
   }
 
-
   Widget _buildFriendCard(
     BuildContext context,
     Map<String, dynamic> friendData,
     FriendService friendService,
+    TierThemeProvider tierProvider,
   ) {
     final friendUsername = friendData['username'] ?? 'Unknown';
     final friendUID = friendData['uid'] ?? '';
-
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -356,12 +326,12 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tierColor.withOpacity(0.1),
+          color: tierProvider.primaryColor.withOpacity(0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: tierColor.withOpacity(0.08),
+            color: tierProvider.primaryColor.withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -371,7 +341,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: tierColor.withOpacity(0.1),
+          splashColor: tierProvider.primaryColor.withOpacity(0.1),
           onTap: () {
             // Navigate to friend's profile
             Navigator.push(
@@ -394,14 +364,14 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   height: 56,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: tierGradient,
+                      colors: tierProvider.gradientColors,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: tierColor.withOpacity(0.2),
+                        color: tierProvider.glowColor.withOpacity(0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -445,22 +415,29 @@ class _FriendsListPageState extends State<FriendsListPage> {
                 ),
                 // Remove button (only for own profile)
                 if (isOwnProfile)
-                  IconButton(
-                    icon: const Icon(Icons.person_remove, color: Colors.red),
-                    onPressed: () {
-                      _showRemoveFriendDialog(
-                        context,
-                        friendUID,
-                        friendUsername,
-                        friendService,
-                      );
-                    },
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.person_remove, color: Colors.red),
+                      onPressed: () {
+                        _showRemoveFriendDialog(
+                          context,
+                          friendUID,
+                          friendUsername,
+                          friendService,
+                          tierProvider,
+                        );
+                      },
+                    ),
                   )
                 else
                   Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: tierColor.withOpacity(0.5),
+                    color: tierProvider.primaryColor.withOpacity(0.5),
                   ),
               ],
             ),
@@ -470,62 +447,103 @@ class _FriendsListPageState extends State<FriendsListPage> {
     );
   }
 
-
   void _showRemoveFriendDialog(
     BuildContext context,
     String friendUID,
     String friendUsername,
     FriendService friendService,
+    TierThemeProvider tierProvider,
   ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Remove Friend?'),
+            Icon(Icons.warning_amber_rounded, color: tierProvider.primaryColor),
+            const SizedBox(width: 8),
+            const Text('Remove Friend?'),
           ],
         ),
-        content: Text('Are you sure you want to remove $friendUsername from your friends?'),
+        content: Text(
+            'Are you sure you want to remove $friendUsername from your friends?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-                await friendService.removeFriend(currentUserID, friendUID);
-                
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Removed $friendUsername from friends'),
-                      backgroundColor: tierColor,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to remove friend'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
             ),
-            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.red.shade400, Colors.red.shade600],
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ElevatedButton(
+              onPressed: () async {
+                try {
+                  final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+                  await friendService.removeFriend(currentUserID, friendUID);
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child:
+                                  Text('Removed $friendUsername from friends'),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: tierProvider.primaryColor,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to remove friend'),
+                        backgroundColor: Colors.red,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child:
+                  const Text('Remove', style: TextStyle(color: Colors.white)),
+            ),
           ),
         ],
       ),

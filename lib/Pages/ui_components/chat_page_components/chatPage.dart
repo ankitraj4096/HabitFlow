@@ -4,8 +4,10 @@ import 'package:demo/Pages/ui_components/profile_page_components/profile_page.da
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/component/chatBubble.dart';
 import 'package:demo/services/chat/chat_service.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:provider/provider.dart';
 
 class ChatPage extends StatefulWidget {
   final String receiverID;
@@ -67,6 +69,9 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get tier colors from provider
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -84,12 +89,19 @@ class _ChatPageState extends State<ChatPage> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  gradient: LinearGradient(
+                    colors: tierProvider.gradientColors,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: tierProvider.glowColor.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Center(
                   child: Text(
@@ -115,12 +127,12 @@ class _ChatPageState extends State<ChatPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Online',
                     style: TextStyle(
-                      color: Colors.green,
+                      color: tierProvider.primaryColor,
                       fontSize: 12,
-                      fontWeight: FontWeight.w400,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -129,33 +141,50 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.list_checks, color: Colors.black87),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FriendTasksManagerPage(
-                    friendUserID: widget.receiverID,
-                    friendUsername: widget.receiverUsername,
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: tierProvider.gradientColors
+                    .map((c) => c.withOpacity(0.1))
+                    .toList(),
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                LucideIcons.list_checks,
+                color: tierProvider.primaryColor,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FriendTasksManagerPage(
+                      friendUserID: widget.receiverID,
+                      friendUsername: widget.receiverUsername,
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ],
       ),
       body: Column(
         children: [
-          Divider(height: 1, color: Colors.grey.shade200),
-          Expanded(child: _buildMessageList()),
-          _buildUserInput(),
+          Divider(
+            height: 1,
+            color: tierProvider.primaryColor.withOpacity(0.1),
+          ),
+          Expanded(child: _buildMessageList(tierProvider)),
+          _buildUserInput(tierProvider),
         ],
       ),
     );
   }
 
-  Widget _buildMessageList() {
+  Widget _buildMessageList(TierThemeProvider tierProvider) {
     String senderID = _authService.getCurrentUser()!.uid;
     return StreamBuilder(
       stream: _chatService.getMessages(senderID, widget.receiverID),
@@ -172,7 +201,53 @@ class _ChatPageState extends State<ChatPage> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667EEA)),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                tierProvider.primaryColor,
+              ),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: tierProvider.gradientColors
+                          .map((c) => c.withOpacity(0.2))
+                          .toList(),
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.chat_bubble_outline,
+                    size: 50,
+                    color: tierProvider.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No messages yet',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Send a message to start chatting',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
             ),
           );
         }
@@ -180,25 +255,34 @@ class _ChatPageState extends State<ChatPage> {
         final docs = snapshot.data!.docs;
         return ListView(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          children: docs.map((doc) => _buildMessageItem(doc)).toList(),
+          children: docs
+              .map((doc) => _buildMessageItem(doc, tierProvider))
+              .toList(),
         );
       },
     );
   }
 
-  Widget _buildMessageItem(DocumentSnapshot doc) {
+  Widget _buildMessageItem(
+    DocumentSnapshot doc,
+    TierThemeProvider tierProvider,
+  ) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     bool isCurrentUser = data["senderID"] == _authService.getCurrentUser()!.uid;
-    return ChatBubble(isCurrentUser: isCurrentUser, message: data["message"]);
+    
+    return ChatBubble(
+      isCurrentUser: isCurrentUser,
+      message: data["message"],
+    );
   }
 
-  Widget _buildUserInput() {
+  Widget _buildUserInput(TierThemeProvider tierProvider) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: tierProvider.primaryColor.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -213,6 +297,10 @@ class _ChatPageState extends State<ChatPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F7FA),
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: tierProvider.primaryColor.withOpacity(0.1),
+                    width: 1,
+                  ),
                 ),
                 child: TextField(
                   controller: _messageController,
@@ -224,20 +312,36 @@ class _ChatPageState extends State<ChatPage> {
                       horizontal: 20,
                       vertical: 12,
                     ),
+                    suffixIcon: _messageController.text.isNotEmpty
+                        ? null
+                        : Icon(
+                            Icons.emoji_emotions_outlined,
+                            color: tierProvider.primaryColor.withOpacity(0.5),
+                          ),
                   ),
                   maxLines: null,
+                  onChanged: (value) {
+                    setState(() {}); // Rebuild to show/hide emoji icon
+                  },
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                gradient: LinearGradient(
+                  colors: tierProvider.gradientColors,
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: tierProvider.glowColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: IconButton(
                 icon: const Icon(Icons.send_rounded, color: Colors.white),

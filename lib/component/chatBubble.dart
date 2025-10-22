@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class ChatBubble extends StatelessWidget {
   final String message;
@@ -12,6 +14,9 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get tier colors from provider
+    final tierProvider = context.watch<TierThemeProvider>();
+    
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
       child: Row(
@@ -27,23 +32,29 @@ class ChatBubble extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: isCurrentUser
                     ? LinearGradient(
-                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                        colors: tierProvider.gradientColors,
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
                     : null,
                 color: isCurrentUser ? null : Colors.grey.shade200,
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                  bottomLeft: isCurrentUser ? Radius.circular(20) : Radius.circular(4),
-                  bottomRight: isCurrentUser ? Radius.circular(4) : Radius.circular(20),
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: isCurrentUser 
+                      ? const Radius.circular(20) 
+                      : const Radius.circular(4),
+                  bottomRight: isCurrentUser 
+                      ? const Radius.circular(4) 
+                      : const Radius.circular(20),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 5,
-                    offset: Offset(0, 2),
+                    color: isCurrentUser 
+                        ? tierProvider.glowColor.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.05),
+                    blurRadius: isCurrentUser ? 8 : 5,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
