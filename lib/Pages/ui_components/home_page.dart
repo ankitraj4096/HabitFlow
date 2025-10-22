@@ -152,32 +152,7 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.toggleCompletion(firebaseId, false);
-
-      if (mounted) {
-        final tierProvider = context.read<TierThemeProvider>();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '✨ "${task['taskName']}" completed automatically!',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: tierProvider.primaryColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      // ✅ REMOVED the toast - timer complete toast already shows in todolist
     } catch (e) {
       print('Error auto-completing task: $e');
       setState(() {
@@ -186,12 +161,7 @@ class _HomepageState extends State<Homepage> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to auto-complete task'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.error(context, 'Failed to auto-complete task');
       }
     }
   }
@@ -227,12 +197,7 @@ class _HomepageState extends State<Homepage> {
       print('Error adding to Firebase: $e');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to add task. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomToast.showError(context, 'Failed to add task. Please try again.');
       }
     } finally {
       setState(() => _isSyncing = false);
@@ -462,11 +427,10 @@ class _HomepageState extends State<Homepage> {
     final firebaseId = task['firebaseId'];
 
     if (firebaseId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot delete task that is not synced'),
-          duration: Duration(seconds: 1),
-        ),
+      CustomToast.showWarning(
+        context,
+        'Cannot delete task that is not synced',
+        duration: const Duration(seconds: 1),
       );
       return;
     }
@@ -485,11 +449,9 @@ class _HomepageState extends State<Homepage> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete task. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
+        CustomToast.showError(
+          context,
+          'Failed to delete task. Please try again.',
         );
       }
     }
@@ -621,10 +583,9 @@ class _HomepageState extends State<Homepage> {
                         final firebaseId = tasklist[index]['firebaseId'];
 
                         if (firebaseId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please wait for task to sync...'),
-                            ),
+                          CustomToast.showWarning(
+                            context,
+                            'Please wait for task to sync...',
                           );
                           return;
                         }
@@ -649,11 +610,9 @@ class _HomepageState extends State<Homepage> {
                         } catch (e) {
                           print('Error updating Firebase: $e');
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to update task.'),
-                                backgroundColor: Colors.red,
-                              ),
+                            CustomToast.showError(
+                              context,
+                              'Failed to update task.',
                             );
                           }
                         }

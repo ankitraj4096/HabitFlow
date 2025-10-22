@@ -53,8 +53,6 @@ class HeatMapPage extends StatelessWidget {
         5: Colors.green.shade500,
         6: Colors.green.shade600,
         7: Colors.green.shade700,
-        8: Colors.green.shade800,
-        9: Colors.green.shade900,
       },
       onClick: (value) {
         // Navigate to DailyCompletedTasksPage

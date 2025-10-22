@@ -4,11 +4,65 @@ import 'package:fluttertoast/fluttertoast.dart';
 class CustomToast {
   static final FToast _fToast = FToast();
 
-  static void init(BuildContext context) {
+  // Simple success toast - one line usage
+  static void success(BuildContext context, String message) {
     _fToast.init(context);
+    _fToast.showToast(
+      child: _buildToastContainer(
+        message: message,
+        icon: Icons.check_circle,
+        gradient: [const Color(0xFF4CAF50), const Color(0xFF66BB6A)],
+      ),
+      gravity: ToastGravity.BOTTOM,
+      toastDuration: const Duration(seconds: 3),
+    );
   }
 
-  // Success toast
+  // Simple error toast - one line usage
+  static void error(BuildContext context, String message) {
+    _fToast.init(context);
+    _fToast.showToast(
+      child: _buildToastContainer(
+        message: message,
+        icon: Icons.error,
+        gradient: [const Color(0xFFEF5350), const Color(0xFFE57373)],
+      ),
+      gravity: ToastGravity.BOTTOM,
+      toastDuration: const Duration(seconds: 3),
+    );
+  }
+
+  // Simple warning toast - one line usage
+  static void warning(BuildContext context, String message) {
+    _fToast.init(context);
+    _fToast.showToast(
+      child: _buildToastContainer(
+        message: message,
+        icon: Icons.warning_amber_rounded,
+        gradient: [const Color(0xFFFFA726), const Color(0xFFFFB74D)],
+      ),
+      gravity: ToastGravity.BOTTOM,
+      toastDuration: const Duration(seconds: 3),
+    );
+  }
+
+  // Simple info toast - one line usage
+  static void info(BuildContext context, String message) {
+    _fToast.init(context);
+    _fToast.showToast(
+      child: _buildToastContainer(
+        message: message,
+        icon: Icons.info,
+        gradient: [const Color(0xFF42A5F5), const Color(0xFF64B5F6)],
+      ),
+      gravity: ToastGravity.BOTTOM,
+      toastDuration: const Duration(seconds: 3),
+    );
+  }
+
+  // ===== DETAILED VERSIONS (with duration control) =====
+
+  // Success toast with options
   static void showSuccess(
     BuildContext context,
     String message, {
@@ -26,7 +80,7 @@ class CustomToast {
     );
   }
 
-  // Error toast
+  // Error toast with options
   static void showError(
     BuildContext context,
     String message, {
@@ -44,7 +98,7 @@ class CustomToast {
     );
   }
 
-  // Warning toast
+  // Warning toast with options
   static void showWarning(
     BuildContext context,
     String message, {
@@ -62,7 +116,7 @@ class CustomToast {
     );
   }
 
-  // Info toast
+  // Info toast with options
   static void showInfo(
     BuildContext context,
     String message, {
