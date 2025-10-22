@@ -5,6 +5,7 @@ import 'package:demo/Pages/ui_components/profile_page_components/changePasswordP
 import 'package:demo/Pages/ui_components/profile_page_components/editUsernamePage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/themeSelectionPage.dart';
 import 'package:demo/component/achievements.dart';
+import 'package:demo/component/customToast.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,26 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final AuthService _authService = AuthService();
+
+  Future<void> _launchURL(String urlString, String errorMessage) async {
+    try {
+      final url = Uri.parse(urlString);
+      
+      // Try to launch with external application mode
+      final bool launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && mounted) {
+        CustomToast.error(context, errorMessage);
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomToast.error(context, 'Error opening link: ${e.toString()}');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -225,34 +246,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
                     subtitle: 'Read our privacy policy',
-                    onTap: () async {
-                      final url = Uri.parse(
+                    onTap: () {
+                      _launchURL(
                         'https://github.com/ankitraj4096/HabitFlow/blob/main/PRIVACY_POLICY.md',
+                        'Could not open Privacy Policy',
                       );
-                      try {
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(
-                            url,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        } else {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Could not open Privacy Policy'),
-                              ),
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                            ),
-                          );
-                        }
-                      }
                     },
                   ),
                   _buildListTile(
@@ -261,34 +259,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.help_outline,
                     title: 'Help & Support',
                     subtitle: 'FAQs and support',
-                    onTap: () async {
-                      final url = Uri.parse(
+                    onTap: () {
+                      _launchURL(
                         'https://github.com/ankitraj4096/HabitFlow/blob/main/HELP_SUPPORT.md',
+                        'Could not open Help & Support',
                       );
-                      try {
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(
-                            url,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        } else {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Could not open Help & Support'),
-                              ),
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                            ),
-                          );
-                        }
-                      }
                     },
                   ),
                   const SizedBox(height: 32),
