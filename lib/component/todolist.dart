@@ -1,3 +1,4 @@
+import 'package:demo/component/customToast.dart';
 import 'package:demo/component/water_droplet.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
@@ -98,7 +99,7 @@ class _TodolistState extends State<Todolist> {
           _currentElapsed >= widget.totalDuration!) {
         _stopLocalTimer();
         widget.onTimerPause?.call();
-        _showTimerCompleteSnackbar();
+        _showTimerCompleteToast();
         if (widget.onTimerComplete != null && !widget.IsChecked) {
           widget.onTimerComplete!();
         }
@@ -115,29 +116,11 @@ class _TodolistState extends State<Todolist> {
     _timer?.cancel();
   }
 
-  void _showTimerCompleteSnackbar() {
+  void _showTimerCompleteToast() {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.alarm, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Timer completed for "${widget.TaskName}"!',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF4CAF50),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          duration: const Duration(seconds: 3),
-        ),
+      CustomToast.showSuccess(
+        context,
+        'Timer completed for "${widget.TaskName}"!',
       );
     }
   }
@@ -300,7 +283,18 @@ class _TodolistState extends State<Todolist> {
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => widget.onChanged?.call(!widget.IsChecked),
+                    onTap: () {
+                      // Prevent marking complete if timer is running
+                      if (widget.isRunning) {
+                        CustomToast.showWarning(
+                          context,
+                          'Cannot mark as complete while timer is running',
+                          duration: const Duration(seconds: 2),
+                        );
+                        return;
+                      }
+                      widget.onChanged?.call(!widget.IsChecked);
+                    },
                     borderRadius: BorderRadius.circular(16),
                     child: Padding(
                       padding: const EdgeInsets.all(14),

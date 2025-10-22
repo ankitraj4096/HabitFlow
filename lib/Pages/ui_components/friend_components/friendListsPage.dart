@@ -2,14 +2,15 @@ import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.
 import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
 import 'package:demo/services/friends/friend_service.dart';
+import 'package:demo/services/notes/firestore.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class FriendsListPage extends StatefulWidget {
-  final String? viewingUserID; // null if viewing own friends
-  final String? viewingUsername; // null if viewing own friends
+  final String? viewingUserID;
+  final String? viewingUsername;
 
   const FriendsListPage({
     super.key,
@@ -22,12 +23,74 @@ class FriendsListPage extends StatefulWidget {
 }
 
 class _FriendsListPageState extends State<FriendsListPage> {
+  final FireStoreService _firestoreService = FireStoreService();
+  
   bool get isOwnProfile => widget.viewingUserID == null;
+
+  // Friend's tier colors
+  List<Color> friendGradientColors = [
+    const Color(0xFF7C4DFF),
+    const Color(0xFF448AFF)
+  ];
+  Color friendPrimaryColor = const Color(0xFF7C4DFF);
+  Color friendGlowColor = const Color(0xFF7C4DFF);
+  bool isLoadingFriendTier = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!isOwnProfile) {
+      _loadFriendTier();
+    } else {
+      setState(() => isLoadingFriendTier = false);
+    }
+  }
+
+  Future<void> _loadFriendTier() async {
+    try {
+      // Get friend's stats to determine their tier
+      final stats = await _firestoreService
+          .getUserStatisticsForUser(widget.viewingUserID!);
+      final tier = _firestoreService.getUserTier(stats['completedTasks']);
+
+      setState(() {
+        friendGlowColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
+        friendGradientColors =
+            (tier['gradient'] as List<dynamic>?)?.map((e) => e as Color).toList() ??
+                [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+        friendPrimaryColor = friendGradientColors[0];
+        isLoadingFriendTier = false;
+      });
+    } catch (e) {
+      print('Error loading friend tier: $e');
+      setState(() => isLoadingFriendTier = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Get tier colors from provider
+    // Use friend's colors if viewing friend profile, otherwise use own colors from provider
     final tierProvider = context.watch<TierThemeProvider>();
+    
+    final displayGradientColors = isOwnProfile 
+        ? tierProvider.gradientColors 
+        : friendGradientColors;
+    final displayPrimaryColor = isOwnProfile 
+        ? tierProvider.primaryColor 
+        : friendPrimaryColor;
+    final displayGlowColor = isOwnProfile 
+        ? tierProvider.glowColor 
+        : friendGlowColor;
+
+    if (!isOwnProfile && isLoadingFriendTier) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(displayPrimaryColor),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Container(
@@ -41,8 +104,20 @@ class _FriendsListPageState extends State<FriendsListPage> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(context, tierProvider),
-              Expanded(child: _buildFriendsList(context, tierProvider)),
+              _buildHeader(
+                context,
+                displayGradientColors,
+                displayPrimaryColor,
+                displayGlowColor,
+              ),
+              Expanded(
+                child: _buildFriendsList(
+                  context,
+                  displayGradientColors,
+                  displayPrimaryColor,
+                  displayGlowColor,
+                ),
+              ),
             ],
           ),
         ),
@@ -50,14 +125,19 @@ class _FriendsListPageState extends State<FriendsListPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, TierThemeProvider tierProvider) {
+  Widget _buildHeader(
+    BuildContext context,
+    List<Color> gradientColors,
+    Color primaryColor,
+    Color glowColor,
+  ) {
     final FriendService friendService = FriendService();
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: tierProvider.gradientColors,
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -67,7 +147,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.glowColor.withOpacity(0.3),
+            color: glowColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -141,8 +221,10 @@ class _FriendsListPageState extends State<FriendsListPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.person_add_alt,
-                              color: Colors.white),
+                          icon: const Icon(
+                            Icons.person_add_alt,
+                            color: Colors.white,
+                          ),
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -196,8 +278,10 @@ class _FriendsListPageState extends State<FriendsListPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.person_search,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.person_search,
+                        color: Colors.white,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -218,7 +302,11 @@ class _FriendsListPageState extends State<FriendsListPage> {
   }
 
   Widget _buildFriendsList(
-      BuildContext context, TierThemeProvider tierProvider) {
+    BuildContext context,
+    List<Color> gradientColors,
+    Color primaryColor,
+    Color glowColor,
+  ) {
     final FriendService friendService = FriendService();
 
     return StreamBuilder<List<Map<String, dynamic>>>(
@@ -245,9 +333,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                tierProvider.primaryColor,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
             ),
           );
         }
@@ -261,16 +347,15 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: tierProvider.gradientColors
-                          .map((c) => c.withOpacity(0.2))
-                          .toList(),
+                      colors:
+                          gradientColors.map((c) => c.withOpacity(0.2)).toList(),
                     ),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.people_outline,
                     size: 80,
-                    color: tierProvider.primaryColor,
+                    color: primaryColor,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -304,7 +389,13 @@ class _FriendsListPageState extends State<FriendsListPage> {
           itemBuilder: (context, index) {
             final friendData = snapshot.data![index];
             return _buildFriendCard(
-                context, friendData, friendService, tierProvider);
+              context,
+              friendData,
+              friendService,
+              gradientColors,
+              primaryColor,
+              glowColor,
+            );
           },
         );
       },
@@ -315,7 +406,9 @@ class _FriendsListPageState extends State<FriendsListPage> {
     BuildContext context,
     Map<String, dynamic> friendData,
     FriendService friendService,
-    TierThemeProvider tierProvider,
+    List<Color> gradientColors,
+    Color primaryColor,
+    Color glowColor,
   ) {
     final friendUsername = friendData['username'] ?? 'Unknown';
     final friendUID = friendData['uid'] ?? '';
@@ -326,12 +419,12 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tierProvider.primaryColor.withOpacity(0.1),
+          color: primaryColor.withOpacity(0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.primaryColor.withOpacity(0.08),
+            color: primaryColor.withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -341,7 +434,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: tierProvider.primaryColor.withOpacity(0.1),
+          splashColor: primaryColor.withOpacity(0.1),
           onTap: () {
             // Navigate to friend's profile
             Navigator.push(
@@ -364,14 +457,14 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   height: 56,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: tierProvider.gradientColors,
+                      colors: gradientColors,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: tierProvider.glowColor.withOpacity(0.2),
+                        color: glowColor.withOpacity(0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -428,7 +521,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                           friendUID,
                           friendUsername,
                           friendService,
-                          tierProvider,
+                          primaryColor,
                         );
                       },
                     ),
@@ -437,7 +530,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: tierProvider.primaryColor.withOpacity(0.5),
+                    color: primaryColor.withOpacity(0.5),
                   ),
               ],
             ),
@@ -452,7 +545,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
     String friendUID,
     String friendUsername,
     FriendService friendService,
-    TierThemeProvider tierProvider,
+    Color primaryColor,
   ) {
     showDialog(
       context: context,
@@ -460,7 +553,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: tierProvider.primaryColor),
+            Icon(Icons.warning_amber_rounded, color: primaryColor),
             const SizedBox(width: 8),
             const Text('Remove Friend?'),
           ],
@@ -513,7 +606,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                             ),
                           ],
                         ),
-                        backgroundColor: tierProvider.primaryColor,
+                        backgroundColor: primaryColor,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
