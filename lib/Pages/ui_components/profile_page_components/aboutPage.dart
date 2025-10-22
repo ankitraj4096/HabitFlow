@@ -50,30 +50,97 @@ class AboutPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // App Icon & Name
+              // Premium "H" Logo & Name
               Center(
                 child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: tierProvider.gradientColors,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: tierProvider.glowColor.withOpacity(0.4),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                    // Premium "H" Logo with tier colors
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer glow circle
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: tierProvider.gradientColors
+                                  .map((c) => c.withOpacity(0.3))
+                                  .toList(),
+                            ),
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.rocket_launch,
-                        size: 60,
-                        color: Colors.white,
-                      ),
+                        ),
+                        // Main logo container
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFFFFFFF),
+                                Color(0xFFF5F5F5),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 25,
+                                offset: const Offset(0, 10),
+                              ),
+                              BoxShadow(
+                                color: tierProvider.glowColor.withOpacity(0.4),
+                                blurRadius: 40,
+                                offset: const Offset(0, 15),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: ShaderMask(
+                              shaderCallback: (bounds) => LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: tierProvider.gradientColors,
+                              ).createShader(bounds),
+                              child: const Text(
+                                'H',
+                                style: TextStyle(
+                                  fontSize: 60,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -2,
+                                  fontFamily: 'Sans-serif',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Inner highlight
+                        Positioned(
+                          top: 15,
+                          left: 25,
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withOpacity(0.8),
+                                  Colors.white.withOpacity(0.0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     const Text(
