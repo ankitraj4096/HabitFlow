@@ -45,6 +45,7 @@ dependencies:
   flutter_lucide: 
   intl:
   fluttertoast: 
+  url_launcher: 
 
 dev_dependencies:
   flutter_test:

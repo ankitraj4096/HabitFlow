@@ -1,5 +1,6 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/Pages/ui_components/friend_components/friendListsPage.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/aboutPage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/changePasswordPage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/editUsernamePage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/themeSelectionPage.dart';
@@ -8,6 +9,7 @@ import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -88,7 +90,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'Sign Out',
                     subtitle: 'Logout from your account',
                     onTap: () async {
-                      // Show confirmation dialog
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
@@ -153,23 +154,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  _buildSectionTitle('Preferences'),
-                  _buildListTile(
-                    context,
-                    tierProvider,
-                    icon: Icons.notifications,
-                    title: 'Notifications',
-                    subtitle: 'Manage notifications',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Coming soon!'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
                   _buildSectionTitle('Appearance'),
                   _buildListTile(
                     context,
@@ -227,59 +211,10 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'About',
                     subtitle: 'App version & info',
                     onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          title: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: tierProvider.gradientColors,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.info,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              const Text('About'),
-                            ],
-                          ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Task Manager App',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Version 1.0.0',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'A productivity app to manage your tasks with friends and track your achievements.',
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Close'),
-                            ),
-                          ],
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AboutPage(),
                         ),
                       );
                     },
@@ -290,13 +225,34 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
                     subtitle: 'Read our privacy policy',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Coming soon!'),
-                          duration: Duration(seconds: 2),
-                        ),
+                    onTap: () async {
+                      final url = Uri.parse(
+                        'https://github.com/ankitraj4096/HabitFlow/blob/main/PRIVACY_POLICY.md',
                       );
+                      try {
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Could not open Privacy Policy'),
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                            ),
+                          );
+                        }
+                      }
                     },
                   ),
                   _buildListTile(
@@ -305,13 +261,34 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.help_outline,
                     title: 'Help & Support',
                     subtitle: 'FAQs and support',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Coming soon!'),
-                          duration: Duration(seconds: 2),
-                        ),
+                    onTap: () async {
+                      final url = Uri.parse(
+                        'https://github.com/ankitraj4096/HabitFlow/blob/main/HELP_SUPPORT.md',
                       );
+                      try {
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Could not open Help & Support'),
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                            ),
+                          );
+                        }
+                      }
                     },
                   ),
                   const SizedBox(height: 32),
@@ -373,7 +350,9 @@ class _SettingsPageState extends State<SettingsPage> {
           color: tierProvider.primaryColor,
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
