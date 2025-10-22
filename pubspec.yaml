@@ -46,6 +46,9 @@ dependencies:
   intl:
   fluttertoast: 
   url_launcher: 
+  flutter_local_notifications: 
+  permission_handler:
+
 
 dev_dependencies:
   flutter_test:

@@ -1,8 +1,12 @@
+// lib/pages/homepage.dart
+// Complete Modified Homepage with Notification Support
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/friend_components/taskRequestsPage.dart';
 import 'package:demo/component/customToast.dart';
 import 'package:demo/component/todolist.dart';
 import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/services/notification_service.dart'; // ✅ ADD THIS IMPORT
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,25 +26,37 @@ class _HomepageState extends State<Homepage> {
   final TextEditingController timerController = TextEditingController();
 
   final FireStoreService firestoreService = FireStoreService();
+  final NotificationService _notificationService = NotificationService(); // ✅ ADD THIS
 
   bool _isSyncing = false;
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
   Timer? _uiUpdateTimer;
+  Timer? _notificationUpdateTimer; // ✅ ADD THIS
 
   @override
   void initState() {
     super.initState();
+    _initializeNotificationService(); // ✅ ADD THIS
     _initializeData();
     _startUIUpdateTimer();
+    _startNotificationUpdateTimer(); // ✅ ADD THIS
   }
 
   @override
   void dispose() {
     _firebaseSubscription?.cancel();
     _uiUpdateTimer?.cancel();
+    _notificationUpdateTimer?.cancel(); // ✅ ADD THIS
     control.dispose();
     timerController.dispose();
     super.dispose();
+  }
+
+  // ✅ NEW METHOD: Initialize notification service
+  Future<void> _initializeNotificationService() async {
+    await _notificationService.initialize();
+    // Request notification permissions
+    await _notificationService.requestPermissions();
   }
 
   void _startUIUpdateTimer() {
@@ -54,6 +70,59 @@ class _HomepageState extends State<Homepage> {
         }
       }
     });
+  }
+
+  // ✅ NEW METHOD: Start notification update timer
+  void _startNotificationUpdateTimer() {
+    _notificationUpdateTimer = Timer.periodic(
+      const Duration(seconds: 2), // Update notification every 2 seconds
+      (timer) {
+        _updateTimerNotification();
+      },
+    );
+  }
+
+  // ✅ NEW METHOD: Update timer notification
+  Future<void> _updateTimerNotification() async {
+    // Find any running timer
+    final runningTask = tasklist.firstWhere(
+      (task) => task['isRunning'] == true,
+      orElse: () => {},
+    );
+
+    if (runningTask.isEmpty) {
+      // No running timer, cancel notification
+      await _notificationService.cancelTimerNotification();
+      return;
+    }
+
+    final taskName = runningTask['taskName'] ?? 'Task';
+    final elapsedSeconds = runningTask['elapsedSeconds'] ?? 0;
+    final totalDuration = runningTask['totalDuration'];
+    
+    String timerText;
+    int? progress;
+    int? maxProgress;
+
+    if (totalDuration != null) {
+      // Timer with duration - show countdown
+      final remainingSeconds = totalDuration - elapsedSeconds;
+      timerText = 'Time remaining: ${NotificationService.formatDuration(remainingSeconds)}';
+      progress = elapsedSeconds;
+      maxProgress = totalDuration;
+    } else {
+      // Timer without duration - show elapsed time
+      timerText = 'Time elapsed: ${NotificationService.formatDuration(elapsedSeconds)}';
+      progress = null;
+      maxProgress = null;
+    }
+
+    await _notificationService.updateTimerNotification(
+      taskName: '⏱️ $taskName',
+      timerText: timerText,
+      progress: progress,
+      maxProgress: maxProgress,
+    );
   }
 
   Future<void> _initializeData() async {
@@ -130,6 +199,9 @@ class _HomepageState extends State<Homepage> {
         setState(() {
           tasklist = updatedTasks;
         });
+        
+        // ✅ ADD THIS: Update notification when task list changes
+        _updateTimerNotification();
       },
       onError: (error) {
         print('Error listening to Firebase: $error');
@@ -152,7 +224,6 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.toggleCompletion(firebaseId, false);
-      // ✅ REMOVED the toast - timer complete toast already shows in todolist
     } catch (e) {
       print('Error auto-completing task: $e');
       setState(() {
@@ -367,33 +438,26 @@ class _HomepageState extends State<Homepage> {
       tasklist[index]['isCompleted'] = newCompletedStatus;
 
       if (newCompletedStatus) {
-        // Task is being marked as COMPLETE
         tasklist[index]['completedAt'] = Timestamp.now();
 
-        // If task has timer, set elapsed to total duration (fill to max)
         if (task['hasTimer'] == true && task['totalDuration'] != null) {
           tasklist[index]['elapsedSeconds'] = task['totalDuration'];
-          tasklist[index]['isRunning'] = false; // Stop timer if running
+          tasklist[index]['isRunning'] = false;
         }
       } else {
-        // Task is being UNCHECKED (marked incomplete)
         tasklist[index]['completedAt'] = null;
 
-        // If task has timer, reset elapsed seconds to 0 (drain water)
         if (task['hasTimer'] == true) {
           tasklist[index]['elapsedSeconds'] = 0;
           tasklist[index]['isRunning'] = false;
-          // Increment reset key to trigger water drain animation
           tasklist[index]['resetKey'] = (task['resetKey'] ?? 0) + 1;
         }
       }
     });
 
     try {
-      // Update Firebase with new completion status
       await firestoreService.toggleCompletion(firebaseId, !newCompletedStatus);
 
-      // If task has timer and is being unchecked, update elapsed seconds in Firebase
       if (!newCompletedStatus && task['hasTimer'] == true) {
         await FirebaseFirestore.instance
             .collection('user_notes')
@@ -402,10 +466,12 @@ class _HomepageState extends State<Homepage> {
             .doc(firebaseId)
             .update({'elapsedSeconds': 0, 'isRunning': false});
       }
+      
+      // ✅ ADD THIS: Update notification after checkbox change
+      await _updateTimerNotification();
     } catch (e) {
       print('Error updating Firebase: $e');
 
-      // Revert changes on error
       setState(() {
         tasklist[index]['isCompleted'] = !newCompletedStatus;
         if (!newCompletedStatus) {
@@ -442,6 +508,9 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.deleteTask(firebaseId);
+      
+      // ✅ ADD THIS: Update notification after task deletion
+      await _updateTimerNotification();
     } catch (e) {
       print('Error deleting from Firebase: $e');
       setState(() {
@@ -647,6 +716,7 @@ class _HomepageState extends State<Homepage> {
     return tasklist.where((task) => task['isCompleted'] == true).length;
   }
 
+  // ✅ MODIFIED: Start timer with notification
   void _startTimer(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
@@ -659,6 +729,9 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.startTimer(firebaseId);
+      
+      // ✅ ADD THIS: Show notification immediately
+      await _updateTimerNotification();
     } catch (e) {
       print('Error starting timer: $e');
       setState(() {
@@ -667,6 +740,7 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
+  // ✅ MODIFIED: Pause timer and cancel notification
   void _pauseTimer(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
@@ -681,6 +755,9 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.pauseTimer(firebaseId, currentElapsed);
+      
+      // ✅ ADD THIS: Cancel notification when paused
+      await _notificationService.cancelTimerNotification();
     } catch (e) {
       print('Error pausing timer: $e');
       setState(() {
@@ -689,6 +766,7 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
+  // ✅ MODIFIED: Stop timer and cancel notification
   void _stopTimer(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
@@ -702,6 +780,9 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.stopTimer(firebaseId);
+      
+      // ✅ ADD THIS: Cancel notification when stopped
+      await _notificationService.cancelTimerNotification();
     } catch (e) {
       print('Error stopping timer: $e');
     }
