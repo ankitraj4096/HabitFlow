@@ -5,7 +5,6 @@ import 'package:demo/services/notes/firestore.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 
@@ -17,7 +16,6 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  final mybox = Hive.box('mybox');
   List<Map<String, dynamic>> tasklist = [];
   final TextEditingController control = TextEditingController();
   final TextEditingController timerController = TextEditingController();
@@ -26,20 +24,35 @@ class _HomepageState extends State<Homepage> {
 
   bool _isSyncing = false;
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
-  Set<String> _pendingSyncIds = {};
+  Timer? _uiUpdateTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
+    _startUIUpdateTimer();
   }
 
   @override
   void dispose() {
     _firebaseSubscription?.cancel();
+    _uiUpdateTimer?.cancel();
     control.dispose();
     timerController.dispose();
     super.dispose();
+  }
+
+  void _startUIUpdateTimer() {
+    _uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      for (int i = 0; i < tasklist.length; i++) {
+        if (tasklist[i]['isRunning'] == true) {
+          final currentElapsed = tasklist[i]['elapsedSeconds'] ?? 0;
+          setState(() {
+            tasklist[i]['elapsedSeconds'] = currentElapsed + 1;
+          });
+        }
+      }
+    });
   }
 
   Future<void> _initializeData() async {
@@ -47,39 +60,17 @@ class _HomepageState extends State<Homepage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        _loadLocalData();
-        _listenToFirebaseChanges();
-        await _syncPendingChangesToFirebase();
-      } else {
-        _loadLocalData();
+        listenToFirebaseChanges();
       }
     } catch (e) {
       print('Error initializing data: $e');
-      _loadLocalData();
     } finally {
       setState(() => _isSyncing = false);
     }
   }
 
-  void _loadLocalData() {
-    final data = mybox.get("ToDoList");
-    if (data != null && data is List) {
-      tasklist = List<Map<String, dynamic>>.from(
-        data.map((item) => Map<String, dynamic>.from(item)),
-      );
-    } else {
-      tasklist = [];
-    }
-    setState(() {});
-  }
-
-  void _saveLocalData() {
-    mybox.put("ToDoList", tasklist);
-  }
-
-  void _listenToFirebaseChanges() {
+  void listenToFirebaseChanges() {
     _firebaseSubscription?.cancel();
-
     _firebaseSubscription = firestoreService.getTasksStream().listen(
       (snapshot) {
         List<Map<String, dynamic>> updatedTasks = [];
@@ -90,11 +81,8 @@ class _HomepageState extends State<Homepage> {
 
         for (var doc in snapshot.docs) {
           final data = doc.data() as Map<String, dynamic>;
-
           final status = data['status'];
-          if (status == 'pending') {
-            continue;
-          }
+          if (status == 'pending') continue;
 
           final isCompleted = data['isCompleted'] ?? false;
           if (isCompleted) {
@@ -110,17 +98,27 @@ class _HomepageState extends State<Homepage> {
             }
           }
 
+          int currentElapsedSeconds = data['elapsedSeconds'] ?? 0;
+          final isRunning = data['isRunning'] ?? false;
+
+          if (isRunning && data['startTime'] != null) {
+            final startTime = (data['startTime'] as Timestamp).toDate();
+            final runningDuration =
+                DateTime.now().difference(startTime).inSeconds;
+            currentElapsedSeconds =
+                (data['elapsedSeconds'] ?? 0) + runningDuration;
+          }
+
           updatedTasks.add({
             'firebaseId': doc.id,
             'isCompleted': isCompleted,
             'taskName': data['taskName'] ?? '',
             'hasTimer': data['hasTimer'] ?? false,
             'totalDuration': data['totalDuration'],
-            'elapsedSeconds': data['elapsedSeconds'] ?? 0,
-            'isRunning': data['isRunning'] ?? false,
+            'elapsedSeconds': currentElapsedSeconds,
+            'isRunning': isRunning,
             'lastUpdated': data['lastUpdated'],
             'completedAt': data['completedAt'],
-            'isSynced': true,
             'assignedByUserID': data['assignedByUserID'],
             'assignedByUsername': data['assignedByUsername'],
             'status': status ?? 'accepted',
@@ -130,8 +128,6 @@ class _HomepageState extends State<Homepage> {
         setState(() {
           tasklist = updatedTasks;
         });
-
-        _saveLocalData();
       },
       onError: (error) {
         print('Error listening to Firebase: $error');
@@ -149,7 +145,6 @@ class _HomepageState extends State<Homepage> {
 
     setState(() {
       tasklist[index]['isCompleted'] = true;
-      tasklist[index]['isSynced'] = false;
       tasklist[index]['completedAt'] = Timestamp.now();
     });
 
@@ -199,39 +194,6 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  Future<void> _syncPendingChangesToFirebase() async {
-    try {
-      final pendingTasks = tasklist
-          .where(
-            (task) => task['isSynced'] != true || task['firebaseId'] == null,
-          )
-          .toList();
-
-      for (var task in pendingTasks) {
-        if (task['firebaseId'] == null) {
-          final timerMinutes = task['totalDuration'] != null
-              ? (task['totalDuration'] / 60).round()
-              : null;
-
-          final firebaseId = await firestoreService.addTask(
-            task['isCompleted'] ?? false,
-            task['taskName'] ?? '',
-            timerMinutes,
-          );
-
-          if (firebaseId != null) {
-            task['firebaseId'] = firebaseId;
-            task['isSynced'] = true;
-          }
-        }
-      }
-
-      _saveLocalData();
-    } catch (e) {
-      print('Error syncing pending changes: $e');
-    }
-  }
-
   void Add_Task() async {
     if (control.text.isEmpty) {
       Navigator.of(context).pop();
@@ -247,24 +209,7 @@ class _HomepageState extends State<Homepage> {
     control.clear();
     timerController.clear();
 
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-    setState(() {
-      tasklist.add({
-        'tempId': tempId,
-        'isCompleted': false,
-        'taskName': taskName,
-        'firebaseId': null,
-        'hasTimer': timerMinutes != null && timerMinutes > 0,
-        'totalDuration': timerMinutes != null ? timerMinutes * 60 : null,
-        'elapsedSeconds': 0,
-        'isRunning': false,
-        'isSynced': false,
-        'assignedByUserID': null,
-        'assignedByUsername': null,
-        'status': 'accepted',
-      });
-      _pendingSyncIds.add(tempId);
-    });
+    setState(() => _isSyncing = true);
 
     try {
       final firebaseId = await firestoreService.addTask(
@@ -273,43 +218,28 @@ class _HomepageState extends State<Homepage> {
         timerMinutes,
       );
 
-      if (firebaseId != null) {
-        setState(() {
-          tasklist.removeWhere((task) => task['tempId'] == tempId);
-          _pendingSyncIds.remove(tempId);
-        });
-        _saveLocalData();
-      } else {
-        final index = tasklist.indexWhere((task) => task['tempId'] == tempId);
-        if (index != -1) {
-          setState(() {
-            tasklist[index]['isSynced'] = false;
-          });
-          _saveLocalData();
-        }
+      if (firebaseId == null) {
+        throw Exception('Failed to add task to Firebase');
       }
     } catch (e) {
       print('Error adding to Firebase: $e');
-      final index = tasklist.indexWhere((task) => task['tempId'] == tempId);
-      if (index != -1) {
-        setState(() {
-          tasklist[index]['isSynced'] = false;
-        });
-        _saveLocalData();
-      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to sync task. Will retry later.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to add task. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isSyncing = false);
     }
   }
 
   void NewTask() {
     final tierProvider = context.read<TierThemeProvider>();
-    
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -338,7 +268,11 @@ class _HomepageState extends State<Homepage> {
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.add_task, color: Colors.white, size: 24),
+                    child: const Icon(
+                      Icons.add_task,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -357,13 +291,19 @@ class _HomepageState extends State<Homepage> {
                 decoration: InputDecoration(
                   labelText: 'Task Name',
                   hintText: 'Enter your task...',
-                  prefixIcon: Icon(Icons.edit, color: tierProvider.primaryColor),
+                  prefixIcon: Icon(
+                    Icons.edit,
+                    color: tierProvider.primaryColor,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
+                    borderSide: BorderSide(
+                      color: tierProvider.primaryColor,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -374,13 +314,19 @@ class _HomepageState extends State<Homepage> {
                 decoration: InputDecoration(
                   labelText: 'Timer (minutes) - Optional',
                   hintText: 'e.g., 25 for 25 minutes',
-                  prefixIcon: Icon(Icons.timer, color: tierProvider.primaryColor),
+                  prefixIcon: Icon(
+                    Icons.timer,
+                    color: tierProvider.primaryColor,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
+                    borderSide: BorderSide(
+                      color: tierProvider.primaryColor,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -420,7 +366,10 @@ class _HomepageState extends State<Homepage> {
                           vertical: 12,
                         ),
                       ),
-                      child: const Text('Save', style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        'Save',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -450,7 +399,6 @@ class _HomepageState extends State<Homepage> {
 
     setState(() {
       tasklist[index]['isCompleted'] = newCompletedStatus;
-      tasklist[index]['isSynced'] = false;
 
       if (newCompletedStatus) {
         tasklist[index]['completedAt'] = Timestamp.now();
@@ -468,12 +416,14 @@ class _HomepageState extends State<Homepage> {
         tasklist[index]['completedAt'] = null;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to update task. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update task. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -481,22 +431,30 @@ class _HomepageState extends State<Homepage> {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
 
+    if (firebaseId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot delete task that is not synced'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
     final deletedTask = tasklist[index];
     setState(() {
       tasklist.removeAt(index);
     });
-    _saveLocalData();
 
-    if (firebaseId != null) {
-      try {
-        await firestoreService.deleteTask(firebaseId);
-      } catch (e) {
-        print('Error deleting from Firebase: $e');
-        setState(() {
-          tasklist.insert(index, deletedTask);
-        });
-        _saveLocalData();
+    try {
+      await firestoreService.deleteTask(firebaseId);
+    } catch (e) {
+      print('Error deleting from Firebase: $e');
+      setState(() {
+        tasklist.insert(index, deletedTask);
+      });
 
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to delete task. Please try again.'),
@@ -544,7 +502,11 @@ class _HomepageState extends State<Homepage> {
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.edit, color: Colors.white, size: 24),
+                    child: const Icon(
+                      Icons.edit,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -562,13 +524,19 @@ class _HomepageState extends State<Homepage> {
                 controller: control,
                 decoration: InputDecoration(
                   labelText: 'Task Name',
-                  prefixIcon: Icon(Icons.edit, color: tierProvider.primaryColor),
+                  prefixIcon: Icon(
+                    Icons.edit,
+                    color: tierProvider.primaryColor,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
+                    borderSide: BorderSide(
+                      color: tierProvider.primaryColor,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -579,13 +547,19 @@ class _HomepageState extends State<Homepage> {
                 decoration: InputDecoration(
                   labelText: 'Timer (minutes) - Optional',
                   hintText: 'Leave empty to remove timer',
-                  prefixIcon: Icon(Icons.timer, color: tierProvider.primaryColor),
+                  prefixIcon: Icon(
+                    Icons.timer,
+                    color: tierProvider.primaryColor,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
+                    borderSide: BorderSide(
+                      color: tierProvider.primaryColor,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -629,15 +603,7 @@ class _HomepageState extends State<Homepage> {
                             ? int.tryParse(timerController.text)
                             : null;
 
-                        setState(() {
-                          tasklist[index]['taskName'] = control.text;
-                          tasklist[index]['hasTimer'] =
-                              timerMinutes != null && timerMinutes > 0;
-                          tasklist[index]['totalDuration'] = timerMinutes != null
-                              ? timerMinutes * 60
-                              : null;
-                          tasklist[index]['isSynced'] = false;
-                        });
+                        final updatedTaskName = control.text;
 
                         Navigator.of(context).pop();
                         control.clear();
@@ -647,19 +613,19 @@ class _HomepageState extends State<Homepage> {
                           await firestoreService.updateTask(
                             firebaseId,
                             tasklist[index]['isCompleted'],
-                            tasklist[index]['taskName'],
+                            updatedTaskName,
                             timerMinutes,
                           );
                         } catch (e) {
                           print('Error updating Firebase: $e');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Failed to update task. Changes saved locally.',
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to update task.'),
+                                backgroundColor: Colors.red,
                               ),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
+                            );
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -690,6 +656,66 @@ class _HomepageState extends State<Homepage> {
 
   int get completedTasksCount {
     return tasklist.where((task) => task['isCompleted'] == true).length;
+  }
+
+  void _startTimer(int index) async {
+    final task = tasklist[index];
+    final firebaseId = task['firebaseId'];
+
+    if (firebaseId == null) return;
+
+    setState(() {
+      tasklist[index]['isRunning'] = true;
+    });
+
+    try {
+      await firestoreService.startTimer(firebaseId);
+    } catch (e) {
+      print('Error starting timer: $e');
+      setState(() {
+        tasklist[index]['isRunning'] = false;
+      });
+    }
+  }
+
+  void _pauseTimer(int index) async {
+    final task = tasklist[index];
+    final firebaseId = task['firebaseId'];
+
+    if (firebaseId == null) return;
+
+    final currentElapsed = task['elapsedSeconds'] ?? 0;
+
+    setState(() {
+      tasklist[index]['isRunning'] = false;
+    });
+
+    try {
+      await firestoreService.pauseTimer(firebaseId, currentElapsed);
+    } catch (e) {
+      print('Error pausing timer: $e');
+      setState(() {
+        tasklist[index]['isRunning'] = true;
+      });
+    }
+  }
+
+  void _stopTimer(int index) async {
+    final task = tasklist[index];
+    final firebaseId = task['firebaseId'];
+
+    if (firebaseId == null) return;
+
+    setState(() {
+      tasklist[index]['isRunning'] = false;
+      tasklist[index]['elapsedSeconds'] = 0;
+    });
+
+    try {
+      await firestoreService.stopTimer(firebaseId);
+    } catch (e) {
+      print('Error stopping timer: $e');
+    }
   }
 
   @override
@@ -757,8 +783,7 @@ class _HomepageState extends State<Homepage> {
                                       fontSize: 14,
                                     ),
                                   ),
-                                  if (_isSyncing ||
-                                      _pendingSyncIds.isNotEmpty) ...[
+                                  if (_isSyncing) ...[
                                     const SizedBox(width: 8),
                                     const SizedBox(
                                       width: 12,
@@ -767,8 +792,8 @@ class _HomepageState extends State<Homepage> {
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                              Colors.white70,
-                                            ),
+                                          Colors.white70,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -894,7 +919,8 @@ class _HomepageState extends State<Homepage> {
                             Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: tierProvider.primaryColor.withOpacity(0.1),
+                                color:
+                                    tierProvider.primaryColor.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -938,9 +964,10 @@ class _HomepageState extends State<Homepage> {
                             totalDuration: task['totalDuration'],
                             elapsedSeconds: task['elapsedSeconds'] ?? 0,
                             isRunning: task['isRunning'] ?? false,
-                            isSynced: task['isSynced'] ?? true,
-                            onTimerToggle: () => _toggleTimer(index),
-                            onTimerReset: () => _resetTimer(index),
+                            isSynced: true,
+                            onTimerStart: () => _startTimer(index),
+                            onTimerPause: () => _pauseTimer(index),
+                            onTimerStop: () => _stopTimer(index),
                             assignedByUsername: task['assignedByUsername'],
                             onTimerComplete: () => _autoCompleteTask(index),
                           );
@@ -1002,48 +1029,11 @@ class _HomepageState extends State<Homepage> {
           ],
         ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
       ],
     );
-  }
-
-  void _toggleTimer(int index) async {
-    final task = tasklist[index];
-    final firebaseId = task['firebaseId'];
-
-    if (firebaseId == null) return;
-
-    setState(() {
-      tasklist[index]['isRunning'] = !tasklist[index]['isRunning'];
-      tasklist[index]['isSynced'] = false;
-    });
-
-    try {
-      await firestoreService.toggleTimer(
-        firebaseId,
-        !task['isRunning'],
-        task['elapsedSeconds'] ?? 0,
-      );
-    } catch (e) {
-      print('Error toggling timer: $e');
-    }
-  }
-
-  void _resetTimer(int index) async {
-    final firebaseId = tasklist[index]['firebaseId'];
-
-    if (firebaseId == null) return;
-
-    setState(() {
-      tasklist[index]['isRunning'] = false;
-      tasklist[index]['elapsedSeconds'] = 0;
-      tasklist[index]['isSynced'] = false;
-    });
-
-    try {
-      await firestoreService.resetTimer(firebaseId);
-    } catch (e) {
-      print('Error resetting timer: $e');
-    }
   }
 }

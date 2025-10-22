@@ -35,10 +35,9 @@ class FireStoreService {
         'taskName': taskName,
         'timestamp': Timestamp.now(),
         'lastUpdated': Timestamp.now(),
-        // NEW: Track assignment status
         'assignedByUserID': null,
         'assignedByUsername': null,
-        'status': 'accepted', // Self-created tasks are auto-accepted
+        'status': 'accepted',
       };
 
       if (durationMins != null && durationMins > 0) {
@@ -60,7 +59,7 @@ class FireStoreService {
     }
   }
 
-  /// NEW: Assign a task to a friend
+  /// Assign a task to a friend
   Future<String?> assignTaskToFriend({
     required String friendUserID,
     required String taskName,
@@ -72,7 +71,6 @@ class FireStoreService {
     try {
       final currentUsername = await getUsername();
 
-      // Ensure friend's user document exists
       await FirebaseFirestore.instance
           .collection('user_notes')
           .doc(friendUserID)
@@ -83,10 +81,9 @@ class FireStoreService {
         'taskName': taskName,
         'timestamp': Timestamp.now(),
         'lastUpdated': Timestamp.now(),
-        // NEW: Track who assigned this task
         'assignedByUserID': user.uid,
         'assignedByUsername': currentUsername,
-        'status': 'pending', // Requires approval
+        'status': 'pending',
       };
 
       if (durationMins != null && durationMins > 0) {
@@ -113,7 +110,7 @@ class FireStoreService {
     }
   }
 
-  /// NEW: Get count of pending task requests
+  /// Get count of pending task requests
   Stream<int> getPendingTaskRequestsCount() {
     try {
       return _userNotes
@@ -131,7 +128,6 @@ class FireStoreService {
     try {
       return _userNotes
           .where('status', isEqualTo: 'pending')
-          // REMOVE orderBy - causes index error
           .snapshots();
     } catch (e) {
       print('Error getting pending task requests: $e');
@@ -139,7 +135,7 @@ class FireStoreService {
     }
   }
 
-  /// NEW: Accept a task request (change status from pending to accepted)
+  /// Accept a task request
   Future<void> acceptTaskRequest(String docID) async {
     try {
       await _userNotes.doc(docID).update({
@@ -152,7 +148,7 @@ class FireStoreService {
     }
   }
 
-  /// NEW: Decline a task request (delete the task)
+  /// Decline a task request
   Future<void> declineTaskRequest(String docID) async {
     try {
       await _userNotes.doc(docID).delete();
@@ -162,10 +158,9 @@ class FireStoreService {
     }
   }
 
-  // In firestore.dart, replace getTasksStream() with:
+  /// Get tasks stream
   Stream<QuerySnapshot> getTasksStream() {
     try {
-      // No filter - we'll filter in the listener to handle old tasks
       return _userNotes.orderBy('timestamp', descending: false).snapshots();
     } catch (e) {
       print('Error getting tasks stream: $e');
@@ -173,7 +168,7 @@ class FireStoreService {
     }
   }
 
-  /// NEW: Get tasks for a specific user (for viewing friend's tasks)
+  /// Get tasks for a specific user
   Stream<QuerySnapshot> getTasksStreamForUser(String userID) {
     try {
       return FirebaseFirestore.instance
@@ -232,7 +227,7 @@ class FireStoreService {
       rethrow;
     }
   }
-  
+
   /// Toggle task completion status
   Future<void> toggleCompletion(String docID, bool currentStatus) async {
     try {
@@ -241,12 +236,9 @@ class FireStoreService {
         'lastUpdated': Timestamp.now(),
       };
 
-      // NEW: Track when task was completed
       if (!currentStatus) {
-        // Task is being marked as complete
         updateData['completedAt'] = Timestamp.now();
       } else {
-        // Task is being marked as incomplete - remove completedAt
         updateData['completedAt'] = FieldValue.delete();
       }
 
@@ -257,56 +249,58 @@ class FireStoreService {
     }
   }
 
-  /// Starts or pauses the timer on a task
-  Future<void> toggleTimer(
-    String docId,
-    bool isRunning,
-    int elapsedSeconds,
-  ) async {
+  /// Starts the timer on a task
+  Future<void> startTimer(String docId) async {
     try {
       final docRef = _userNotes.doc(docId);
-
-      if (isRunning) {
-        await docRef.update({
-          'isRunning': false,
-          'startTime': FieldValue.delete(),
-          'elapsedSeconds': elapsedSeconds,
-          'lastUpdated': Timestamp.now(),
-        });
-      } else {
-        await docRef.update({
-          'isRunning': true,
-          'startTime': Timestamp.now(),
-          'lastUpdated': Timestamp.now(),
-        });
-      }
+      await docRef.update({
+        'isRunning': true,
+        'startTime': Timestamp.now(),
+        'lastUpdated': Timestamp.now(),
+      });
     } catch (e) {
-      print('Error toggling timer in Firebase: $e');
+      print('Error starting timer in Firebase: $e');
+      rethrow;
+    }
+  }
+
+  /// Pauses the timer on a task
+  Future<void> pauseTimer(String docId, int elapsedSeconds) async {
+    try {
+      final docRef = _userNotes.doc(docId);
+      await docRef.update({
+        'isRunning': false,
+        'startTime': FieldValue.delete(),
+        'elapsedSeconds': elapsedSeconds,
+        'lastUpdated': Timestamp.now(),
+      });
+    } catch (e) {
+      print('Error pausing timer in Firebase: $e');
       rethrow;
     }
   }
 
   /// Stops and resets the timer for a task
-  Future<void> resetTimer(String docId) async {
+  Future<void> stopTimer(String docId) async {
     try {
-      await _userNotes.doc(docId).update({
+      final docRef = _userNotes.doc(docId);
+      await docRef.update({
         'isRunning': false,
         'startTime': FieldValue.delete(),
         'elapsedSeconds': 0,
         'lastUpdated': Timestamp.now(),
       });
     } catch (e) {
-      print('Error resetting timer in Firebase: $e');
+      print('Error stopping timer in Firebase: $e');
       rethrow;
     }
   }
 
-  /// Get user statistics (only counts accepted tasks)
+  /// Get user statistics
   Future<Map<String, dynamic>> getUserStatistics() async {
     try {
-      final snapshot = await _userNotes
-          .where('status', isEqualTo: 'accepted')
-          .get();
+      final snapshot =
+          await _userNotes.where('status', isEqualTo: 'accepted').get();
 
       int totalTasks = snapshot.docs.length;
       int completedTasks = 0;
@@ -351,25 +345,25 @@ class FireStoreService {
     }
   }
 
-  /// Get heatmap data stream (only accepted tasks)
+  /// Get heatmap data stream
   Stream<Map<String, int>> getHeatmapData() {
     return _userNotes
         .where('status', isEqualTo: 'accepted')
         .where('isCompleted', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-          final Map<String, int> heatmap = {};
-          for (var doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final ts = data['timestamp'] as Timestamp?;
-            if (ts != null) {
-              final d = ts.toDate();
-              final key = _formatDate(d);
-              heatmap[key] = (heatmap[key] ?? 0) + 1;
-            }
-          }
-          return heatmap;
-        });
+      final Map<String, int> heatmap = {};
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final ts = data['timestamp'] as Timestamp?;
+        if (ts != null) {
+          final d = ts.toDate();
+          final key = _formatDate(d);
+          heatmap[key] = (heatmap[key] ?? 0) + 1;
+        }
+      }
+      return heatmap;
+    });
   }
 
   String _formatDate(DateTime date) {
@@ -584,7 +578,7 @@ class FireStoreService {
     return iconMap[iconName] ?? LucideIcons.star;
   }
 
-  /// Get statistics for a specific user (only accepted tasks)
+  /// Get statistics for a specific user
   Future<Map<String, dynamic>> getUserStatisticsForUser(String userID) async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -635,7 +629,7 @@ class FireStoreService {
     }
   }
 
-  /// Get heatmap data for a specific user (only accepted tasks)
+  /// Get heatmap data for a specific user
   Stream<Map<String, int>> getHeatmapDataForUser(String userID) {
     return FirebaseFirestore.instance
         .collection('user_notes')
@@ -645,17 +639,17 @@ class FireStoreService {
         .where('isCompleted', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-          final Map<String, int> heatmap = {};
-          for (var doc in snapshot.docs) {
-            final data = doc.data();
-            final ts = data['timestamp'] as Timestamp?;
-            if (ts != null) {
-              final d = ts.toDate();
-              final key = _formatDate(d);
-              heatmap[key] = (heatmap[key] ?? 0) + 1;
-            }
-          }
-          return heatmap;
-        });
+      final Map<String, int> heatmap = {};
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final ts = data['timestamp'] as Timestamp?;
+        if (ts != null) {
+          final d = ts.toDate();
+          final key = _formatDate(d);
+          heatmap[key] = (heatmap[key] ?? 0) + 1;
+        }
+      }
+      return heatmap;
+    });
   }
 }
