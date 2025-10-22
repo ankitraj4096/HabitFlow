@@ -84,15 +84,13 @@ Ensure you have the following installed:
 ### Installation Steps
 
 1. **Clone the repository**
-git clone https://github.com/ankitraj4096/HabitFlow.git
-cd HabitFlow
+- git clone https://github.com/ankitraj4096/HabitFlow.git
+- cd HabitFlow
 
-text
 
 2. **Install dependencies**
-flutter pub get
+- flutter pub get
 
-text
 
 3. **Firebase Setup**
    - Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
@@ -103,9 +101,8 @@ text
      - `GoogleService-Info.plist` → Place in `ios/Runner/`
 
 4. **Run the app**
-flutter run
+- flutter run
 
-text
 
 ---
 
@@ -128,7 +125,6 @@ lib/
 │ └── tier_theme_provider.dart # Theme management
 └── main.dart # App entry point
 
-text
 
 ---
 
@@ -263,7 +259,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-text
 
 ---
 
