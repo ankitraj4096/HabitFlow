@@ -11,174 +11,330 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+  late final TextEditingController emailController;
+  late final TextEditingController passwordController;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
   @override
-  Widget build(BuildContext context) {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+  void initState() {
+    super.initState();
+    emailController = TextEditingController();
+    passwordController = TextEditingController();
+    
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    
+    _animationController.forward();
+  }
 
-    Future signIn() async {
-      // auth service
-      final authService = AuthService();
+  Future signIn() async {
+    final authService = AuthService();
 
-      // try login
-      try {
-        await authService.signInWithEmailPassword(
-          emailController.text,
-          passwordController.text,
+    try {
+      await authService.signInWithEmailPassword(
+        emailController.text,
+        passwordController.text,
+      );
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(e.toString()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
       }
-      // catch any erros
-      catch (e) {
-        showDialog(context: context, builder: (context) => AlertDialog(
-          title: Text(e.toString()),
-        ));
-      }
     }
+  }
 
-    @override
-    // ignore: unused_element
-    void dispose() {
-      emailController.dispose();
-      passwordController.dispose();
-      super.dispose();
-    }
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('lib/image/main_background.png'),
-            fit: BoxFit.cover,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF667eea),
+              Color(0xFF764ba2),
+              Color(0xFFf093fb),
+            ],
+            stops: [0.0, 0.5, 1.0],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(25.0),
-                    child: Image.asset(
-                      'lib/image/logo.jpg',
-                      width: 120,
-                      height: 120,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Build Better",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Color.fromARGB(179, 255, 255, 255),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(25),
-                        margin: const EdgeInsets.symmetric(horizontal: 25),
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(51, 255, 255, 255),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: const Color.fromARGB(77, 158, 158, 158),
-                            width: 1.5,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Premium "H" Logo with multiple layers
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Outer glow circle
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFF667eea).withOpacity(0.3),
+                                  const Color(0xFF764ba2).withOpacity(0.3),
+                                ],
+                              ),
+                            ),
                           ),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color.fromARGB(77, 158, 158, 158),
-                              Color.fromARGB(26, 255, 255, 255),
-                            ],
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Welcome back!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w500,
+                          // Main logo container
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFFFFFFFF),
+                                  Color(0xFFF5F5F5),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 25),
-                            MyTextField(
-                              controller: emailController,
-                              hintText: "E-mail",
-                              obscureText: false,
-                            ),
-                            const SizedBox(height: 10),
-                            MyTextField(
-                              controller: passwordController,
-                              hintText: 'Password',
-                              obscureText: true,
-                            ),
-                            const SizedBox(height: 25),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color.fromARGB(
-                                  255,
-                                  22,
-                                  198,
-                                  3,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 25,
+                                  offset: const Offset(0, 10),
                                 ),
-                                minimumSize: const Size.fromHeight(50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                BoxShadow(
+                                  color: const Color(0xFF667eea).withOpacity(0.2),
+                                  blurRadius: 40,
+                                  offset: const Offset(0, 15),
                                 ),
-                              ),
-                              onPressed: signIn,
-                              child: const Text(
-                                'Log In',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                ),
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                            GestureDetector(
-                              onTap: widget.showRegisterPage,
-                              child: RichText(
-                                text: const TextSpan(
-                                  text: "First time here? ",
+                            child: Center(
+                              child: ShaderMask(
+                                shaderCallback: (bounds) => const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF667eea),
+                                    Color(0xFF764ba2),
+                                    Color(0xFFf093fb),
+                                  ],
+                                ).createShader(bounds),
+                                child: const Text(
+                                  'H',
                                   style: TextStyle(
+                                    fontSize: 60,
+                                    fontWeight: FontWeight.w900,
                                     color: Colors.white,
-                                    fontSize: 16,
+                                    letterSpacing: -2,
+                                    fontFamily: 'Sans-serif',
                                   ),
-                                  children: [
-                                    TextSpan(
-                                      text: "Join now",
-                                      style: TextStyle(
-                                        color: Color.fromARGB(
-                                          255,
-                                          129,
-                                          212,
-                                          250,
-                                        ),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Inner highlight
+                          Positioned(
+                            top: 15,
+                            left: 25,
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white.withOpacity(0.8),
+                                    Colors.white.withOpacity(0.0),
                                   ],
                                 ),
                               ),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // App Title
+                      const Text(
+                        "Build Better",
+                        style: TextStyle(
+                          fontSize: 32,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Your journey starts here",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 60),
+                      
+                      // Login Card
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(35),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Welcome Back',
+                                style: TextStyle(
+                                  color: Color(0xFF667eea),
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Sign in to continue',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              const SizedBox(height: 35),
+                              
+                              MyTextField(
+                                controller: emailController,
+                                hintText: "Email Address",
+                                obscureText: false,
+                              ),
+                              const SizedBox(height: 20),
+                              
+                              MyTextField(
+                                controller: passwordController,
+                                hintText: 'Password',
+                                obscureText: true,
+                              ),
+                              const SizedBox(height: 35),
+                              
+                              // Login Button
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF667eea),
+                                      Color(0xFF764ba2),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(15),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF667eea).withOpacity(0.4),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    minimumSize: const Size.fromHeight(55),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                  ),
+                                  onPressed: signIn,
+                                  child: const Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 25),
+                              
+                              // Register Link
+                              GestureDetector(
+                                onTap: widget.showRegisterPage,
+                                child: RichText(
+                                  text: TextSpan(
+                                    text: "Don't have an account? ",
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontSize: 15,
+                                    ),
+                                    children: const [
+                                      TextSpan(
+                                        text: "Sign Up",
+                                        style: TextStyle(
+                                          color: Color(0xFF667eea),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
