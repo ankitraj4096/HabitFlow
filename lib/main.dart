@@ -7,7 +7,6 @@ import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
 // Global timer for periodic cleanup
@@ -20,10 +19,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  // ✅ Initialize Hive
-  await Hive.initFlutter();
-  await Hive.openBox('mybox');
 
   // ✅ Initialize cleanup timer (runs every 24 hours)
   _initializeCleanupTimer();
