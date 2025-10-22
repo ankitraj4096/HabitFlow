@@ -1,5 +1,7 @@
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 
 class Todolist extends StatefulWidget {
@@ -84,7 +86,7 @@ class _TodolistState extends State<Todolist> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (widget.totalDuration != null &&
           _currentElapsed >= widget.totalDuration!) {
         _stopTimer();
@@ -113,22 +115,22 @@ class _TodolistState extends State<Todolist> {
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.alarm, color: Colors.white),
-              SizedBox(width: 8),
+              const Icon(Icons.alarm, color: Colors.white),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Timer completed for "${widget.TaskName}"!',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
           ),
-          backgroundColor: Color(0xFF4CAF50),
+          backgroundColor: const Color(0xFF4CAF50), // Hardcoded - timer complete
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -153,18 +155,22 @@ class _TodolistState extends State<Todolist> {
   }
 
   Color _getTimerColor() {
+    // Hardcoded timer colors based on progress
     final progress = _getProgress();
     if (progress < 0.5) {
-      return Color(0xFF4CAF50);
+      return const Color(0xFF4CAF50); // Green
     } else if (progress < 0.8) {
-      return Color(0xFFFFA726);
+      return const Color(0xFFFFA726); // Orange
     } else {
-      return Color(0xFFEF5350);
+      return const Color(0xFFEF5350); // Red
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get tier colors from provider
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       child: Slidable(
@@ -174,7 +180,7 @@ class _TodolistState extends State<Todolist> {
             SlidableAction(
               onPressed: widget.Update_Fun,
               icon: Icons.edit_rounded,
-              backgroundColor: Color(0xFF448AFF),
+              backgroundColor: tierProvider.primaryColor, // ← Tier color
               foregroundColor: Colors.white,
               borderRadius: BorderRadius.circular(15),
               label: 'Edit',
@@ -182,7 +188,7 @@ class _TodolistState extends State<Todolist> {
             SlidableAction(
               onPressed: widget.Delete_Fun,
               icon: Icons.delete_rounded,
-              backgroundColor: Color(0xFFEF5350),
+              backgroundColor: const Color(0xFFEF5350), // Hardcoded red for delete
               foregroundColor: Colors.white,
               borderRadius: BorderRadius.circular(15),
               label: 'Delete',
@@ -193,26 +199,29 @@ class _TodolistState extends State<Todolist> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: widget.IsChecked
-                  ? [Color(0xFFE8EAF6), Color(0xFFC5CAE9)]
-                  : [Colors.white, Color(0xFFFAFAFA)],
+                  ? [
+                      tierProvider.primaryColor.withOpacity(0.15), // ← Tier color
+                      tierProvider.glowColor.withOpacity(0.1), // ← Tier color
+                    ]
+                  : [Colors.white, const Color(0xFFFAFAFA)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: widget.IsChecked
-                  ? Color(0xFF7C4DFF).withOpacity(0.3)
+                  ? tierProvider.primaryColor.withOpacity(0.3) // ← Tier color
                   : widget.isSynced
-                  ? Colors.grey.withOpacity(0.2)
-                  : Colors.orange.withOpacity(0.4),
+                      ? Colors.grey.withOpacity(0.2)
+                      : Colors.orange.withOpacity(0.4),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
                 color: widget.IsChecked
-                    ? Color(0xFF7C4DFF).withOpacity(0.15)
+                    ? tierProvider.glowColor.withOpacity(0.15) // ← Tier color
                     : Colors.black.withOpacity(0.08),
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
                 blurRadius: 12,
                 spreadRadius: 0,
               ),
@@ -233,17 +242,14 @@ class _TodolistState extends State<Todolist> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Custom Checkbox
+                        // Custom Checkbox with tier gradient
                         Container(
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
                             gradient: widget.IsChecked
                                 ? LinearGradient(
-                                    colors: [
-                                      Color(0xFF7C4DFF),
-                                      Color(0xFF448AFF),
-                                    ],
+                                    colors: tierProvider.gradientColors, // ← Tier gradient
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   )
@@ -259,24 +265,24 @@ class _TodolistState extends State<Todolist> {
                             boxShadow: widget.IsChecked
                                 ? [
                                     BoxShadow(
-                                      color: Color(0xFF7C4DFF).withOpacity(0.3),
+                                      color: tierProvider.glowColor.withOpacity(0.3), // ← Tier glow
                                       blurRadius: 8,
-                                      offset: Offset(0, 2),
+                                      offset: const Offset(0, 2),
                                     ),
                                   ]
                                 : [],
                           ),
                           child: widget.IsChecked
-                              ? Icon(
+                              ? const Icon(
                                   Icons.check_rounded,
                                   color: Colors.white,
                                   size: 20,
                                 )
                               : null,
                         ),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
 
-                        // Task Text - Flexible to prevent overflow
+                        // Task Text
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +295,7 @@ class _TodolistState extends State<Todolist> {
                                   fontWeight: FontWeight.w600,
                                   color: widget.IsChecked
                                       ? Colors.grey.shade600
-                                      : Color(0xFF2C3E50),
+                                      : const Color(0xFF2C3E50),
                                   decoration: widget.IsChecked
                                       ? TextDecoration.lineThrough
                                       : TextDecoration.none,
@@ -300,22 +306,22 @@ class _TodolistState extends State<Todolist> {
                                 overflow: TextOverflow.ellipsis,
                               ),
 
-                              // NEW: Show who assigned this task
+                              // Show who assigned this task
                               if (widget.assignedByUsername != null) ...[
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Row(
                                   children: [
                                     Icon(
                                       Icons.person,
                                       size: 14,
-                                      color: Colors.purple,
+                                      color: tierProvider.primaryColor, // ← Tier color
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
                                       'From: ${widget.assignedByUsername}',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.purple,
+                                        color: tierProvider.primaryColor, // ← Tier color
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -324,21 +330,21 @@ class _TodolistState extends State<Todolist> {
                               ],
 
                               if (widget.IsChecked) ...[
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
                                       Icons.check_circle,
                                       size: 12,
-                                      color: Color(0xFF4CAF50),
+                                      color: tierProvider.primaryColor, // ← Tier color
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
                                       'Completed',
                                       style: TextStyle(
                                         fontSize: 10,
-                                        color: Color(0xFF4CAF50),
+                                        color: tierProvider.primaryColor, // ← Tier color
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -349,19 +355,19 @@ class _TodolistState extends State<Todolist> {
                           ),
                         ),
 
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
 
-                        // Right side badges column
+                        // Right side badges
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Sync Status Indicator
+                            // Sync Status
                             if (!widget.isSynced) ...[
                               Tooltip(
                                 message: 'Syncing to cloud...',
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
                                     vertical: 3,
                                   ),
@@ -376,18 +382,18 @@ class _TodolistState extends State<Todolist> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      SizedBox(
+                                      const SizedBox(
                                         width: 10,
                                         height: 10,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 1.5,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                                Colors.orange,
-                                              ),
+                                            Colors.orange,
+                                          ),
                                         ),
                                       ),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Text(
                                         'Sync',
                                         style: TextStyle(
@@ -400,26 +406,26 @@ class _TodolistState extends State<Todolist> {
                                   ),
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                             ],
 
-                            // Timer Badge
+                            // Timer Badge with tier colors
                             if (widget.hasTimer)
                               Container(
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 6,
                                   vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      Color(0xFF7C4DFF).withOpacity(0.15),
-                                      Color(0xFF448AFF).withOpacity(0.15),
+                                      tierProvider.primaryColor.withOpacity(0.15), // ← Tier color
+                                      tierProvider.glowColor.withOpacity(0.15), // ← Tier color
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: Color(0xFF7C4DFF).withOpacity(0.3),
+                                    color: tierProvider.primaryColor.withOpacity(0.3), // ← Tier color
                                     width: 1,
                                   ),
                                 ),
@@ -429,13 +435,13 @@ class _TodolistState extends State<Todolist> {
                                     Icon(
                                       Icons.timer,
                                       size: 12,
-                                      color: Color(0xFF7C4DFF),
+                                      color: tierProvider.primaryColor, // ← Tier color
                                     ),
-                                    SizedBox(width: 3),
+                                    const SizedBox(width: 3),
                                     Text(
                                       'Timer',
                                       style: TextStyle(
-                                        color: Color(0xFF7C4DFF),
+                                        color: tierProvider.primaryColor, // ← Tier color
                                         fontSize: 9,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -448,15 +454,15 @@ class _TodolistState extends State<Todolist> {
                       ],
                     ),
 
-                    // Timer Section
+                    // Timer Section (controls stay hardcoded)
                     if (widget.hasTimer && widget.totalDuration != null) ...[
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              _getTimerColor().withOpacity(0.1),
+                              _getTimerColor().withOpacity(0.1), // Hardcoded timer color
                               _getTimerColor().withOpacity(0.05),
                             ],
                             begin: Alignment.topLeft,
@@ -464,14 +470,14 @@ class _TodolistState extends State<Todolist> {
                           ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _getTimerColor().withOpacity(0.3),
+                            color: _getTimerColor().withOpacity(0.3), // Hardcoded
                             width: 1,
                           ),
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Progress Bar
+                            // Progress Bar (hardcoded colors)
                             ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: Stack(
@@ -490,7 +496,7 @@ class _TodolistState extends State<Todolist> {
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
-                                            _getTimerColor(),
+                                            _getTimerColor(), // Hardcoded
                                             _getTimerColor().withOpacity(0.7),
                                           ],
                                         ),
@@ -501,7 +507,7 @@ class _TodolistState extends State<Todolist> {
                                 ],
                               ),
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
 
                             // Timer Controls Row
                             Row(
@@ -514,24 +520,20 @@ class _TodolistState extends State<Todolist> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
-                                        padding: EdgeInsets.all(5),
+                                        padding: const EdgeInsets.all(5),
                                         decoration: BoxDecoration(
-                                          color: _getTimerColor().withOpacity(
-                                            0.15,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
+                                          color: _getTimerColor().withOpacity(0.15), // Hardcoded
+                                          borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Icon(
                                           widget.isRunning
                                               ? Icons.play_circle_filled
                                               : Icons.access_time,
                                           size: 16,
-                                          color: _getTimerColor(),
+                                          color: _getTimerColor(), // Hardcoded
                                         ),
                                       ),
-                                      SizedBox(width: 6),
+                                      const SizedBox(width: 6),
                                       Flexible(
                                         child: Column(
                                           crossAxisAlignment:
@@ -543,7 +545,7 @@ class _TodolistState extends State<Todolist> {
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
-                                                color: _getTimerColor(),
+                                                color: _getTimerColor(), // Hardcoded
                                                 letterSpacing: 0.3,
                                               ),
                                             ),
@@ -563,7 +565,7 @@ class _TodolistState extends State<Todolist> {
                                   ),
                                 ),
 
-                                // Control Buttons
+                                // Control Buttons (hardcoded colors)
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -574,31 +576,28 @@ class _TodolistState extends State<Todolist> {
                                         onTap: widget.onTimerToggle,
                                         borderRadius: BorderRadius.circular(20),
                                         child: Container(
-                                          padding: EdgeInsets.all(8),
+                                          padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: widget.isRunning
                                                   ? [
-                                                      Color(0xFFFFA726),
-                                                      Color(0xFFFF9800),
+                                                      const Color(0xFFFFA726), // Orange for pause
+                                                      const Color(0xFFFF9800),
                                                     ]
                                                   : [
-                                                      Color(0xFF4CAF50),
-                                                      Color(0xFF66BB6A),
+                                                      const Color(0xFF4CAF50), // Green for play
+                                                      const Color(0xFF66BB6A),
                                                     ],
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
+                                            borderRadius: BorderRadius.circular(20),
                                             boxShadow: [
                                               BoxShadow(
-                                                color:
-                                                    (widget.isRunning
-                                                            ? Color(0xFFFFA726)
-                                                            : Color(0xFF4CAF50))
-                                                        .withOpacity(0.3),
+                                                color: (widget.isRunning
+                                                        ? const Color(0xFFFFA726)
+                                                        : const Color(0xFF4CAF50))
+                                                    .withOpacity(0.3),
                                                 blurRadius: 6,
-                                                offset: Offset(0, 2),
+                                                offset: const Offset(0, 2),
                                               ),
                                             ],
                                           ),
@@ -612,7 +611,7 @@ class _TodolistState extends State<Todolist> {
                                         ),
                                       ),
                                     ),
-                                    SizedBox(width: 6),
+                                    const SizedBox(width: 6),
 
                                     // Reset Button
                                     Material(
@@ -626,7 +625,7 @@ class _TodolistState extends State<Todolist> {
                                                 borderRadius:
                                                     BorderRadius.circular(16),
                                               ),
-                                              title: Row(
+                                              title: const Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   Icon(
@@ -637,14 +636,14 @@ class _TodolistState extends State<Todolist> {
                                                   Text('Reset Timer?'),
                                                 ],
                                               ),
-                                              content: Text(
+                                              content: const Text(
                                                 'Are you sure you want to reset the timer? This will set the elapsed time back to zero.',
                                               ),
                                               actions: [
                                                 TextButton(
                                                   onPressed: () =>
                                                       Navigator.pop(context),
-                                                  child: Text(
+                                                  child: const Text(
                                                     'Cancel',
                                                     style: TextStyle(
                                                       color: Colors.grey,
@@ -657,17 +656,14 @@ class _TodolistState extends State<Todolist> {
                                                     widget.onTimerReset?.call();
                                                   },
                                                   style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Color(
-                                                      0xFFEF5350,
-                                                    ),
+                                                    backgroundColor:
+                                                        const Color(0xFFEF5350),
                                                     shape: RoundedRectangleBorder(
                                                       borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
+                                                          BorderRadius.circular(8),
                                                     ),
                                                   ),
-                                                  child: Text(
+                                                  child: const Text(
                                                     'Reset',
                                                     style: TextStyle(
                                                       color: Colors.white,
@@ -680,28 +676,25 @@ class _TodolistState extends State<Todolist> {
                                         },
                                         borderRadius: BorderRadius.circular(20),
                                         child: Container(
-                                          padding: EdgeInsets.all(8),
+                                          padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            gradient: LinearGradient(
+                                            gradient: const LinearGradient(
                                               colors: [
-                                                Color(0xFFEF5350),
+                                                Color(0xFFEF5350), // Red for reset
                                                 Color(0xFFE53935),
                                               ],
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
+                                            borderRadius: BorderRadius.circular(20),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Color(
-                                                  0xFFEF5350,
-                                                ).withOpacity(0.3),
+                                                color: const Color(0xFFEF5350)
+                                                    .withOpacity(0.3),
                                                 blurRadius: 6,
-                                                offset: Offset(0, 2),
+                                                offset: const Offset(0, 2),
                                               ),
                                             ],
                                           ),
-                                          child: Icon(
+                                          child: const Icon(
                                             Icons.refresh_rounded,
                                             color: Colors.white,
                                             size: 18,
@@ -714,9 +707,8 @@ class _TodolistState extends State<Todolist> {
                               ],
                             ),
 
-                            // Timer Status Text
                             if (widget.isRunning) ...[
-                              SizedBox(height: 6),
+                              const SizedBox(height: 6),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
@@ -725,21 +717,20 @@ class _TodolistState extends State<Todolist> {
                                     width: 5,
                                     height: 5,
                                     decoration: BoxDecoration(
-                                      color: Color(0xFF4CAF50),
+                                      color: const Color(0xFF4CAF50),
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Color(
-                                            0xFF4CAF50,
-                                          ).withOpacity(0.5),
+                                          color: const Color(0xFF4CAF50)
+                                              .withOpacity(0.5),
                                           blurRadius: 3,
                                           spreadRadius: 1,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  SizedBox(width: 4),
-                                  Text(
+                                  const SizedBox(width: 4),
+                                  const Text(
                                     'Timer Running',
                                     style: TextStyle(
                                       fontSize: 10,

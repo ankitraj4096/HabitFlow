@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/friend_components/taskRequestsPage.dart';
 import 'package:demo/component/todolist.dart';
 import 'package:demo/services/notes/firestore.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 
 class Homepage extends StatefulWidget {
@@ -82,7 +84,6 @@ class _HomepageState extends State<Homepage> {
       (snapshot) {
         List<Map<String, dynamic>> updatedTasks = [];
 
-        // Get today's date (for filtering completed tasks)
         final now = DateTime.now();
         final todayStart = DateTime(now.year, now.month, now.day);
         final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
@@ -90,31 +91,25 @@ class _HomepageState extends State<Homepage> {
         for (var doc in snapshot.docs) {
           final data = doc.data() as Map<String, dynamic>;
 
-          // FILTER 1: Skip pending tasks (shown in TaskRequestsPage)
           final status = data['status'];
           if (status == 'pending') {
             continue;
           }
 
-          // FILTER 2: Handle completed tasks
           final isCompleted = data['isCompleted'] ?? false;
           if (isCompleted) {
-            // Only show if completed today
             final completedAt = data['completedAt'] as Timestamp?;
             if (completedAt != null) {
               final completedDate = completedAt.toDate();
-              // Skip if not completed today
               if (completedDate.isBefore(todayStart) ||
                   completedDate.isAfter(todayEnd)) {
                 continue;
               }
             } else {
-              // Old completed task without completedAt timestamp - hide it
               continue;
             }
           }
 
-          // Add task to list
           updatedTasks.add({
             'firebaseId': doc.id,
             'isCompleted': isCompleted,
@@ -124,7 +119,7 @@ class _HomepageState extends State<Homepage> {
             'elapsedSeconds': data['elapsedSeconds'] ?? 0,
             'isRunning': data['isRunning'] ?? false,
             'lastUpdated': data['lastUpdated'],
-            'completedAt': data['completedAt'], // NEW
+            'completedAt': data['completedAt'],
             'isSynced': true,
             'assignedByUserID': data['assignedByUserID'],
             'assignedByUsername': data['assignedByUsername'],
@@ -149,7 +144,7 @@ class _HomepageState extends State<Homepage> {
     final firebaseId = task['firebaseId'];
 
     if (firebaseId == null || task['isCompleted'] == true) {
-      return; // Already completed or not synced
+      return;
     }
 
     setState(() {
@@ -161,34 +156,33 @@ class _HomepageState extends State<Homepage> {
     try {
       await firestoreService.toggleCompletion(firebaseId, false);
 
-      // Show success message
       if (mounted) {
+        final tierProvider = context.read<TierThemeProvider>();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '✨ "${task['taskName']}" completed automatically!',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
-            backgroundColor: Color(0xFF4CAF50),
+            backgroundColor: tierProvider.primaryColor,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       print('Error auto-completing task: $e');
-      // Revert on error
       setState(() {
         tasklist[index]['isCompleted'] = false;
         tasklist[index]['completedAt'] = null;
@@ -196,7 +190,7 @@ class _HomepageState extends State<Homepage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to auto-complete task'),
             backgroundColor: Colors.red,
           ),
@@ -305,7 +299,7 @@ class _HomepageState extends State<Homepage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Failed to sync task. Will retry later.'),
           backgroundColor: Colors.orange,
         ),
@@ -314,14 +308,16 @@ class _HomepageState extends State<Homepage> {
   }
 
   void NewTask() {
+    final tierProvider = context.read<TierThemeProvider>();
+    
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [Color(0xFFF3E5F5), Colors.white],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -335,60 +331,60 @@ class _HomepageState extends State<Homepage> {
               Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                        colors: tierProvider.gradientColors,
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.add_task, color: Colors.white, size: 24),
+                    child: const Icon(Icons.add_task, color: Colors.white, size: 24),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
                     'Add New Task',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF7C4DFF),
+                      color: tierProvider.primaryColor,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextField(
                 controller: control,
                 decoration: InputDecoration(
                   labelText: 'Task Name',
                   hintText: 'Enter your task...',
-                  prefixIcon: Icon(Icons.edit, color: Color(0xFF7C4DFF)),
+                  prefixIcon: Icon(Icons.edit, color: tierProvider.primaryColor),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF7C4DFF), width: 2),
+                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
                   ),
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: timerController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Timer (minutes) - Optional',
                   hintText: 'e.g., 25 for 25 minutes',
-                  prefixIcon: Icon(Icons.timer, color: Color(0xFF448AFF)),
+                  prefixIcon: Icon(Icons.timer, color: tierProvider.primaryColor),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF448AFF), width: 2),
+                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
                   ),
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -403,20 +399,29 @@ class _HomepageState extends State<Homepage> {
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: Add_Task,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF7C4DFF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: tierProvider.gradientColors,
                       ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text('Save', style: TextStyle(color: Colors.white)),
+                    child: ElevatedButton(
+                      onPressed: Add_Task,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('Save', style: TextStyle(color: Colors.white)),
+                    ),
                   ),
                 ],
               ),
@@ -433,7 +438,7 @@ class _HomepageState extends State<Homepage> {
 
     if (firebaseId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please wait for task to sync...'),
           duration: Duration(seconds: 1),
         ),
@@ -447,7 +452,6 @@ class _HomepageState extends State<Homepage> {
       tasklist[index]['isCompleted'] = newCompletedStatus;
       tasklist[index]['isSynced'] = false;
 
-      // NEW: Track completion time locally
       if (newCompletedStatus) {
         tasklist[index]['completedAt'] = Timestamp.now();
       } else {
@@ -461,11 +465,11 @@ class _HomepageState extends State<Homepage> {
       print('Error updating Firebase: $e');
       setState(() {
         tasklist[index]['isCompleted'] = !newCompletedStatus;
-        tasklist[index]['completedAt'] = null; // Revert
+        tasklist[index]['completedAt'] = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Failed to update task. Please try again.'),
           backgroundColor: Colors.red,
         ),
@@ -494,7 +498,7 @@ class _HomepageState extends State<Homepage> {
         _saveLocalData();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to delete task. Please try again.'),
             backgroundColor: Colors.red,
           ),
@@ -504,6 +508,7 @@ class _HomepageState extends State<Homepage> {
   }
 
   void UpdateTask(int index) {
+    final tierProvider = context.read<TierThemeProvider>();
     final task = tasklist[index];
     control.text = task['taskName'];
 
@@ -516,9 +521,9 @@ class _HomepageState extends State<Homepage> {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [Color(0xFFF3E5F5), Colors.white],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -532,59 +537,59 @@ class _HomepageState extends State<Homepage> {
               Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                        colors: tierProvider.gradientColors,
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.edit, color: Colors.white, size: 24),
+                    child: const Icon(Icons.edit, color: Colors.white, size: 24),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
                     'Update Task',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF7C4DFF),
+                      color: tierProvider.primaryColor,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextField(
                 controller: control,
                 decoration: InputDecoration(
                   labelText: 'Task Name',
-                  prefixIcon: Icon(Icons.edit, color: Color(0xFF7C4DFF)),
+                  prefixIcon: Icon(Icons.edit, color: tierProvider.primaryColor),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF7C4DFF), width: 2),
+                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
                   ),
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: timerController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Timer (minutes) - Optional',
                   hintText: 'Leave empty to remove timer',
-                  prefixIcon: Icon(Icons.timer, color: Color(0xFF448AFF)),
+                  prefixIcon: Icon(Icons.timer, color: tierProvider.primaryColor),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF448AFF), width: 2),
+                    borderSide: BorderSide(color: tierProvider.primaryColor, width: 2),
                   ),
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -599,70 +604,79 @@ class _HomepageState extends State<Homepage> {
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final firebaseId = tasklist[index]['firebaseId'];
-
-                      if (firebaseId == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Please wait for task to sync...'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      final timerMinutes = timerController.text.isNotEmpty
-                          ? int.tryParse(timerController.text)
-                          : null;
-
-                      setState(() {
-                        tasklist[index]['taskName'] = control.text;
-                        tasklist[index]['hasTimer'] =
-                            timerMinutes != null && timerMinutes > 0;
-                        tasklist[index]['totalDuration'] = timerMinutes != null
-                            ? timerMinutes * 60
-                            : null;
-                        tasklist[index]['isSynced'] = false;
-                      });
-
-                      Navigator.of(context).pop();
-                      control.clear();
-                      timerController.clear();
-
-                      try {
-                        await firestoreService.updateTask(
-                          firebaseId,
-                          tasklist[index]['isCompleted'],
-                          tasklist[index]['taskName'],
-                          timerMinutes,
-                        );
-                      } catch (e) {
-                        print('Error updating Firebase: $e');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Failed to update task. Changes saved locally.',
-                            ),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF7C4DFF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: tierProvider.gradientColors,
                       ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      'Update',
-                      style: TextStyle(color: Colors.white),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final firebaseId = tasklist[index]['firebaseId'];
+
+                        if (firebaseId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please wait for task to sync...'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final timerMinutes = timerController.text.isNotEmpty
+                            ? int.tryParse(timerController.text)
+                            : null;
+
+                        setState(() {
+                          tasklist[index]['taskName'] = control.text;
+                          tasklist[index]['hasTimer'] =
+                              timerMinutes != null && timerMinutes > 0;
+                          tasklist[index]['totalDuration'] = timerMinutes != null
+                              ? timerMinutes * 60
+                              : null;
+                          tasklist[index]['isSynced'] = false;
+                        });
+
+                        Navigator.of(context).pop();
+                        control.clear();
+                        timerController.clear();
+
+                        try {
+                          await firestoreService.updateTask(
+                            firebaseId,
+                            tasklist[index]['isCompleted'],
+                            tasklist[index]['taskName'],
+                            timerMinutes,
+                          );
+                        } catch (e) {
+                          print('Error updating Firebase: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Failed to update task. Changes saved locally.',
+                              ),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text(
+                        'Update',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -680,9 +694,11 @@ class _HomepageState extends State<Homepage> {
 
   @override
   Widget build(BuildContext context) {
+    final tierProvider = context.watch<TierThemeProvider>();
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -696,19 +712,19 @@ class _HomepageState extends State<Homepage> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+                    colors: tierProvider.gradientColors,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0xFF7C4DFF).withOpacity(0.3),
+                      color: tierProvider.glowColor.withOpacity(0.3),
                       blurRadius: 20,
-                      offset: Offset(0, 10),
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -723,7 +739,7 @@ class _HomepageState extends State<Homepage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Task List',
                                 style: TextStyle(
                                   color: Colors.white,
@@ -731,10 +747,10 @@ class _HomepageState extends State<Homepage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  Text(
+                                  const Text(
                                     'Stay organized and productive 📝',
                                     style: TextStyle(
                                       color: Colors.white70,
@@ -743,8 +759,8 @@ class _HomepageState extends State<Homepage> {
                                   ),
                                   if (_isSyncing ||
                                       _pendingSyncIds.isNotEmpty) ...[
-                                    SizedBox(width: 8),
-                                    SizedBox(
+                                    const SizedBox(width: 8),
+                                    const SizedBox(
                                       width: 12,
                                       height: 12,
                                       child: CircularProgressIndicator(
@@ -763,7 +779,7 @@ class _HomepageState extends State<Homepage> {
                           Stack(
                             children: [
                               Container(
-                                padding: EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(15),
@@ -778,7 +794,7 @@ class _HomepageState extends State<Homepage> {
                                       ),
                                     );
                                   },
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.inbox,
                                     color: Colors.white,
                                     size: 28,
@@ -790,24 +806,24 @@ class _HomepageState extends State<Homepage> {
                                     .getPendingTaskRequestsCount(),
                                 builder: (context, snapshot) {
                                   if (!snapshot.hasData || snapshot.data == 0) {
-                                    return SizedBox.shrink();
+                                    return const SizedBox.shrink();
                                   }
                                   return Positioned(
                                     right: 8,
                                     top: 8,
                                     child: Container(
-                                      padding: EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
                                         color: Colors.red,
                                         shape: BoxShape.circle,
                                       ),
-                                      constraints: BoxConstraints(
+                                      constraints: const BoxConstraints(
                                         minWidth: 18,
                                         minHeight: 18,
                                       ),
                                       child: Text(
                                         '${snapshot.data}',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
@@ -822,9 +838,9 @@ class _HomepageState extends State<Homepage> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Container(
-                        padding: EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(15),
@@ -876,18 +892,18 @@ class _HomepageState extends State<Homepage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Color(0xFF7C4DFF).withOpacity(0.1),
+                                color: tierProvider.primaryColor.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.task_alt,
                                 size: 64,
-                                color: Color(0xFF7C4DFF),
+                                color: tierProvider.primaryColor,
                               ),
                             ),
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
                             Text(
                               'No tasks yet',
                               style: TextStyle(
@@ -896,7 +912,7 @@ class _HomepageState extends State<Homepage> {
                                 color: Colors.grey[700],
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               'Tap the + button to add your first task',
                               style: TextStyle(
@@ -908,7 +924,7 @@ class _HomepageState extends State<Homepage> {
                         ),
                       )
                     : ListView.builder(
-                        padding: EdgeInsets.only(top: 20, bottom: 100),
+                        padding: const EdgeInsets.only(top: 20, bottom: 100),
                         itemCount: tasklist.length,
                         itemBuilder: (context, index) {
                           final task = tasklist[index];
@@ -940,16 +956,16 @@ class _HomepageState extends State<Homepage> {
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
+              colors: tierProvider.gradientColors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF7C4DFF).withOpacity(0.4),
+                color: tierProvider.glowColor.withOpacity(0.4),
                 blurRadius: 15,
-                offset: Offset(0, 8),
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -957,7 +973,7 @@ class _HomepageState extends State<Homepage> {
             onPressed: NewTask,
             backgroundColor: Colors.transparent,
             elevation: 0,
-            child: Icon(Icons.add, size: 32),
+            child: const Icon(Icons.add, size: 32),
           ),
         ),
       ),
@@ -974,10 +990,10 @@ class _HomepageState extends State<Homepage> {
         Row(
           children: [
             Icon(icon, color: Colors.white, size: 18),
-            SizedBox(width: 4),
+            const SizedBox(width: 4),
             Text(
               value,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -985,8 +1001,8 @@ class _HomepageState extends State<Homepage> {
             ),
           ],
         ),
-        SizedBox(height: 4),
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 11)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
       ],
     );
   }
