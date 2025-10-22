@@ -207,6 +207,7 @@ If you have questions, concerns, or requests regarding this Privacy Policy:
 - GitHub: [@ankitraj4096](https://github.com/ankitraj4096)
 
 **Ansh Aryan**
+- Email: [Ansharyan57@gmail.com](mailto:Ansharyan57@gmail.com)
 - LinkedIn: [linkedin.com/in/ansh-aryan-9925aa2b1](https://www.linkedin.com/in/ansh-aryan-9925aa2b1/)
 - GitHub: [@ansharyan007](https://github.com/ansharyan007)
 
