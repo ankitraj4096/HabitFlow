@@ -2,6 +2,7 @@ import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/Pages/ui_components/friend_components/friendListsPage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/changePasswordPage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/editUsernamePage.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/themeSelectionPage.dart';
 import 'package:demo/component/achievements.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
@@ -164,6 +165,23 @@ class _SettingsPageState extends State<SettingsPage> {
                         const SnackBar(
                           content: Text('Coming soon!'),
                           duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Appearance'),
+                  _buildListTile(
+                    context,
+                    tierProvider,
+                    icon: Icons.palette,
+                    title: 'Theme',
+                    subtitle: 'Customize your app theme',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ThemeSelectionPage(),
                         ),
                       );
                     },
@@ -355,9 +373,7 @@ class _SettingsPageState extends State<SettingsPage> {
           color: tierProvider.primaryColor,
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
