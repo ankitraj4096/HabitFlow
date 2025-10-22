@@ -126,9 +126,7 @@ class FireStoreService {
   /// Get stream of pending task requests
   Stream<QuerySnapshot> getPendingTaskRequestsStream() {
     try {
-      return _userNotes
-          .where('status', isEqualTo: 'pending')
-          .snapshots();
+      return _userNotes.where('status', isEqualTo: 'pending').snapshots();
     } catch (e) {
       print('Error getting pending task requests: $e');
       return Stream.empty();
@@ -296,7 +294,7 @@ class FireStoreService {
     }
   }
 
-  /// Get user statistics
+  /// Get user statistics - FIXED to use completedAt
   Future<Map<String, dynamic>> getUserStatistics() async {
     try {
       final snapshot =
@@ -312,9 +310,10 @@ class FireStoreService {
 
         if (data['isCompleted'] == true) {
           completedTasks++;
-          final timestamp = data['timestamp'] as Timestamp?;
-          if (timestamp != null) {
-            final dateKey = _formatDate(timestamp.toDate());
+          // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
+          final completedAt = data['completedAt'] as Timestamp?;
+          if (completedAt != null) {
+            final dateKey = _formatDate(completedAt.toDate());
             completionsByDate[dateKey] = (completionsByDate[dateKey] ?? 0) + 1;
           }
         }
@@ -345,7 +344,7 @@ class FireStoreService {
     }
   }
 
-  /// Get heatmap data stream
+  /// Get heatmap data stream - FIXED to use completedAt
   Stream<Map<String, int>> getHeatmapData() {
     return _userNotes
         .where('status', isEqualTo: 'accepted')
@@ -355,9 +354,10 @@ class FireStoreService {
       final Map<String, int> heatmap = {};
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        final ts = data['timestamp'] as Timestamp?;
-        if (ts != null) {
-          final d = ts.toDate();
+        // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
+        final completedAt = data['completedAt'] as Timestamp?;
+        if (completedAt != null) {
+          final d = completedAt.toDate();
           final key = _formatDate(d);
           heatmap[key] = (heatmap[key] ?? 0) + 1;
         }
@@ -578,7 +578,7 @@ class FireStoreService {
     return iconMap[iconName] ?? LucideIcons.star;
   }
 
-  /// Get statistics for a specific user
+  /// Get statistics for a specific user - FIXED to use completedAt
   Future<Map<String, dynamic>> getUserStatisticsForUser(String userID) async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -597,9 +597,10 @@ class FireStoreService {
         final data = doc.data();
         if (data['isCompleted'] == true) {
           completedTasks++;
-          final timestamp = data['timestamp'] as Timestamp?;
-          if (timestamp != null) {
-            final dateKey = _formatDate(timestamp.toDate());
+          // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
+          final completedAt = data['completedAt'] as Timestamp?;
+          if (completedAt != null) {
+            final dateKey = _formatDate(completedAt.toDate());
             completionsByDate[dateKey] = (completionsByDate[dateKey] ?? 0) + 1;
           }
         }
@@ -629,7 +630,7 @@ class FireStoreService {
     }
   }
 
-  /// Get heatmap data for a specific user
+  /// Get heatmap data for a specific user - FIXED to use completedAt
   Stream<Map<String, int>> getHeatmapDataForUser(String userID) {
     return FirebaseFirestore.instance
         .collection('user_notes')
@@ -642,9 +643,10 @@ class FireStoreService {
       final Map<String, int> heatmap = {};
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final ts = data['timestamp'] as Timestamp?;
-        if (ts != null) {
-          final d = ts.toDate();
+        // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
+        final completedAt = data['completedAt'] as Timestamp?;
+        if (completedAt != null) {
+          final d = completedAt.toDate();
           final key = _formatDate(d);
           heatmap[key] = (heatmap[key] ?? 0) + 1;
         }

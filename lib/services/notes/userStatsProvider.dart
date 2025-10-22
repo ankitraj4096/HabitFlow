@@ -1,4 +1,4 @@
-import 'dart:async'; // ADD THIS LINE
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -49,7 +49,7 @@ class UserStatsProvider extends ChangeNotifier {
     });
   }
 
-  /// Calculate all stats from snapshot
+  /// Calculate all stats from snapshot - FIXED to use completedAt
   void _calculateStats(QuerySnapshot snapshot) async {
     try {
       // Get username
@@ -68,10 +68,10 @@ class UserStatsProvider extends ChangeNotifier {
         if (data['isCompleted'] == true) {
           completed++;
           
-          // Track completion date
-          final timestamp = data['timestamp'] as Timestamp?;
-          if (timestamp != null) {
-            final dateKey = _formatDate(timestamp.toDate());
+          // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
+          final completedAt = data['completedAt'] as Timestamp?;
+          if (completedAt != null) {
+            final dateKey = _formatDate(completedAt.toDate());
             completions[dateKey] = (completions[dateKey] ?? 0) + 1;
             heatmap[dateKey] = (heatmap[dateKey] ?? 0) + 1;
           }
