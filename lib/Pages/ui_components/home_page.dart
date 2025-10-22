@@ -608,8 +608,10 @@ class _HomepageState extends State<Homepage> {
   }
 
   void DeleteTask(int index) async {
+    final tierProvider = context.read<TierThemeProvider>();
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
+
     if (firebaseId == null) {
       CustomToast.showWarning(
         context,
@@ -619,24 +621,221 @@ class _HomepageState extends State<Homepage> {
       return;
     }
 
-    final deletedTask = tasklist[index];
-    setState(() {
-      tasklist.removeAt(index);
-    });
+    // Show confirmation dialog
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: tierProvider.glowColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon with red gradient background
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEF5350), Color(0xFFE53935)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFEF5350).withOpacity(0.5),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.delete_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
 
-    try {
-      await firestoreService.deleteTask(firebaseId);
-      await _updateTimerNotification();
-    } catch (e) {
-      print('Error deleting from Firebase: $e');
+              const SizedBox(height: 24),
+
+              // Title
+              Text(
+                'Delete Task?',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: tierProvider.primaryColor,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Task name display
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '"${task['taskName']}"',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Warning message
+              Text(
+                'This action cannot be undone.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+
+              const SizedBox(height: 28),
+
+              // Action buttons
+              Row(
+                children: [
+                  // Cancel button
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Delete button with red gradient
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEF5350), Color(0xFFE53935)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFEF5350).withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.delete_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // If user confirmed deletion
+    if (shouldDelete == true) {
+      final deletedTask = tasklist[index];
       setState(() {
-        tasklist.insert(index, deletedTask);
+        tasklist.removeAt(index);
       });
-      if (mounted) {
-        CustomToast.showError(
-          context,
-          'Failed to delete task. Please try again.',
-        );
+
+      try {
+        await firestoreService.deleteTask(firebaseId);
+        await _updateTimerNotification();
+
+        // Show success message
+        if (mounted) {
+          CustomToast.showSuccess(context, 'Task deleted successfully');
+        }
+      } catch (e) {
+        print('Error deleting from Firebase: $e');
+        setState(() {
+          tasklist.insert(index, deletedTask);
+        });
+        if (mounted) {
+          CustomToast.showError(
+            context,
+            'Failed to delete task. Please try again.',
+          );
+        }
       }
     }
   }
