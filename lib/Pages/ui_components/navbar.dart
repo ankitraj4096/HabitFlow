@@ -3,7 +3,9 @@ import 'package:demo/Pages/ui_components/home_page.dart';
 import 'package:demo/Pages/ui_components/chat_page_components/chatListPage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
 import 'package:demo/services/chat/chat_service.dart';
+import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Navbar extends StatefulWidget {
   const Navbar({super.key});
@@ -15,13 +17,13 @@ class Navbar extends StatefulWidget {
 class _NavBarState extends State<Navbar> {
   int _selectedIndex = 1;
   final ChatService _chatService = ChatService();
-  
+
   // Cache the stream to prevent recreation
   late final Stream<int> _unreadStream;
 
   final List<Widget> _pages = [
-    ChatListPage(),
-    Homepage(),
+    const ChatListPage(),
+    const Homepage(),
     ProfilePage(),
   ];
 
@@ -32,12 +34,6 @@ class _NavBarState extends State<Navbar> {
   ];
 
   final List<String> _labels = ['Chat', 'Home', 'Profile'];
-
-  final List<Color> _colors = [
-    const Color(0xFFf093fb),
-    const Color(0xFF7C4DFF),
-    const Color(0xFF4facfe),
-  ];
 
   @override
   void initState() {
@@ -55,6 +51,18 @@ class _NavBarState extends State<Navbar> {
 
   @override
   Widget build(BuildContext context) {
+    // Get tier colors from provider
+    final tierProvider = context.watch<TierThemeProvider>();
+
+    // Create dynamic colors array based on tier
+    final List<Color> dynamicColors = [
+      tierProvider.primaryColor, // Chat uses primary tier color
+      tierProvider.gradientColors.length > 1 
+          ? tierProvider.gradientColors[1] 
+          : tierProvider.primaryColor, // Home uses secondary gradient color
+      tierProvider.gradientColors[0], // Profile uses first gradient color
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
@@ -64,14 +72,12 @@ class _NavBarState extends State<Navbar> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: StreamBuilder<int>(
         stream: _unreadStream,
-        initialData: 0, // Start with 0, will update when data arrives
+        initialData: 0,
         builder: (context, snapshot) {
-          // Log every rebuild
           print('🎨 Navbar rebuild - ConnectionState: ${snapshot.connectionState}, hasData: ${snapshot.hasData}, data: ${snapshot.data}');
-          
-          // Handle all connection states
+
           final unreadCount = snapshot.data ?? 0;
-          
+
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 24),
             height: 65,
@@ -80,9 +86,9 @@ class _NavBarState extends State<Navbar> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.shade300,
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+                  color: tierProvider.primaryColor.withOpacity(0.15),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -94,18 +100,18 @@ class _NavBarState extends State<Navbar> {
                   final isSelected = _selectedIndex == index;
                   final isChatTab = index == 0;
                   final hasUnread = isChatTab && unreadCount > 0;
-                  
+
                   if (hasUnread) {
                     print('🔴 Should show badge with count: $unreadCount');
                   }
-                  
+
                   return Expanded(
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () => _onItemTapped(index),
                         borderRadius: BorderRadius.circular(30),
-                        splashColor: _colors[index].withOpacity(0.1),
+                        splashColor: dynamicColors[index].withOpacity(0.1),
                         highlightColor: Colors.transparent,
                         child: Container(
                           padding: EdgeInsets.zero,
@@ -122,10 +128,27 @@ class _NavBarState extends State<Navbar> {
                                       curve: Curves.easeInOutCubic,
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
+                                        gradient: isSelected
+                                            ? LinearGradient(
+                                                colors: tierProvider.gradientColors,
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              )
+                                            : null,
                                         color: isSelected
-                                            ? _colors[index]
+                                            ? null
                                             : Colors.grey.shade200,
                                         shape: BoxShape.circle,
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: tierProvider.glowColor
+                                                      .withOpacity(0.3),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ]
+                                            : [],
                                       ),
                                       child: Icon(
                                         _icons[index],
@@ -145,7 +168,7 @@ class _NavBarState extends State<Navbar> {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         color: isSelected
-                                            ? _colors[index]
+                                            ? dynamicColors[index]
                                             : Colors.grey.shade700,
                                         letterSpacing: 0.3,
                                       ),
@@ -163,9 +186,10 @@ class _NavBarState extends State<Navbar> {
                                 Positioned(
                                   top: 4,
                                   right: 20,
-                                  child: AnimatedOpacity(
-                                    opacity: 1.0,
-                                    duration: Duration(milliseconds: 300),
+                                  child: AnimatedScale(
+                                    scale: 1.0,
+                                    duration: const Duration(milliseconds: 200),
+                                    curve: Curves.easeOutBack,
                                     child: Container(
                                       padding: const EdgeInsets.all(5),
                                       constraints: const BoxConstraints(
@@ -178,6 +202,8 @@ class _NavBarState extends State<Navbar> {
                                             Color(0xFFFF5252),
                                             Color(0xFFFF1744)
                                           ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
                                         ),
                                         shape: BoxShape.circle,
                                         border: Border.all(
@@ -187,14 +213,16 @@ class _NavBarState extends State<Navbar> {
                                         boxShadow: [
                                           BoxShadow(
                                             color: Colors.red.withOpacity(0.6),
-                                            blurRadius: 6,
+                                            blurRadius: 8,
                                             offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
                                       child: Center(
                                         child: Text(
-                                          unreadCount > 99 ? '99+' : '$unreadCount',
+                                          unreadCount > 99
+                                              ? '99+'
+                                              : '$unreadCount',
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 10,

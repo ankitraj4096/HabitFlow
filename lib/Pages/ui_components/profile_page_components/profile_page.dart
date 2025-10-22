@@ -33,6 +33,10 @@ class _ProfilePageState extends State<ProfilePage>
   Map<String, dynamic> userTier = {};
   bool isLoading = true;
 
+  // Store the viewed user's tier colors
+  List<Color> viewedUserGradient = [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+  Color viewedUserGlowColor = const Color(0xFF7C4DFF);
+
   late AnimationController _glowController;
   late Animation<double> _glowAnimation;
 
@@ -71,6 +75,9 @@ class _ProfilePageState extends State<ProfilePage>
         );
       }
 
+      // Get the tier for the VIEWED user (not current user!)
+      final tier = _firestoreService.getUserTier(stats['completedTasks']);
+
       if (mounted) {
         setState(() {
           username = name;
@@ -78,7 +85,14 @@ class _ProfilePageState extends State<ProfilePage>
           totalTasks = stats['totalTasks'];
           completedTasks = stats['completedTasks'];
           totalHours = stats['totalHours'];
-          userTier = _firestoreService.getUserTier(completedTasks);
+          userTier = tier;
+          
+          // Extract colors from the viewed user's tier
+          viewedUserGlowColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
+          viewedUserGradient = (tier['gradient'] as List<dynamic>?)
+                  ?.map((e) => e as Color)
+                  .toList() ??
+              [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
         });
       }
     } catch (e) {
@@ -92,8 +106,20 @@ class _ProfilePageState extends State<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
-    // Get YOUR tier colors from provider (not the viewed user's)
+    // Get YOUR tier colors from provider ONLY for own profile
+    // For friend's profile, use their tier colors stored in state
     final tierProvider = context.watch<TierThemeProvider>();
+    
+    // Decide which colors to use
+    final displayGradient = widget.isOwnProfile 
+        ? tierProvider.gradientColors 
+        : viewedUserGradient;
+    final displayGlowColor = widget.isOwnProfile 
+        ? tierProvider.glowColor 
+        : viewedUserGlowColor;
+    final displayPrimaryColor = widget.isOwnProfile 
+        ? tierProvider.primaryColor 
+        : viewedUserGlowColor;
 
     return Scaffold(
       body: Container(
@@ -110,22 +136,22 @@ class _ProfilePageState extends State<ProfilePage>
               ? Center(
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      tierProvider.primaryColor,
+                      displayPrimaryColor,
                     ),
                   ),
                 )
               : RefreshIndicator(
                   onRefresh: _loadUserData,
-                  color: tierProvider.primaryColor,
+                  color: displayPrimaryColor,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
                       children: [
-                        _buildHeader(tierProvider),
-                        _buildStatsCard(tierProvider),
-                        _buildActionButtons(tierProvider),
+                        _buildHeader(displayGradient, displayGlowColor),
+                        _buildStatsCard(displayPrimaryColor),
+                        _buildActionButtons(displayGradient, displayGlowColor),
                         const SizedBox(height: 24),
-                        _buildHeatmapSection(tierProvider),
+                        _buildHeatmapSection(displayPrimaryColor),
                         const SizedBox(height: 24),
                       ],
                     ),
@@ -136,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildHeader(TierThemeProvider tierProvider) {
+  Widget _buildHeader(List<Color> gradientColors, Color glowColor) {
     final tierIcon = _firestoreService.getIconFromString(
       userTier['icon'] ?? 'sparkles',
     );
@@ -146,7 +172,7 @@ class _ProfilePageState extends State<ProfilePage>
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: tierProvider.gradientColors,
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -156,7 +182,7 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.glowColor.withOpacity(0.3),
+            color: glowColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -168,27 +194,29 @@ class _ProfilePageState extends State<ProfilePage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.isOwnProfile
-                        ? 'Your Profile'
-                        : '$username\'s Profile',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.isOwnProfile
+                          ? 'Your Profile'
+                          : '$username\'s Profile',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.isOwnProfile
-                        ? 'Keep building great habits! 🚀'
-                        : 'View their progress',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.isOwnProfile
+                          ? 'Keep building great habits! 🚀'
+                          : 'View their progress',
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
               if (widget.isOwnProfile)
                 Container(
@@ -219,12 +247,10 @@ class _ProfilePageState extends State<ProfilePage>
                     height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: tierProvider.gradientColors,
-                      ),
+                      gradient: LinearGradient(colors: gradientColors),
                       boxShadow: [
                         BoxShadow(
-                          color: tierProvider.glowColor.withOpacity(
+                          color: glowColor.withOpacity(
                             isAnimated ? _glowAnimation.value : 0.5,
                           ),
                           blurRadius: 25,
@@ -327,7 +353,7 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildStatsCard(TierThemeProvider tierProvider) {
+  Widget _buildStatsCard(Color primaryColor) {
     return Transform.translate(
       offset: const Offset(0, -20),
       child: Padding(
@@ -338,13 +364,13 @@ class _ProfilePageState extends State<ProfilePage>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.primaryColor.withOpacity(0.1),
+                color: primaryColor.withOpacity(0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
             ],
             border: Border.all(
-              color: tierProvider.primaryColor.withOpacity(0.1),
+              color: primaryColor.withOpacity(0.1),
               width: 1,
             ),
           ),
@@ -457,7 +483,7 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildActionButtons(TierThemeProvider tierProvider) {
+  Widget _buildActionButtons(List<Color> gradientColors, Color glowColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
@@ -466,8 +492,8 @@ class _ProfilePageState extends State<ProfilePage>
             child: _actionBtn(
               'Friends',
               Icons.people,
-              tierProvider.gradientColors,
-              tierProvider.glowColor,
+              gradientColors,
+              glowColor,
               () {
                 Navigator.push(
                   context,
@@ -488,18 +514,16 @@ class _ProfilePageState extends State<ProfilePage>
             child: _actionBtn(
               widget.isOwnProfile ? 'Settings' : 'Tasks',
               widget.isOwnProfile ? Icons.settings : Icons.task_alt,
-              tierProvider.gradientColors.length > 1
-                  ? [
-                      tierProvider.gradientColors[1],
-                      tierProvider.gradientColors[0]
-                    ]
-                  : tierProvider.gradientColors,
-              tierProvider.glowColor,
+              gradientColors.length > 1
+                  ? [gradientColors[1], gradientColors[0]]
+                  : gradientColors,
+              glowColor,
               () {
                 if (widget.isOwnProfile) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SettingsPage()),
+                    MaterialPageRoute(
+                        builder: (context) => const SettingsPage()),
                   );
                 } else {
                   Navigator.push(
@@ -566,7 +590,7 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildHeatmapSection(TierThemeProvider tierProvider) {
+  Widget _buildHeatmapSection(Color primaryColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
@@ -575,13 +599,13 @@ class _ProfilePageState extends State<ProfilePage>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: tierProvider.primaryColor.withOpacity(0.1),
+              color: primaryColor.withOpacity(0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
           ],
           border: Border.all(
-            color: tierProvider.primaryColor.withOpacity(0.1),
+            color: primaryColor.withOpacity(0.1),
             width: 1,
           ),
         ),
@@ -604,9 +628,7 @@ class _ProfilePageState extends State<ProfilePage>
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      tierProvider.primaryColor,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                   ),
                 ),
               );
@@ -643,7 +665,7 @@ class _ProfilePageState extends State<ProfilePage>
                         const SizedBox(width: 8),
                         Icon(
                           Icons.calendar_today,
-                          color: tierProvider.primaryColor,
+                          color: primaryColor,
                           size: 20,
                         ),
                       ],
