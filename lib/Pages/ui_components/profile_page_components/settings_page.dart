@@ -1,4 +1,5 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
+import 'package:demo/Pages/ui_components/friend_components/friendListsPage.dart';
 import 'package:demo/component/achievements.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
@@ -61,7 +62,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.lock,
                     title: 'Change Password',
                     subtitle: 'Update your password',
-                    onTap: () => _showChangePasswordDialog(context, tierProvider),
+                    onTap: () =>
+                        _showChangePasswordDialog(context, tierProvider),
                   ),
                   _buildListTile(
                     context,
@@ -74,7 +76,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(
-                              builder: (context) => const Mainpage()),
+                            builder: (context) => const Mainpage(),
+                          ),
                           (Route<dynamic> route) => false,
                         );
                       }
@@ -98,15 +101,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.people,
                     title: 'Friends',
                     subtitle: 'Manage friends & social features',
-                    onTap: () {},
-                  ),
-                  _buildListTile(
-                    context,
-                    tierProvider,
-                    icon: Icons.task_alt,
-                    title: 'Tasks',
-                    subtitle: 'Manage your tasks & habits',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FriendsListPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildListTile(
                     context,
@@ -208,9 +210,7 @@ class _SettingsPageState extends State<SettingsPage> {
           color: tierProvider.primaryColor,
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -291,9 +291,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: tierProvider.gradientColors,
-                ),
+                gradient: LinearGradient(colors: tierProvider.gradientColors),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ElevatedButton(
@@ -340,7 +338,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    const Text('Username updated successfully!'),
+                                    const Text(
+                                      'Username updated successfully!',
+                                    ),
                                   ],
                                 ),
                                 backgroundColor: tierProvider.primaryColor,
@@ -375,8 +375,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text('Save'),
@@ -559,20 +560,18 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: tierProvider.gradientColors,
-                ),
+                gradient: LinearGradient(colors: tierProvider.gradientColors),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ElevatedButton(
                 onPressed: isLoading
                     ? null
                     : () async {
-                        final currentPassword =
-                            currentPasswordController.text.trim();
+                        final currentPassword = currentPasswordController.text
+                            .trim();
                         final newPassword = newPasswordController.text.trim();
-                        final confirmPassword =
-                            confirmPasswordController.text.trim();
+                        final confirmPassword = confirmPasswordController.text
+                            .trim();
 
                         if (currentPassword.isEmpty ||
                             newPassword.isEmpty ||
@@ -647,7 +646,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    const Text('Password changed successfully!'),
+                                    const Text(
+                                      'Password changed successfully!',
+                                    ),
                                   ],
                                 ),
                                 backgroundColor: tierProvider.primaryColor,
@@ -682,8 +683,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text('Change Password'),
