@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/friend_components/taskRequestsPage.dart';
+import 'package:demo/component/customToast.dart';
 import 'package:demo/component/todolist.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
@@ -103,8 +104,9 @@ class _HomepageState extends State<Homepage> {
 
           if (isRunning && data['startTime'] != null) {
             final startTime = (data['startTime'] as Timestamp).toDate();
-            final runningDuration =
-                DateTime.now().difference(startTime).inSeconds;
+            final runningDuration = DateTime.now()
+                .difference(startTime)
+                .inSeconds;
             currentElapsedSeconds =
                 (data['elapsedSeconds'] ?? 0) + runningDuration;
           }
@@ -386,11 +388,10 @@ class _HomepageState extends State<Homepage> {
     final firebaseId = task['firebaseId'];
 
     if (firebaseId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please wait for task to sync...'),
-          duration: Duration(seconds: 1),
-        ),
+      CustomToast.showWarning(
+        context,
+        'Please wait for task to sync...',
+        duration: const Duration(seconds: 1),
       );
       return;
     }
@@ -401,27 +402,56 @@ class _HomepageState extends State<Homepage> {
       tasklist[index]['isCompleted'] = newCompletedStatus;
 
       if (newCompletedStatus) {
+        // Task is being marked as COMPLETE
         tasklist[index]['completedAt'] = Timestamp.now();
+
+        // If task has timer, set elapsed to total duration (fill to max)
+        if (task['hasTimer'] == true && task['totalDuration'] != null) {
+          tasklist[index]['elapsedSeconds'] = task['totalDuration'];
+          tasklist[index]['isRunning'] = false; // Stop timer if running
+        }
       } else {
+        // Task is being UNCHECKED (marked incomplete)
         tasklist[index]['completedAt'] = null;
+
+        // If task has timer, reset elapsed seconds to 0 (drain water)
+        if (task['hasTimer'] == true) {
+          tasklist[index]['elapsedSeconds'] = 0;
+          tasklist[index]['isRunning'] = false;
+          // Increment reset key to trigger water drain animation
+          tasklist[index]['resetKey'] = (task['resetKey'] ?? 0) + 1;
+        }
       }
     });
 
     try {
+      // Update Firebase with new completion status
       await firestoreService.toggleCompletion(firebaseId, !newCompletedStatus);
+
+      // If task has timer and is being unchecked, update elapsed seconds in Firebase
+      if (!newCompletedStatus && task['hasTimer'] == true) {
+        await FirebaseFirestore.instance
+            .collection('user_notes')
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .collection('notes')
+            .doc(firebaseId)
+            .update({'elapsedSeconds': 0, 'isRunning': false});
+      }
     } catch (e) {
       print('Error updating Firebase: $e');
+
+      // Revert changes on error
       setState(() {
         tasklist[index]['isCompleted'] = !newCompletedStatus;
-        tasklist[index]['completedAt'] = null;
+        if (!newCompletedStatus) {
+          tasklist[index]['completedAt'] = null;
+        }
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update task. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
+        CustomToast.showError(
+          context,
+          'Failed to update task. Please try again.',
         );
       }
     }
@@ -792,8 +822,8 @@ class _HomepageState extends State<Homepage> {
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                          Colors.white70,
-                                        ),
+                                              Colors.white70,
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -919,8 +949,9 @@ class _HomepageState extends State<Homepage> {
                             Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color:
-                                    tierProvider.primaryColor.withOpacity(0.1),
+                                color: tierProvider.primaryColor.withOpacity(
+                                  0.1,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
