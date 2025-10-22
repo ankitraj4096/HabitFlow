@@ -19,10 +19,17 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> {
   final FriendService _friendService = FriendService();
   final AuthService _authService = AuthService();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Watch the tier theme provider for color updates
     final tierProvider = context.watch<TierThemeProvider>();
 
     return SafeArea(
@@ -205,6 +212,12 @@ class _ChatListPageState extends State<ChatListPage> {
           ),
         ),
         child: TextField(
+          controller: _searchController,
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value.toLowerCase();
+            });
+          },
           decoration: InputDecoration(
             hintText: 'Search friends...',
             hintStyle: TextStyle(color: Colors.grey.shade500),
@@ -212,6 +225,20 @@ class _ChatListPageState extends State<ChatListPage> {
               Icons.search,
               color: tierProvider.primaryColor.withOpacity(0.7),
             ),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.clear,
+                      color: tierProvider.primaryColor.withOpacity(0.7),
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                  )
+                : null,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -287,9 +314,51 @@ class _ChatListPageState extends State<ChatListPage> {
             ),
           );
         }
+
+        // Filter friends based on search query
+        final filteredFriends = _searchQuery.isEmpty
+            ? snapshot.data!
+            : snapshot.data!.where((userData) {
+                final username = userData['username'].toString().toLowerCase();
+                return username.contains(_searchQuery);
+              }).toList();
+
+        // Show "No results" message if filtered list is empty
+        if (filteredFriends.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 64,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No friends found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try searching with a different name',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 10),
-          children: snapshot.data!
+          children: filteredFriends
               .map<Widget>(
                 (userData) => _buildFriendListItem(
                   userData,
@@ -478,7 +547,8 @@ class _ChatListPageState extends State<ChatListPage> {
                               'Tap to start chatting',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: tierProvider.primaryColor.withOpacity(0.6),
+                                color:
+                                    tierProvider.primaryColor.withOpacity(0.6),
                                 fontWeight: FontWeight.w500,
                               ),
                             );
