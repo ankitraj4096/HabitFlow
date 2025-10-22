@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class ChatBubble extends StatelessWidget {
   final String message;
   final bool isCurrentUser;
+  final DateTime timestamp;
   
   const ChatBubble({
     super.key,
     required this.isCurrentUser,
     required this.message,
+    required this.timestamp,
   });
+
+  String _formatTime(DateTime dateTime) {
+    return DateFormat('HH:mm').format(dateTime);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Get tier colors from provider
     final tierProvider = context.watch<TierThemeProvider>();
     
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 12),
       child: Row(
         mainAxisAlignment: isCurrentUser 
             ? MainAxisAlignment.end 
@@ -27,7 +33,7 @@ class ChatBubble extends StatelessWidget {
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.7,
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
               decoration: BoxDecoration(
                 gradient: isCurrentUser
@@ -37,35 +43,73 @@ class ChatBubble extends StatelessWidget {
                         end: Alignment.bottomRight,
                       )
                     : null,
-                color: isCurrentUser ? null : Colors.grey.shade200,
+                color: isCurrentUser ? null : const Color(0xFFE8E8E8),
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
                   bottomLeft: isCurrentUser 
-                      ? const Radius.circular(20) 
-                      : const Radius.circular(4),
+                      ? const Radius.circular(16) 
+                      : const Radius.circular(2),
                   bottomRight: isCurrentUser 
-                      ? const Radius.circular(4) 
-                      : const Radius.circular(20),
+                      ? const Radius.circular(2) 
+                      : const Radius.circular(16),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isCurrentUser 
-                        ? tierProvider.glowColor.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.05),
-                    blurRadius: isCurrentUser ? 8 : 5,
-                    offset: const Offset(0, 2),
+                        ? tierProvider.glowColor.withOpacity(0.15)
+                        : Colors.black.withOpacity(0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: isCurrentUser ? Colors.white : Colors.black87,
-                  fontSize: 15,
-                  height: 1.4,
-                ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Message text with padding for timestamp
+                  Padding(
+                    padding: const EdgeInsets.only(right: 50),
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        color: isCurrentUser ? Colors.white : Colors.black87,
+                        fontSize: 15,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  // Timestamp at bottom right
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        _formatTime(timestamp),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isCurrentUser 
+                              ? Colors.white.withOpacity(0.8)
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                      // Optional: Add checkmark for sent messages
+                      if (isCurrentUser) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.done_all,
+                          size: 14,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

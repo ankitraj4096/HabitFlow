@@ -8,6 +8,7 @@ import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class ChatPage extends StatefulWidget {
   final String receiverID;
@@ -27,12 +28,19 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // Mark all messages from this friend as read when chat opens
     _markMessagesAsRead();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _messageController.dispose();
+    super.dispose();
   }
 
   Future<void> _markMessagesAsRead() async {
@@ -45,6 +53,16 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   void sendMessage() async {
     if (_messageController.text.isNotEmpty) {
       await _chatService.sendMessage(
@@ -52,6 +70,11 @@ class _ChatPageState extends State<ChatPage> {
         _messageController.text,
       );
       _messageController.clear();
+      
+      // Scroll to bottom after sending message
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _scrollToBottom();
+      });
     }
   }
 
@@ -69,7 +92,6 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Get tier colors from provider
     final tierProvider = context.watch<TierThemeProvider>();
 
     return Scaffold(
@@ -253,13 +275,106 @@ class _ChatPageState extends State<ChatPage> {
         }
 
         final docs = snapshot.data!.docs;
-        return ListView(
+        
+        // Scroll to bottom when new messages arrive
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
+
+        return ListView.builder(
+          controller: _scrollController,
           padding: const EdgeInsets.symmetric(vertical: 10),
-          children: docs
-              .map((doc) => _buildMessageItem(doc, tierProvider))
-              .toList(),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            
+            // Check if we need to show a date separator
+            bool showDateSeparator = false;
+            if (index == 0) {
+              showDateSeparator = true;
+            } else {
+              final prevDoc = docs[index - 1];
+              final prevData = prevDoc.data() as Map<String, dynamic>;
+              final currentDate = (data['timestamp'] as Timestamp).toDate();
+              final prevDate = (prevData['timestamp'] as Timestamp).toDate();
+              
+              if (!_isSameDay(currentDate, prevDate)) {
+                showDateSeparator = true;
+              }
+            }
+
+            return Column(
+              children: [
+                if (showDateSeparator)
+                  _buildDateSeparator(
+                    (data['timestamp'] as Timestamp).toDate(),
+                    tierProvider,
+                  ),
+                _buildMessageItem(doc, tierProvider),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
+  Widget _buildDateSeparator(DateTime date, TierThemeProvider tierProvider) {
+    final now = DateTime.now();
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    
+    String dateText;
+    if (_isSameDay(date, now)) {
+      dateText = 'Today';
+    } else if (_isSameDay(date, yesterday)) {
+      dateText = 'Yesterday';
+    } else {
+      dateText = DateFormat('MMM dd, yyyy').format(date);
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(
+              color: Colors.grey.shade300,
+              thickness: 1,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: tierProvider.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                dateText,
+                style: TextStyle(
+                  color: tierProvider.primaryColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Divider(
+              color: Colors.grey.shade300,
+              thickness: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -269,10 +384,12 @@ class _ChatPageState extends State<ChatPage> {
   ) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     bool isCurrentUser = data["senderID"] == _authService.getCurrentUser()!.uid;
+    final timestamp = (data['timestamp'] as Timestamp).toDate();
     
     return ChatBubble(
       isCurrentUser: isCurrentUser,
       message: data["message"],
+      timestamp: timestamp,
     );
   }
 
@@ -321,7 +438,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   maxLines: null,
                   onChanged: (value) {
-                    setState(() {}); // Rebuild to show/hide emoji icon
+                    setState(() {});
                   },
                 ),
               ),
