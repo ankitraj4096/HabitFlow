@@ -433,156 +433,205 @@ class FireStoreService {
     }
   }
 
-  /// Get user tier based on completed tasks
   Map<String, dynamic> getUserTier(int completedTasks) {
     final List<Map<String, dynamic>> tiers = [
       {
         "id": 1,
         "name": "The Initiate",
-        "completedTasks": 1,
+        "completedTasks": 10,
         "icon": "sparkles",
-        "gradient": [Colors.grey, Colors.grey.shade700],
-        "glow": Colors.grey,
+        "gradient": [
+          const Color(0xFF64748B), // Slate blue
+          const Color(0xFF334155), // Deep slate
+        ],
+        "glow": const Color(0xFF94A3B8),
       },
       {
         "id": 2,
         "name": "The Seeker",
-        "completedTasks": 5,
+        "completedTasks": 50,
         "icon": "target",
-        "gradient": [Colors.blue.shade400, Colors.blue.shade600],
-        "glow": Colors.blue,
+        "gradient": [
+          const Color(0xFFCD7F32), // Bronze
+          const Color(0xFFB87333), // Copper
+        ],
+        "glow": const Color(0xFFD4A574),
       },
       {
         "id": 3,
         "name": "The Novice",
-        "completedTasks": 10,
+        "completedTasks": 100,
         "icon": "book",
-        "gradient": [Colors.green.shade400, Colors.green.shade600],
-        "glow": Colors.green,
+        "gradient": [
+          const Color(0xFF10B981), // Emerald green
+          const Color(0xFF059669), // Deep emerald
+        ],
+        "glow": const Color(0xFF34D399),
       },
       {
         "id": 4,
         "name": "The Apprentice",
-        "completedTasks": 25,
+        "completedTasks": 250,
         "icon": "hammer",
-        "gradient": [Colors.yellow.shade400, Colors.yellow.shade600],
-        "glow": Colors.yellow,
+        "gradient": [
+          const Color(0xFFF59E0B), // Rich amber
+          const Color(0xFFD97706), // Deep amber
+        ],
+        "glow": const Color(0xFFFBBF24),
       },
       {
         "id": 5,
         "name": "The Adept",
-        "completedTasks": 50,
+        "completedTasks": 500,
         "icon": "zap",
-        "gradient": [Colors.orange.shade400, Colors.orange.shade600],
-        "glow": Colors.orange,
+        "gradient": [
+          const Color(0xFFF97316), // Vibrant orange
+          const Color(0xFFEA580C), // Deep orange
+        ],
+        "glow": const Color(0xFFFB923C),
       },
       {
         "id": 6,
         "name": "The Disciplined",
-        "completedTasks": 100,
+        "completedTasks": 1000,
         "icon": "shield",
-        "gradient": [Colors.purple.shade400, Colors.purple.shade600],
-        "glow": Colors.purple,
+        "gradient": [
+          const Color(0xFF8B5CF6), // Rich purple
+          const Color(0xFF6D28D9), // Deep purple
+        ],
+        "glow": const Color(0xFFA78BFA),
       },
       {
         "id": 7,
         "name": "The Specialist",
-        "completedTasks": 250,
+        "completedTasks": 2500,
         "icon": "award",
-        "gradient": [Colors.pink.shade400, Colors.pink.shade600],
-        "glow": Colors.pink,
+        "gradient": [
+          const Color(0xFFEC4899), // Hot pink
+          const Color(0xFFDB2777), // Deep pink
+        ],
+        "glow": const Color(0xFFF472B6),
       },
       {
         "id": 8,
         "name": "The Expert",
-        "completedTasks": 500,
+        "completedTasks": 5000,
         "icon": "crown",
-        "gradient": [Colors.indigo.shade400, Colors.indigo.shade600],
-        "glow": Colors.indigo,
+        "gradient": [
+          const Color(0xFF6366F1), // Indigo
+          const Color(0xFF4F46E5), // Deep indigo
+        ],
+        "glow": const Color(0xFF818CF8),
       },
       {
         "id": 9,
         "name": "The Vanguard",
-        "completedTasks": 1000,
+        "completedTasks": 10000,
         "icon": "flame",
-        "gradient": [Colors.red.shade400, Colors.red.shade600],
-        "glow": Colors.red,
+        "gradient": [
+          const Color(0xFFEF4444), // Bold red
+          const Color(0xFFDC2626), // Deep red
+        ],
+        "glow": const Color(0xFFF87171),
       },
       {
         "id": 10,
         "name": "The Sentinel",
-        "completedTasks": 1750,
+        "completedTasks": 15000,
         "icon": "eye",
-        "gradient": [Colors.cyan.shade400, Colors.cyan.shade600],
-        "glow": Colors.cyan,
+        "gradient": [
+          const Color(0xFF06B6D4), // Cyan
+          const Color(0xFF0891B2), // Deep cyan
+        ],
+        "glow": const Color(0xFF22D3EE),
       },
       {
         "id": 11,
         "name": "The Virtuoso",
-        "completedTasks": 2500,
+        "completedTasks": 25000,
         "icon": "music",
-        "gradient": [Colors.teal.shade400, Colors.teal.shade600],
-        "glow": Colors.teal,
+        "gradient": [
+          const Color(0xFF14B8A6), // Teal
+          const Color(0xFF0D9488), // Deep teal
+        ],
+        "glow": const Color(0xFF2DD4BF),
       },
       {
         "id": 12,
         "name": "The Master",
-        "completedTasks": 4000,
+        "completedTasks": 40000,
         "icon": "trophy",
-        "gradient": [Colors.amber.shade400, Colors.amber.shade600],
-        "glow": Colors.amber,
+        "gradient": [
+          const Color(0xFFEAB308), // Gold
+          const Color(0xFFCA8A04), // Deep gold
+        ],
+        "glow": const Color(0xFFFACC15),
       },
       {
         "id": 13,
         "name": "The Grandmaster",
-        "completedTasks": 6000,
+        "completedTasks": 60000,
         "icon": "gem",
-        "gradient": [Colors.green.shade400, Colors.green.shade600],
-        "glow": Colors.green,
+        "gradient": [
+          const Color(0xFF22C55E), // Lime green
+          const Color(0xFF16A34A), // Deep lime
+        ],
+        "glow": const Color(0xFF4ADE80),
       },
       {
         "id": 14,
         "name": "The Titan",
-        "completedTasks": 8000,
+        "completedTasks": 75000,
         "icon": "mountain",
-        "gradient": [Colors.blueGrey.shade400, Colors.blueGrey.shade700],
-        "glow": Colors.blueGrey,
+        "gradient": [
+          const Color(0xFF3B82F6), // Vibrant blue
+          const Color(0xFF1E40AF), // Deep blue
+        ],
+        "glow": const Color(0xFF60A5FA),
       },
       {
         "id": 15,
         "name": "The Luminary",
-        "completedTasks": 10000,
+        "completedTasks": 90000,
         "icon": "sun",
         "gradient": [
-          Colors.yellow.shade300,
-          Colors.orange.shade400,
-          Colors.red.shade500,
+          const Color(0xFFFFD700), // Pure gold
+          const Color(0xFFB8860B), // Dark goldenrod
+          const Color(0xFF8B6914), // Deep bronze gold
         ],
-        "glow": Colors.orange,
+        "glow": const Color(0xFFDAA520),
+        "animated": true,
       },
       {
         "id": 16,
         "name": "The Ascended",
-        "completedTasks": 10001,
+        "completedTasks": 100000,
         "icon": "infinity",
         "gradient": [
-          Colors.purple.shade400,
-          Colors.pink.shade500,
-          Colors.yellow.shade400,
+          const Color(0xFF1A1A2E), // Deep navy
+          const Color(0xFF16213E), // Midnight blue
+          const Color(0xFF0F3460), // Dark blue
+          const Color(0xFF533483), // Deep purple
         ],
-        "glow": Colors.purple,
+        "glow": const Color(0xFF4A5568),
         "animated": true,
+        "prismatic": true,
       },
     ];
 
+    // Always default to Tier 1 (The Initiate) for users with 0-9 tasks
     Map<String, dynamic> currentTier = tiers[0];
+
+    // Find the highest tier the user qualifies for
     for (final tier in tiers) {
       if (completedTasks >= tier['completedTasks']) {
         currentTier = tier;
       } else {
+        // Once we find a tier we don't qualify for, stop checking
         break;
       }
     }
+
     return currentTier;
   }
 

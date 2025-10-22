@@ -102,6 +102,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-  assets:
-  - lib/image/logo.jpg
-  - lib/image/main_background.png
+  # assets:
+  # - lib/image/logo.jpg
+  # - lib/image/main_background.png
