@@ -1,12 +1,9 @@
-// lib/pages/homepage.dart
-// Complete Modified Homepage with Notification Support
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/friend_components/taskRequestsPage.dart';
 import 'package:demo/component/customToast.dart';
 import 'package:demo/component/todolist.dart';
 import 'package:demo/services/notes/firestore.dart';
-import 'package:demo/services/notification_service.dart'; // ✅ ADD THIS IMPORT
+import 'package:demo/services/notification_service.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -24,38 +21,34 @@ class _HomepageState extends State<Homepage> {
   List<Map<String, dynamic>> tasklist = [];
   final TextEditingController control = TextEditingController();
   final TextEditingController timerController = TextEditingController();
-
   final FireStoreService firestoreService = FireStoreService();
-  final NotificationService _notificationService = NotificationService(); // ✅ ADD THIS
-
+  final NotificationService _notificationService = NotificationService();
   bool _isSyncing = false;
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
   Timer? _uiUpdateTimer;
-  Timer? _notificationUpdateTimer; // ✅ ADD THIS
+  Timer? _notificationUpdateTimer;
 
   @override
   void initState() {
     super.initState();
-    _initializeNotificationService(); // ✅ ADD THIS
+    _initializeNotificationService();
     _initializeData();
     _startUIUpdateTimer();
-    _startNotificationUpdateTimer(); // ✅ ADD THIS
+    _startNotificationUpdateTimer();
   }
 
   @override
   void dispose() {
     _firebaseSubscription?.cancel();
     _uiUpdateTimer?.cancel();
-    _notificationUpdateTimer?.cancel(); // ✅ ADD THIS
+    _notificationUpdateTimer?.cancel();
     control.dispose();
     timerController.dispose();
     super.dispose();
   }
 
-  // ✅ NEW METHOD: Initialize notification service
   Future<void> _initializeNotificationService() async {
     await _notificationService.initialize();
-    // Request notification permissions
     await _notificationService.requestPermissions();
   }
 
@@ -72,17 +65,17 @@ class _HomepageState extends State<Homepage> {
     });
   }
 
-  // ✅ NEW METHOD: Start notification update timer
+  // Replace the _startNotificationUpdateTimer method with this:
   void _startNotificationUpdateTimer() {
     _notificationUpdateTimer = Timer.periodic(
-      const Duration(seconds: 2), // Update notification every 2 seconds
+      const Duration(seconds: 1), 
       (timer) {
         _updateTimerNotification();
       },
     );
   }
 
-  // ✅ NEW METHOD: Update timer notification
+  // Replace the _updateTimerNotification method with this improved version:
   Future<void> _updateTimerNotification() async {
     // Find any running timer
     final runningTask = tasklist.firstWhere(
@@ -99,30 +92,51 @@ class _HomepageState extends State<Homepage> {
     final taskName = runningTask['taskName'] ?? 'Task';
     final elapsedSeconds = runningTask['elapsedSeconds'] ?? 0;
     final totalDuration = runningTask['totalDuration'];
-    
+
     String timerText;
+    String subText;
     int? progress;
     int? maxProgress;
+    double? percentComplete;
 
     if (totalDuration != null) {
       // Timer with duration - show countdown
       final remainingSeconds = totalDuration - elapsedSeconds;
-      timerText = 'Time remaining: ${NotificationService.formatDuration(remainingSeconds)}';
+
+      timerText = _formatTimeEnhanced(remainingSeconds);
+      subText = '${_formatTimeEnhanced(elapsedSeconds)} elapsed';
       progress = elapsedSeconds;
       maxProgress = totalDuration;
+      percentComplete = (elapsedSeconds / totalDuration * 100).clamp(0, 100);
     } else {
       // Timer without duration - show elapsed time
-      timerText = 'Time elapsed: ${NotificationService.formatDuration(elapsedSeconds)}';
+      timerText = _formatTimeEnhanced(elapsedSeconds);
+      subText = 'Stopwatch mode';
       progress = null;
       maxProgress = null;
+      percentComplete = null;
     }
 
     await _notificationService.updateTimerNotification(
-      taskName: '⏱️ $taskName',
+      taskName: taskName,
       timerText: timerText,
+      subText: subText,
       progress: progress,
       maxProgress: maxProgress,
+      percentComplete: percentComplete,
     );
+  }
+
+  String _formatTimeEnhanced(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final secs = seconds % 60;
+
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    } else {
+      return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    }
   }
 
   Future<void> _initializeData() async {
@@ -144,7 +158,6 @@ class _HomepageState extends State<Homepage> {
     _firebaseSubscription = firestoreService.getTasksStream().listen(
       (snapshot) {
         List<Map<String, dynamic>> updatedTasks = [];
-
         final now = DateTime.now();
         final todayStart = DateTime(now.year, now.month, now.day);
         final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
@@ -199,8 +212,7 @@ class _HomepageState extends State<Homepage> {
         setState(() {
           tasklist = updatedTasks;
         });
-        
-        // ✅ ADD THIS: Update notification when task list changes
+
         _updateTimerNotification();
       },
       onError: (error) {
@@ -212,7 +224,6 @@ class _HomepageState extends State<Homepage> {
   void _autoCompleteTask(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-
     if (firebaseId == null || task['isCompleted'] == true) {
       return;
     }
@@ -230,7 +241,6 @@ class _HomepageState extends State<Homepage> {
         tasklist[index]['isCompleted'] = false;
         tasklist[index]['completedAt'] = null;
       });
-
       if (mounted) {
         CustomToast.error(context, 'Failed to auto-complete task');
       }
@@ -266,7 +276,6 @@ class _HomepageState extends State<Homepage> {
       }
     } catch (e) {
       print('Error adding to Firebase: $e');
-
       if (mounted) {
         CustomToast.showError(context, 'Failed to add task. Please try again.');
       }
@@ -277,7 +286,6 @@ class _HomepageState extends State<Homepage> {
 
   void NewTask() {
     final tierProvider = context.read<TierThemeProvider>();
-
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -422,7 +430,6 @@ class _HomepageState extends State<Homepage> {
   void CheckBoxChanged(bool? value, int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-
     if (firebaseId == null) {
       CustomToast.showWarning(
         context,
@@ -436,17 +443,14 @@ class _HomepageState extends State<Homepage> {
 
     setState(() {
       tasklist[index]['isCompleted'] = newCompletedStatus;
-
       if (newCompletedStatus) {
         tasklist[index]['completedAt'] = Timestamp.now();
-
         if (task['hasTimer'] == true && task['totalDuration'] != null) {
           tasklist[index]['elapsedSeconds'] = task['totalDuration'];
           tasklist[index]['isRunning'] = false;
         }
       } else {
         tasklist[index]['completedAt'] = null;
-
         if (task['hasTimer'] == true) {
           tasklist[index]['elapsedSeconds'] = 0;
           tasklist[index]['isRunning'] = false;
@@ -457,7 +461,6 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.toggleCompletion(firebaseId, !newCompletedStatus);
-
       if (!newCompletedStatus && task['hasTimer'] == true) {
         await FirebaseFirestore.instance
             .collection('user_notes')
@@ -466,19 +469,16 @@ class _HomepageState extends State<Homepage> {
             .doc(firebaseId)
             .update({'elapsedSeconds': 0, 'isRunning': false});
       }
-      
-      // ✅ ADD THIS: Update notification after checkbox change
+
       await _updateTimerNotification();
     } catch (e) {
       print('Error updating Firebase: $e');
-
       setState(() {
         tasklist[index]['isCompleted'] = !newCompletedStatus;
         if (!newCompletedStatus) {
           tasklist[index]['completedAt'] = null;
         }
       });
-
       if (mounted) {
         CustomToast.showError(
           context,
@@ -491,7 +491,6 @@ class _HomepageState extends State<Homepage> {
   void DeleteTask(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-
     if (firebaseId == null) {
       CustomToast.showWarning(
         context,
@@ -508,15 +507,12 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.deleteTask(firebaseId);
-      
-      // ✅ ADD THIS: Update notification after task deletion
       await _updateTimerNotification();
     } catch (e) {
       print('Error deleting from Firebase: $e');
       setState(() {
         tasklist.insert(index, deletedTask);
       });
-
       if (mounted) {
         CustomToast.showError(
           context,
@@ -530,7 +526,6 @@ class _HomepageState extends State<Homepage> {
     final tierProvider = context.read<TierThemeProvider>();
     final task = tasklist[index];
     control.text = task['taskName'];
-
     if (task['hasTimer'] == true && task['totalDuration'] != null) {
       timerController.text = (task['totalDuration'] / 60).round().toString();
     }
@@ -650,7 +645,6 @@ class _HomepageState extends State<Homepage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         final firebaseId = tasklist[index]['firebaseId'];
-
                         if (firebaseId == null) {
                           CustomToast.showWarning(
                             context,
@@ -662,7 +656,6 @@ class _HomepageState extends State<Homepage> {
                         final timerMinutes = timerController.text.isNotEmpty
                             ? int.tryParse(timerController.text)
                             : null;
-
                         final updatedTaskName = control.text;
 
                         Navigator.of(context).pop();
@@ -716,11 +709,9 @@ class _HomepageState extends State<Homepage> {
     return tasklist.where((task) => task['isCompleted'] == true).length;
   }
 
-  // ✅ MODIFIED: Start timer with notification
   void _startTimer(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-
     if (firebaseId == null) return;
 
     setState(() {
@@ -729,8 +720,6 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.startTimer(firebaseId);
-      
-      // ✅ ADD THIS: Show notification immediately
       await _updateTimerNotification();
     } catch (e) {
       print('Error starting timer: $e');
@@ -740,11 +729,9 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  // ✅ MODIFIED: Pause timer and cancel notification
   void _pauseTimer(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-
     if (firebaseId == null) return;
 
     final currentElapsed = task['elapsedSeconds'] ?? 0;
@@ -755,8 +742,6 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.pauseTimer(firebaseId, currentElapsed);
-      
-      // ✅ ADD THIS: Cancel notification when paused
       await _notificationService.cancelTimerNotification();
     } catch (e) {
       print('Error pausing timer: $e');
@@ -766,11 +751,9 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  // ✅ MODIFIED: Stop timer and cancel notification
   void _stopTimer(int index) async {
     final task = tasklist[index];
     final firebaseId = task['firebaseId'];
-
     if (firebaseId == null) return;
 
     setState(() {
@@ -780,8 +763,6 @@ class _HomepageState extends State<Homepage> {
 
     try {
       await firestoreService.stopTimer(firebaseId);
-      
-      // ✅ ADD THIS: Cancel notification when stopped
       await _notificationService.cancelTimerNotification();
     } catch (e) {
       print('Error stopping timer: $e');
@@ -791,7 +772,6 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     final tierProvider = context.watch<TierThemeProvider>();
-
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -903,6 +883,7 @@ class _HomepageState extends State<Homepage> {
                                   if (!snapshot.hasData || snapshot.data == 0) {
                                     return const SizedBox.shrink();
                                   }
+
                                   return Positioned(
                                     right: 8,
                                     top: 8,
