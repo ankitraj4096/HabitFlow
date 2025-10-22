@@ -227,6 +227,7 @@ class FireStoreService {
   }
 
   /// Toggle task completion status
+  /// Toggle task completion status - UPDATE to increment lifetime counter
   Future<void> toggleCompletion(String docID, bool currentStatus) async {
     try {
       final Map<String, dynamic> updateData = {
@@ -235,9 +236,37 @@ class FireStoreService {
       };
 
       if (!currentStatus) {
+        // Task is being completed
         updateData['completedAt'] = Timestamp.now();
+
+        // ✅ NEW: Increment lifetime completed tasks
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({'lifetimeCompletedTasks': FieldValue.increment(1)});
+        }
       } else {
+        // Task is being uncompleted
         updateData['completedAt'] = FieldValue.delete();
+
+        // ✅ NEW: Decrement lifetime completed tasks
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          final currentCount = userDoc.data()?['lifetimeCompletedTasks'] ?? 0;
+
+          if (currentCount > 0) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update({'lifetimeCompletedTasks': FieldValue.increment(-1)});
+          }
+        }
       }
 
       await _userNotes.doc(docID).update(updateData);
@@ -297,8 +326,9 @@ class FireStoreService {
   /// Get user statistics - FIXED to use completedAt
   Future<Map<String, dynamic>> getUserStatistics() async {
     try {
-      final snapshot =
-          await _userNotes.where('status', isEqualTo: 'accepted').get();
+      final snapshot = await _userNotes
+          .where('status', isEqualTo: 'accepted')
+          .get();
 
       int totalTasks = snapshot.docs.length;
       int completedTasks = 0;
@@ -351,19 +381,19 @@ class FireStoreService {
         .where('isCompleted', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      final Map<String, int> heatmap = {};
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
-        final completedAt = data['completedAt'] as Timestamp?;
-        if (completedAt != null) {
-          final d = completedAt.toDate();
-          final key = _formatDate(d);
-          heatmap[key] = (heatmap[key] ?? 0) + 1;
-        }
-      }
-      return heatmap;
-    });
+          final Map<String, int> heatmap = {};
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
+            final completedAt = data['completedAt'] as Timestamp?;
+            if (completedAt != null) {
+              final d = completedAt.toDate();
+              final key = _formatDate(d);
+              heatmap[key] = (heatmap[key] ?? 0) + 1;
+            }
+          }
+          return heatmap;
+        });
   }
 
   String _formatDate(DateTime date) {
@@ -640,18 +670,18 @@ class FireStoreService {
         .where('isCompleted', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      final Map<String, int> heatmap = {};
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
-        final completedAt = data['completedAt'] as Timestamp?;
-        if (completedAt != null) {
-          final d = completedAt.toDate();
-          final key = _formatDate(d);
-          heatmap[key] = (heatmap[key] ?? 0) + 1;
-        }
-      }
-      return heatmap;
-    });
+          final Map<String, int> heatmap = {};
+          for (var doc in snapshot.docs) {
+            final data = doc.data();
+            // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
+            final completedAt = data['completedAt'] as Timestamp?;
+            if (completedAt != null) {
+              final d = completedAt.toDate();
+              final key = _formatDate(d);
+              heatmap[key] = (heatmap[key] ?? 0) + 1;
+            }
+          }
+          return heatmap;
+        });
   }
 }

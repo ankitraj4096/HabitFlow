@@ -668,9 +668,7 @@ class _HomepageState extends State<Homepage> {
                   size: 40,
                 ),
               ),
-
               const SizedBox(height: 24),
-
               // Title
               Text(
                 'Delete Task?',
@@ -680,9 +678,7 @@ class _HomepageState extends State<Homepage> {
                   color: tierProvider.primaryColor,
                 ),
               ),
-
               const SizedBox(height: 12),
-
               // Task name display
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -705,18 +701,14 @@ class _HomepageState extends State<Homepage> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-
               const SizedBox(height: 12),
-
               // Warning message
               Text(
                 'This action cannot be undone.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
-
               const SizedBox(height: 28),
-
               // Action buttons
               Row(
                 children: [
@@ -749,9 +741,7 @@ class _HomepageState extends State<Homepage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   // Delete button with red gradient
                   Expanded(
                     child: Container(
@@ -819,9 +809,23 @@ class _HomepageState extends State<Homepage> {
 
       try {
         await firestoreService.deleteTask(firebaseId);
+
+        // If task was completed, decrement lifetimeCompletedTasks counter
+        if (deletedTask['isCompleted'] == true) {
+          final userRef = FirebaseFirestore.instance
+              .collection('users')
+              .doc(FirebaseAuth.instance.currentUser!.uid);
+          final userDoc = await userRef.get();
+          final currentCount = userDoc.data()?['lifetimeCompletedTasks'] ?? 0;
+          if (currentCount > 0) {
+            await userRef.update({
+              'lifetimeCompletedTasks': FieldValue.increment(-1),
+            });
+          }
+        }
+
         await _updateTimerNotification();
 
-        // Show success message
         if (mounted) {
           CustomToast.showSuccess(context, 'Task deleted successfully');
         }

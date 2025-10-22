@@ -12,13 +12,15 @@ class UserStatsProvider extends ChangeNotifier {
   int currentStreak = 0;
   int totalTasks = 0;
   int completedTasks = 0;
+  int lifetimeCompletedTasks = 0; // ✅ NEW: Lifetime counter
   int totalHours = 0;
   Map<String, dynamic> userTier = {};
   Map<String, int> heatmapData = {};
   bool isLoading = true;
 
-  // Stream subscription
+  // Stream subscriptions
   StreamSubscription<QuerySnapshot>? _tasksSubscription;
+  StreamSubscription<DocumentSnapshot>? _userSubscription;
   String? _currentUserId;
 
   UserStatsProvider() {
@@ -30,7 +32,32 @@ class UserStatsProvider extends ChangeNotifier {
     if (user != null) {
       _currentUserId = user.uid;
       _listenToTasks();
+      _listenToUserDoc(); // ✅ NEW: Listen to user document
     }
+  }
+
+  // ✅ NEW: Listen to user document for lifetime count
+  void _listenToUserDoc() {
+    _userSubscription?.cancel();
+    
+    if (_currentUserId == null) return;
+
+    _userSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(_currentUserId)
+        .snapshots()
+        .listen((doc) {
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          lifetimeCompletedTasks = data['lifetimeCompletedTasks'] ?? 0;
+          
+          // Update tier based on lifetime count
+          userTier = _firestoreService.getUserTier(lifetimeCompletedTasks);
+          notifyListeners();
+        }
+      }
+    });
   }
 
   void _listenToTasks() {
@@ -86,16 +113,12 @@ class UserStatsProvider extends ChangeNotifier {
       // Calculate streak
       int streak = _calculateStreak(completions);
 
-      // Get user tier
-      final tier = _firestoreService.getUserTier(completed);
-
-      // Update all values
+      // Update all values (tier is updated from user doc listener)
       username = name;
       currentStreak = streak;
       totalTasks = total;
       completedTasks = completed;
       totalHours = hours;
-      userTier = tier;
       heatmapData = heatmap;
       isLoading = false;
 
@@ -153,6 +176,7 @@ class UserStatsProvider extends ChangeNotifier {
   @override
   void dispose() {
     _tasksSubscription?.cancel();
+    _userSubscription?.cancel(); // ✅ NEW: Dispose user subscription
     super.dispose();
   }
 }
