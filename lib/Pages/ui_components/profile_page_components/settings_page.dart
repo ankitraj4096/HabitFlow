@@ -1,4 +1,7 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
+import 'package:demo/Pages/ui_components/friend_components/friendListsPage.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/changePasswordPage.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/editUsernamePage.dart';
 import 'package:demo/component/achievements.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
@@ -53,7 +56,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.person,
                     title: 'Profile',
                     subtitle: 'Edit your profile information',
-                    onTap: () => _showEditUsernameDialog(context, tierProvider),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EditUsernamePage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildListTile(
                     context,
@@ -61,7 +71,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.lock,
                     title: 'Change Password',
                     subtitle: 'Update your password',
-                    onTap: () => _showChangePasswordDialog(context, tierProvider),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChangePasswordPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildListTile(
                     context,
@@ -70,13 +87,67 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'Sign Out',
                     subtitle: 'Logout from your account',
                     onTap: () async {
-                      await _authService.signOut();
-                      if (context.mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                              builder: (context) => const Mainpage()),
-                          (Route<dynamic> route) => false,
-                        );
+                      // Show confirmation dialog
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: tierProvider.primaryColor,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('Sign Out?'),
+                            ],
+                          ),
+                          content: const Text(
+                            'Are you sure you want to sign out?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: tierProvider.gradientColors,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Sign Out',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed == true) {
+                        await _authService.signOut();
+                        if (context.mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (context) => const Mainpage(),
+                            ),
+                            (Route<dynamic> route) => false,
+                          );
+                        }
                       }
                     },
                   ),
@@ -88,7 +159,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.notifications,
                     title: 'Notifications',
                     subtitle: 'Manage notifications',
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Coming soon!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('App Features'),
@@ -98,15 +176,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.people,
                     title: 'Friends',
                     subtitle: 'Manage friends & social features',
-                    onTap: () {},
-                  ),
-                  _buildListTile(
-                    context,
-                    tierProvider,
-                    icon: Icons.task_alt,
-                    title: 'Tasks',
-                    subtitle: 'Manage your tasks & habits',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FriendsListPage(),
+                        ),
+                      );
+                    },
                   ),
                   _buildListTile(
                     context,
@@ -131,7 +208,63 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.info_outline,
                     title: 'About',
                     subtitle: 'App version & info',
-                    onTap: () {},
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: tierProvider.gradientColors,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.info,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text('About'),
+                            ],
+                          ),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Task Manager App',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Version 1.0.0',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'A productivity app to manage your tasks with friends and track your achievements.',
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                   _buildListTile(
                     context,
@@ -139,7 +272,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
                     subtitle: 'Read our privacy policy',
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Coming soon!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
                   _buildListTile(
                     context,
@@ -147,7 +287,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.help_outline,
                     title: 'Help & Support',
                     subtitle: 'FAQs and support',
-                    onTap: () {},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Coming soon!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
                 ],
@@ -210,486 +357,6 @@ class _SettingsPageState extends State<SettingsPage> {
         onTap: onTap,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-
-  // Edit Username Dialog
-  void _showEditUsernameDialog(
-    BuildContext context,
-    TierThemeProvider tierProvider,
-  ) async {
-    final TextEditingController usernameController = TextEditingController();
-    bool isLoading = false;
-
-    final currentUsername = await _authService.getCurrentUsername();
-    usernameController.text = currentUsername;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: tierProvider.gradientColors
-                        .map((c) => c.withOpacity(0.2))
-                        .toList(),
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.person, color: tierProvider.primaryColor),
-              ),
-              const SizedBox(width: 12),
-              const Text('Edit Username'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Enter your new username',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  prefixIcon: Icon(
-                    Icons.person_outline,
-                    color: tierProvider.primaryColor,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: tierProvider.primaryColor,
-                      width: 2,
-                    ),
-                  ),
-                  labelStyle: TextStyle(color: tierProvider.primaryColor),
-                ),
-                enabled: !isLoading,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: tierProvider.gradientColors,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        final newUsername = usernameController.text.trim();
-
-                        if (newUsername.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Username cannot be empty'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        if (newUsername == currentUsername) {
-                          Navigator.pop(context);
-                          return;
-                        }
-
-                        setState(() => isLoading = true);
-
-                        try {
-                          await _authService.updateUsername(newUsername);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.check,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Text('Username updated successfully!'),
-                                  ],
-                                ),
-                                backgroundColor: tierProvider.primaryColor,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          setState(() => isLoading = false);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  e.toString().replaceAll('Exception: ', ''),
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text('Save'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Change Password Dialog
-  void _showChangePasswordDialog(
-    BuildContext context,
-    TierThemeProvider tierProvider,
-  ) {
-    final TextEditingController currentPasswordController =
-        TextEditingController();
-    final TextEditingController newPasswordController = TextEditingController();
-    final TextEditingController confirmPasswordController =
-        TextEditingController();
-    bool isLoading = false;
-    bool showCurrentPassword = false;
-    bool showNewPassword = false;
-    bool showConfirmPassword = false;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: tierProvider.gradientColors
-                        .map((c) => c.withOpacity(0.2))
-                        .toList(),
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.lock_outline,
-                  color: tierProvider.primaryColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text('Change Password'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'For your security, please enter your current password',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: currentPasswordController,
-                  obscureText: !showCurrentPassword,
-                  decoration: InputDecoration(
-                    labelText: 'Current Password',
-                    prefixIcon: Icon(
-                      Icons.lock_outline,
-                      color: tierProvider.primaryColor,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        showCurrentPassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: tierProvider.primaryColor,
-                      ),
-                      onPressed: () {
-                        setState(
-                          () => showCurrentPassword = !showCurrentPassword,
-                        );
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: tierProvider.primaryColor,
-                        width: 2,
-                      ),
-                    ),
-                    labelStyle: TextStyle(color: tierProvider.primaryColor),
-                  ),
-                  enabled: !isLoading,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: newPasswordController,
-                  obscureText: !showNewPassword,
-                  decoration: InputDecoration(
-                    labelText: 'New Password',
-                    prefixIcon: Icon(
-                      Icons.lock_reset,
-                      color: tierProvider.primaryColor,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        showNewPassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: tierProvider.primaryColor,
-                      ),
-                      onPressed: () {
-                        setState(() => showNewPassword = !showNewPassword);
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: tierProvider.primaryColor,
-                        width: 2,
-                      ),
-                    ),
-                    labelStyle: TextStyle(color: tierProvider.primaryColor),
-                  ),
-                  enabled: !isLoading,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: confirmPasswordController,
-                  obscureText: !showConfirmPassword,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm New Password',
-                    prefixIcon: Icon(
-                      Icons.check_circle_outline,
-                      color: tierProvider.primaryColor,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        showConfirmPassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: tierProvider.primaryColor,
-                      ),
-                      onPressed: () {
-                        setState(
-                          () => showConfirmPassword = !showConfirmPassword,
-                        );
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: tierProvider.primaryColor,
-                        width: 2,
-                      ),
-                    ),
-                    labelStyle: TextStyle(color: tierProvider.primaryColor),
-                  ),
-                  enabled: !isLoading,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: tierProvider.gradientColors,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        final currentPassword =
-                            currentPasswordController.text.trim();
-                        final newPassword = newPasswordController.text.trim();
-                        final confirmPassword =
-                            confirmPasswordController.text.trim();
-
-                        if (currentPassword.isEmpty ||
-                            newPassword.isEmpty ||
-                            confirmPassword.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('All fields are required'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        if (currentPassword == newPassword) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'New password must be different from current password',
-                              ),
-                              backgroundColor: Colors.orange,
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                          return;
-                        }
-
-                        if (newPassword != confirmPassword) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('New passwords do not match'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        if (newPassword.length < 6) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Password must be at least 6 characters',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        setState(() => isLoading = true);
-
-                        try {
-                          await _authService.changePassword(
-                            currentPassword,
-                            newPassword,
-                          );
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.check,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Text('Password changed successfully!'),
-                                  ],
-                                ),
-                                backgroundColor: tierProvider.primaryColor,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          setState(() => isLoading = false);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  e.toString().replaceAll('Exception: ', ''),
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text('Change Password'),
-              ),
-            ),
-          ],
         ),
       ),
     );
