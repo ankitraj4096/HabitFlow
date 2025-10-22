@@ -173,40 +173,175 @@ class _TodolistState extends State<Todolist> {
   }
 
   void _showResetDialog() {
+    final tierProvider = context.read<TierThemeProvider>();
+
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFFFA726)),
-            SizedBox(width: 8),
-            Text('Reset Timer?'),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to reset the timer? Water will drain and restart.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              widget.onTimerStop?.call();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF5350),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF3E5F5), Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: const Text('Reset', style: TextStyle(color: Colors.white)),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: tierProvider.glowColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon with gradient background
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: tierProvider.gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: tierProvider.glowColor.withOpacity(0.5),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.refresh_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Title
+              Text(
+                'Reset Timer?',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: tierProvider.primaryColor,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Concise description
+              Text(
+                'All progress will be lost.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+              ),
+
+              const SizedBox(height: 28),
+
+              // Action buttons
+              Row(
+                children: [
+                  // Cancel button
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Reset button with gradient from tierProvider
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: tierProvider.gradientColors,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: tierProvider.glowColor.withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          widget.onTimerStop?.call();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.refresh_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Reset',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -246,8 +381,8 @@ class _TodolistState extends State<Todolist> {
               color: widget.IsChecked
                   ? tierProvider.primaryColor.withOpacity(0.3)
                   : widget.isSynced
-                      ? Colors.grey.withOpacity(0.2)
-                      : Colors.orange.withOpacity(0.4),
+                  ? Colors.grey.withOpacity(0.2)
+                  : Colors.orange.withOpacity(0.4),
               width: 1.5,
             ),
             boxShadow: [
@@ -344,8 +479,9 @@ class _TodolistState extends State<Todolist> {
                                   boxShadow: [
                                     BoxShadow(
                                       color: widget.IsChecked
-                                          ? tierProvider.glowColor
-                                              .withOpacity(0.3)
+                                          ? tierProvider.glowColor.withOpacity(
+                                              0.3,
+                                            )
                                           : Colors.black.withOpacity(0.12),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
@@ -377,14 +513,17 @@ class _TodolistState extends State<Todolist> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color:
-                                                Colors.white.withOpacity(0.95),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            color: Colors.white.withOpacity(
+                                              0.95,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black
-                                                    .withOpacity(0.08),
+                                                color: Colors.black.withOpacity(
+                                                  0.08,
+                                                ),
                                                 blurRadius: 4,
                                                 offset: const Offset(0, 2),
                                               ),
@@ -422,8 +561,9 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white
-                                                  .withOpacity(0.95),
+                                              color: Colors.white.withOpacity(
+                                                0.95,
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               boxShadow: [
@@ -441,8 +581,8 @@ class _TodolistState extends State<Todolist> {
                                                 Icon(
                                                   Icons.person,
                                                   size: 11,
-                                                  color: tierProvider
-                                                      .primaryColor,
+                                                  color:
+                                                      tierProvider.primaryColor,
                                                 ),
                                                 const SizedBox(width: 3),
                                                 Text(
@@ -473,8 +613,9 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white
-                                                  .withOpacity(0.95),
+                                              color: Colors.white.withOpacity(
+                                                0.95,
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               boxShadow: [
@@ -492,8 +633,8 @@ class _TodolistState extends State<Todolist> {
                                                 Icon(
                                                   Icons.check_circle,
                                                   size: 10,
-                                                  color: tierProvider
-                                                      .primaryColor,
+                                                  color:
+                                                      tierProvider.primaryColor,
                                                 ),
                                                 const SizedBox(width: 3),
                                                 Text(
@@ -533,8 +674,9 @@ class _TodolistState extends State<Todolist> {
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withOpacity(0.08),
+                                            color: Colors.black.withOpacity(
+                                              0.08,
+                                            ),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
@@ -550,8 +692,8 @@ class _TodolistState extends State<Todolist> {
                                               strokeWidth: 1,
                                               valueColor:
                                                   AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
+                                                    Colors.white,
+                                                  ),
                                             ),
                                           ),
                                           SizedBox(width: 3),
@@ -580,8 +722,9 @@ class _TodolistState extends State<Todolist> {
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withOpacity(0.08),
+                                            color: Colors.black.withOpacity(
+                                              0.08,
+                                            ),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
