@@ -7,12 +7,14 @@ class ChatBubble extends StatelessWidget {
   final String message;
   final bool isCurrentUser;
   final DateTime timestamp;
+  final bool isRead; // ✅ NEW: Pass isRead status
   
   const ChatBubble({
     super.key,
     required this.isCurrentUser,
     required this.message,
     required this.timestamp,
+    this.isRead = false, // ✅ NEW: Default to false
   });
 
   String _formatTime(DateTime dateTime) {
@@ -84,7 +86,7 @@ class ChatBubble extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  // Timestamp at bottom right
+                  // Timestamp at bottom right with read receipt
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -98,13 +100,15 @@ class ChatBubble extends StatelessWidget {
                               : Colors.grey.shade600,
                         ),
                       ),
-                      // Optional: Add checkmark for sent messages
+                      // ✅ Show checkmark only for current user's messages
                       if (isCurrentUser) ...[
                         const SizedBox(width: 4),
                         Icon(
                           Icons.done_all,
                           size: 14,
-                          color: Colors.white.withOpacity(0.8),
+                          color: isRead 
+                              ? const Color(0xFF4FC3F7) // ✅ Blue for read
+                              : Colors.white.withOpacity(0.6), // ✅ White for sent
                         ),
                       ],
                     ],

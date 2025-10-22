@@ -30,14 +30,33 @@ class _ChatPageState extends State<ChatPage> {
   final AuthService _authService = AuthService();
   final ScrollController _scrollController = ScrollController();
 
+  int _previousMessageCount = 0;
+  bool _isUserScrolling = false; // ✅ Track if user is manually scrolling
+
   @override
   void initState() {
     super.initState();
     _markMessagesAsRead();
+
+    // ✅ Better scroll listener - doesn't call setState unnecessarily
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    
+    // User is at bottom if scroll position is near 0 (because reverse: true)
+    final isAtBottom = _scrollController.position.pixels <= 100;
+    
+    // Only update state if the value actually changed
+    if (_isUserScrolling == isAtBottom) {
+      _isUserScrolling = !isAtBottom;
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -56,7 +75,7 @@ class _ChatPageState extends State<ChatPage> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        0, // Because reverse: true, 0 is bottom
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -70,8 +89,8 @@ class _ChatPageState extends State<ChatPage> {
         _messageController.text,
       );
       _messageController.clear();
-      
-      // Scroll to bottom after sending message
+
+      // Always scroll to bottom when sending
       Future.delayed(const Duration(milliseconds: 100), () {
         _scrollToBottom();
       });
@@ -195,10 +214,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Column(
         children: [
-          Divider(
-            height: 1,
-            color: tierProvider.primaryColor.withOpacity(0.1),
-          ),
+          Divider(height: 1, color: tierProvider.primaryColor.withOpacity(0.1)),
           Expanded(child: _buildMessageList(tierProvider)),
           _buildUserInput(tierProvider),
         ],
@@ -264,10 +280,7 @@ class _ChatPageState extends State<ChatPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Send a message to start chatting',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -275,30 +288,38 @@ class _ChatPageState extends State<ChatPage> {
         }
 
         final docs = snapshot.data!.docs;
-        
-        // Scroll to bottom when new messages arrive
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToBottom();
-        });
+        final currentMessageCount = docs.length;
+
+        // ✅ Only auto-scroll if:
+        // 1. New message arrived AND
+        // 2. User is NOT manually scrolling up
+        if (currentMessageCount > _previousMessageCount && !_isUserScrolling) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        }
+        _previousMessageCount = currentMessageCount;
 
         return ListView.builder(
           controller: _scrollController,
+          reverse: true, // Newest at bottom
           padding: const EdgeInsets.symmetric(vertical: 10),
+          physics: const AlwaysScrollableScrollPhysics(), // ✅ Allow manual scroll
           itemCount: docs.length,
           itemBuilder: (context, index) {
-            final doc = docs[index];
+            final reverseIndex = docs.length - 1 - index;
+            final doc = docs[reverseIndex];
             final data = doc.data() as Map<String, dynamic>;
-            
-            // Check if we need to show a date separator
+
             bool showDateSeparator = false;
-            if (index == 0) {
+            if (reverseIndex == 0) {
               showDateSeparator = true;
             } else {
-              final prevDoc = docs[index - 1];
+              final prevDoc = docs[reverseIndex - 1];
               final prevData = prevDoc.data() as Map<String, dynamic>;
               final currentDate = (data['timestamp'] as Timestamp).toDate();
               final prevDate = (prevData['timestamp'] as Timestamp).toDate();
-              
+
               if (!_isSameDay(currentDate, prevDate)) {
                 showDateSeparator = true;
               }
@@ -329,7 +350,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget _buildDateSeparator(DateTime date, TierThemeProvider tierProvider) {
     final now = DateTime.now();
     final yesterday = DateTime(now.year, now.month, now.day - 1);
-    
+
     String dateText;
     if (_isSameDay(date, now)) {
       dateText = 'Today';
@@ -343,12 +364,7 @@ class _ChatPageState extends State<ChatPage> {
       margin: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          Expanded(
-            child: Divider(
-              color: Colors.grey.shade300,
-              thickness: 1,
-            ),
-          ),
+          Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
@@ -367,12 +383,7 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
           ),
-          Expanded(
-            child: Divider(
-              color: Colors.grey.shade300,
-              thickness: 1,
-            ),
-          ),
+          Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
         ],
       ),
     );
@@ -385,11 +396,13 @@ class _ChatPageState extends State<ChatPage> {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     bool isCurrentUser = data["senderID"] == _authService.getCurrentUser()!.uid;
     final timestamp = (data['timestamp'] as Timestamp).toDate();
-    
+    final isRead = data['isRead'] ?? false;
+
     return ChatBubble(
       isCurrentUser: isCurrentUser,
       message: data["message"],
       timestamp: timestamp,
+      isRead: isRead,
     );
   }
 
@@ -429,17 +442,8 @@ class _ChatPageState extends State<ChatPage> {
                       horizontal: 20,
                       vertical: 12,
                     ),
-                    suffixIcon: _messageController.text.isNotEmpty
-                        ? null
-                        : Icon(
-                            Icons.emoji_emotions_outlined,
-                            color: tierProvider.primaryColor.withOpacity(0.5),
-                          ),
                   ),
                   maxLines: null,
-                  onChanged: (value) {
-                    setState(() {});
-                  },
                 ),
               ),
             ),
