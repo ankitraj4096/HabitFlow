@@ -192,7 +192,7 @@ class _TodolistState extends State<Todolist> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.glowColor.withOpacity(0.3),
+                color: tierProvider.glowColor.withValues(alpha:0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -213,7 +213,7 @@ class _TodolistState extends State<Todolist> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: tierProvider.glowColor.withOpacity(0.5),
+                      color: tierProvider.glowColor.withValues(alpha:0.5),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -296,7 +296,7 @@ class _TodolistState extends State<Todolist> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: tierProvider.glowColor.withOpacity(0.4),
+                            color: tierProvider.glowColor.withValues(alpha:0.4),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -376,7 +376,7 @@ class _TodolistState extends State<Todolist> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: tierProvider.glowColor.withOpacity(0.4),
+                          color: tierProvider.glowColor.withValues(alpha:0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -388,7 +388,7 @@ class _TodolistState extends State<Todolist> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha:0.2),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -432,7 +432,7 @@ class _TodolistState extends State<Todolist> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFEF5350).withOpacity(0.4),
+                          color: const Color(0xFFEF5350).withValues(alpha:0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -444,7 +444,7 @@ class _TodolistState extends State<Todolist> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha:0.2),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -478,17 +478,17 @@ class _TodolistState extends State<Todolist> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: widget.IsChecked
-                  ? tierProvider.primaryColor.withOpacity(0.3)
+                  ? tierProvider.primaryColor.withValues(alpha:0.3)
                   : widget.isSynced
-                  ? Colors.grey.withOpacity(0.2)
-                  : Colors.orange.withOpacity(0.4),
+                  ? Colors.grey.withValues(alpha:0.2)
+                  : Colors.orange.withValues(alpha:0.4),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
                 color: widget.IsChecked
-                    ? tierProvider.glowColor.withOpacity(0.15)
-                    : Colors.black.withOpacity(0.08),
+                    ? tierProvider.glowColor.withValues(alpha:0.15)
+                    : Colors.black.withValues(alpha:0.08),
                 offset: const Offset(0, 4),
                 blurRadius: 12,
                 spreadRadius: 0,
@@ -518,8 +518,8 @@ class _TodolistState extends State<Todolist> {
                         gradient: LinearGradient(
                           colors: widget.IsChecked
                               ? [
-                                  tierProvider.primaryColor.withOpacity(0.15),
-                                  tierProvider.glowColor.withOpacity(0.1),
+                                  tierProvider.primaryColor.withValues(alpha:0.15),
+                                  tierProvider.glowColor.withValues(alpha:0.1),
                                 ]
                               : [Colors.white, const Color(0xFFFAFAFA)],
                           begin: Alignment.topLeft,
@@ -580,10 +580,10 @@ class _TodolistState extends State<Todolist> {
                                   boxShadow: [
                                     BoxShadow(
                                       color: widget.IsChecked
-                                          ? tierProvider.glowColor.withOpacity(
+                                          ? tierProvider.glowColor.withValues(alpha:
                                               0.3,
                                             )
-                                          : Colors.black.withOpacity(0.12),
+                                          : Colors.black.withValues(alpha:0.12),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -614,7 +614,7 @@ class _TodolistState extends State<Todolist> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(
+                                            color: Colors.white.withValues(alpha:
                                               0.95,
                                             ),
                                             borderRadius: BorderRadius.circular(
@@ -622,7 +622,7 @@ class _TodolistState extends State<Todolist> {
                                             ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withOpacity(
+                                                color: Colors.black.withValues(alpha:
                                                   0.08,
                                                 ),
                                                 blurRadius: 4,
@@ -662,7 +662,7 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
+                                              color: Colors.white.withValues(alpha:
                                                 0.95,
                                               ),
                                               borderRadius:
@@ -670,7 +670,7 @@ class _TodolistState extends State<Todolist> {
                                               boxShadow: [
                                                 BoxShadow(
                                                   color: Colors.black
-                                                      .withOpacity(0.08),
+                                                      .withValues(alpha:0.08),
                                                   blurRadius: 3,
                                                   offset: const Offset(0, 1),
                                                 ),
@@ -714,7 +714,7 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
+                                              color: Colors.white.withValues(alpha:
                                                 0.95,
                                               ),
                                               borderRadius:
@@ -722,7 +722,7 @@ class _TodolistState extends State<Todolist> {
                                               boxShadow: [
                                                 BoxShadow(
                                                   color: Colors.black
-                                                      .withOpacity(0.08),
+                                                      .withValues(alpha:0.08),
                                                   blurRadius: 3,
                                                   offset: const Offset(0, 1),
                                                 ),
@@ -771,11 +771,11 @@ class _TodolistState extends State<Todolist> {
                                         vertical: 3,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.96),
+                                        color: Colors.orange.withValues(alpha:0.96),
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(
+                                            color: Colors.black.withValues(alpha:
                                               0.08,
                                             ),
                                             blurRadius: 3,
@@ -819,11 +819,11 @@ class _TodolistState extends State<Todolist> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: tierProvider.primaryColor
-                                            .withOpacity(0.96),
+                                            .withValues(alpha:0.96),
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(
+                                            color: Colors.black.withValues(alpha:
                                               0.08,
                                             ),
                                             blurRadius: 3,
@@ -870,11 +870,11 @@ class _TodolistState extends State<Todolist> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.95),
+                                    color: Colors.white.withValues(alpha:0.95),
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.08),
+                                        color: Colors.black.withValues(alpha:0.08),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -989,7 +989,7 @@ class _TodolistState extends State<Todolist> {
               ? []
               : [
                   BoxShadow(
-                    color: color.withOpacity(0.3),
+                    color: color.withValues(alpha:0.3),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),

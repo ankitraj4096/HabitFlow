@@ -31,7 +31,7 @@ class HeatMapPage extends StatelessWidget {
           heatMapDataset[date] = count;
         }
       } catch (e) {
-        print('Error parsing date: $dateStr');
+        debugPrint('Error parsing date: $dateStr'); // ✅ FIXED - Changed from print() to debugPrint()
       }
     });
 
