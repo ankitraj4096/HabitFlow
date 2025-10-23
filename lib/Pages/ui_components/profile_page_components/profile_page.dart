@@ -16,7 +16,7 @@ class ProfilePage extends StatefulWidget {
   final bool isOwnProfile;
 
   const ProfilePage({super.key, this.viewingUserID, this.viewingUsername})
-    : isOwnProfile = viewingUserID == null;
+      : isOwnProfile = viewingUserID == null;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -75,7 +75,7 @@ class _ProfilePageState extends State<ProfilePage>
         widget.viewingUserID!,
       );
 
-      // ✅ NEW: Fetch friend's lifetime completed tasks count
+      // Fetch friend's lifetime completed tasks count
       int friendLifetimeCount = 0;
       try {
         final friendUserDoc = await FirebaseFirestore.instance
@@ -89,7 +89,7 @@ class _ProfilePageState extends State<ProfilePage>
         debugPrint('Error fetching friend lifetime count: $e');
       }
 
-      // ✅ FIXED: Use lifetime count for tier calculation
+      // Use lifetime count for tier calculation
       final tier = _firestoreService.getUserTier(
         friendLifetimeCount > 0 ? friendLifetimeCount : stats['completedTasks'],
       );
@@ -105,8 +105,7 @@ class _ProfilePageState extends State<ProfilePage>
 
           viewedUserGlowColor =
               tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
-          viewedUserGradient =
-              (tier['gradient'] as List<dynamic>?)
+          viewedUserGradient = (tier['gradient'] as List<dynamic>?)
                   ?.map((e) => e as Color)
                   .toList() ??
               [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
@@ -126,43 +125,35 @@ class _ProfilePageState extends State<ProfilePage>
     final tierProvider = context.watch<TierThemeProvider>();
 
     // For own profile, use provider data
-    final statsProvider = widget.isOwnProfile
-        ? context.watch<UserStatsProvider>()
-        : null;
+    final statsProvider =
+        widget.isOwnProfile ? context.watch<UserStatsProvider>() : null;
 
     // Decide which data to use
-    final username = widget.isOwnProfile
-        ? statsProvider!.username
-        : friendUsername;
+    final username =
+        widget.isOwnProfile ? statsProvider!.username : friendUsername;
     final currentStreak = widget.isOwnProfile
         ? statsProvider!.currentStreak
         : friendCurrentStreak;
-    final totalTasks = widget.isOwnProfile
-        ? statsProvider!.totalTasks
-        : friendTotalTasks;
+    final totalTasks =
+        widget.isOwnProfile ? statsProvider!.totalTasks : friendTotalTasks;
     final completedTasks = widget.isOwnProfile
         ? statsProvider!.completedTasks
         : friendCompletedTasks;
-    final totalHours = widget.isOwnProfile
-        ? statsProvider!.totalHours
-        : friendTotalHours;
-    final userTier = widget.isOwnProfile
-        ? statsProvider!.userTier
-        : friendUserTier;
-    final isLoading = widget.isOwnProfile
-        ? statsProvider!.isLoading
-        : isFriendLoading;
+    final totalHours =
+        widget.isOwnProfile ? statsProvider!.totalHours : friendTotalHours;
+    final userTier =
+        widget.isOwnProfile ? statsProvider!.userTier : friendUserTier;
+    final isLoading =
+        widget.isOwnProfile ? statsProvider!.isLoading : isFriendLoading;
 
     // Decide which colors to use
     final displayGradient = widget.isOwnProfile
         ? tierProvider.gradientColors
         : viewedUserGradient;
-    final displayGlowColor = widget.isOwnProfile
-        ? tierProvider.glowColor
-        : viewedUserGlowColor;
-    final displayPrimaryColor = widget.isOwnProfile
-        ? tierProvider.primaryColor
-        : viewedUserGlowColor;
+    final displayGlowColor =
+        widget.isOwnProfile ? tierProvider.glowColor : viewedUserGlowColor;
+    final displayPrimaryColor =
+        widget.isOwnProfile ? tierProvider.primaryColor : viewedUserGlowColor;
 
     return Scaffold(
       body: Container(
@@ -573,9 +564,8 @@ class _ProfilePageState extends State<ProfilePage>
                   context,
                   MaterialPageRoute(
                     builder: (context) => FriendsListPage(
-                      viewingUserID: widget.isOwnProfile
-                          ? null
-                          : widget.viewingUserID,
+                      viewingUserID:
+                          widget.isOwnProfile ? null : widget.viewingUserID,
                       viewingUsername: widget.isOwnProfile
                           ? null
                           : widget.viewingUsername,
@@ -691,9 +681,10 @@ class _ProfilePageState extends State<ProfilePage>
             ? Consumer<UserStatsProvider>(
                 builder: (context, statsProvider, child) {
                   final heatmapData = statsProvider.heatmapData;
+                  // ✅ FIXED: Renamed 'sum' to 'total'
                   final totalCompletions = heatmapData.values.fold(
                     0,
-                    (sum, count) => sum + count,
+                    (total, value) => total + value,
                   );
 
                   return Column(
@@ -806,9 +797,10 @@ class _ProfilePageState extends State<ProfilePage>
                     );
                   }
                   final heatmapData = snap.data!;
+                  // ✅ FIXED: Renamed 'sum' to 'total'
                   final totalCompletions = heatmapData.values.fold(
                     0,
-                    (sum, count) => sum + count,
+                    (total, value) => total + value,
                   );
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
