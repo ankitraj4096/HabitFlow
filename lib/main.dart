@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/firebase_options.dart';
-import 'package:demo/services/cleanUpService.dart';
-import 'package:demo/services/notes/userStatsProvider.dart';
+import 'package:demo/services/clean_up_service.dart';
+import 'package:demo/services/notes/user_stats_provider.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';

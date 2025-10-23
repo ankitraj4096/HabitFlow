@@ -1,9 +1,9 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
 import 'package:demo/Pages/ui_components/friend_components/friendListsPage.dart';
-import 'package:demo/Pages/ui_components/profile_page_components/aboutPage.dart';
-import 'package:demo/Pages/ui_components/profile_page_components/changePasswordPage.dart';
-import 'package:demo/Pages/ui_components/profile_page_components/editUsernamePage.dart';
-import 'package:demo/Pages/ui_components/profile_page_components/themeSelectionPage.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/about_page.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/change_password_page.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/edit_username_page.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/theme_selection_page.dart';
 import 'package:demo/component/achievements.dart';
 import 'package:demo/component/custom_toast.dart';
 import 'package:demo/services/auth/auth_service.dart';
@@ -310,7 +310,7 @@ class _SettingsPageState extends State<SettingsPage> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: tierProvider.gradientColors
-                  .map((c) => c.withOpacity(0.15))
+                  .map((c) => c.withValues(alpha: 0.15))
                   .toList(),
             ),
             borderRadius: BorderRadius.circular(10),

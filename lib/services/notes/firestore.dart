@@ -54,7 +54,7 @@ class FireStoreService {
       final docRef = await _userNotes.add(taskData);
       return docRef.id;
     } catch (e) {
-      print('Error adding task to Firebase: $e');
+      debugPrint('Error adding task to Firebase: $e');
       return null;
     }
   }
@@ -105,7 +105,7 @@ class FireStoreService {
 
       return docRef.id;
     } catch (e) {
-      print('Error assigning task to friend: $e');
+      debugPrint('Error assigning task to friend: $e');
       return null;
     }
   }
@@ -118,7 +118,7 @@ class FireStoreService {
           .snapshots()
           .map((snapshot) => snapshot.docs.length);
     } catch (e) {
-      print('Error getting pending task requests count: $e');
+      debugPrint('Error getting pending task requests count: $e');
       return Stream.value(0);
     }
   }
@@ -128,7 +128,7 @@ class FireStoreService {
     try {
       return _userNotes.where('status', isEqualTo: 'pending').snapshots();
     } catch (e) {
-      print('Error getting pending task requests: $e');
+      debugPrint('Error getting pending task requests: $e');
       return Stream.empty();
     }
   }
@@ -141,7 +141,7 @@ class FireStoreService {
         'lastUpdated': Timestamp.now(),
       });
     } catch (e) {
-      print('Error accepting task request: $e');
+      debugPrint('Error accepting task request: $e');
       rethrow;
     }
   }
@@ -151,7 +151,7 @@ class FireStoreService {
     try {
       await _userNotes.doc(docID).delete();
     } catch (e) {
-      print('Error declining task request: $e');
+      debugPrint('Error declining task request: $e');
       rethrow;
     }
   }
@@ -161,7 +161,7 @@ class FireStoreService {
     try {
       return _userNotes.orderBy('timestamp', descending: false).snapshots();
     } catch (e) {
-      print('Error getting tasks stream: $e');
+      debugPrint('Error getting tasks stream: $e');
       return Stream.empty();
     }
   }
@@ -177,7 +177,7 @@ class FireStoreService {
           .orderBy('timestamp', descending: false)
           .snapshots();
     } catch (e) {
-      print('Error getting tasks stream for user: $e');
+      debugPrint('Error getting tasks stream for user: $e');
       return Stream.empty();
     }
   }
@@ -211,7 +211,7 @@ class FireStoreService {
 
       await _userNotes.doc(docID).update(updateData);
     } catch (e) {
-      print('Error updating task in Firebase: $e');
+      debugPrint('Error updating task in Firebase: $e');
       rethrow;
     }
   }
@@ -221,12 +221,11 @@ class FireStoreService {
     try {
       await _userNotes.doc(docID).delete();
     } catch (e) {
-      print('Error deleting task from Firebase: $e');
+      debugPrint('Error deleting task from Firebase: $e');
       rethrow;
     }
   }
 
-  /// Toggle task completion status
   /// Toggle task completion status - UPDATE to increment lifetime counter
   Future<void> toggleCompletion(String docID, bool currentStatus) async {
     try {
@@ -271,7 +270,7 @@ class FireStoreService {
 
       await _userNotes.doc(docID).update(updateData);
     } catch (e) {
-      print('Error toggling completion in Firebase: $e');
+      debugPrint('Error toggling completion in Firebase: $e');
       rethrow;
     }
   }
@@ -286,7 +285,7 @@ class FireStoreService {
         'lastUpdated': Timestamp.now(),
       });
     } catch (e) {
-      print('Error starting timer in Firebase: $e');
+      debugPrint('Error starting timer in Firebase: $e');
       rethrow;
     }
   }
@@ -302,7 +301,7 @@ class FireStoreService {
         'lastUpdated': Timestamp.now(),
       });
     } catch (e) {
-      print('Error pausing timer in Firebase: $e');
+      debugPrint('Error pausing timer in Firebase: $e');
       rethrow;
     }
   }
@@ -318,7 +317,7 @@ class FireStoreService {
         'lastUpdated': Timestamp.now(),
       });
     } catch (e) {
-      print('Error stopping timer in Firebase: $e');
+      debugPrint('Error stopping timer in Firebase: $e');
       rethrow;
     }
   }
@@ -363,7 +362,7 @@ class FireStoreService {
         'completionsByDate': completionsByDate,
       };
     } catch (e) {
-      print('Error getting user statistics: $e');
+      debugPrint('Error getting user statistics: $e');
       return {
         'totalTasks': 0,
         'completedTasks': 0,
@@ -428,7 +427,7 @@ class FireStoreService {
           .get();
       return userDoc.data()?['username'] ?? 'User';
     } catch (e) {
-      print('Error getting username: $e');
+      debugPrint('Error getting username: $e');
       return 'User';
     }
   }
@@ -441,8 +440,8 @@ class FireStoreService {
         "completedTasks": 0,
         "icon": "circle",
         "gradient": [
-          const Color(0xFF64748B), // Slate blue
-          const Color(0xFF334155), // Deep slate
+          const Color(0xFF64748B),
+          const Color(0xFF334155),
         ],
         "glow": const Color(0xFF94A3B8),
       },
@@ -452,10 +451,10 @@ class FireStoreService {
         "completedTasks": 10,
         "icon": "sunrise",
         "gradient": [
-          const Color(0xFF667eea), // Purple blue (from login page)
-          const Color(0xFF764ba2), // Deep purple (from login page)
+          const Color(0xFF667eea),
+          const Color(0xFF764ba2),
         ],
-        "glow": const Color(0xFFf093fb), // Pink glow
+        "glow": const Color(0xFFf093fb),
       },
       {
         "id": 3,
@@ -463,8 +462,8 @@ class FireStoreService {
         "completedTasks": 50,
         "icon": "target",
         "gradient": [
-          const Color(0xFFCD7F32), // Bronze
-          const Color(0xFFB87333), // Copper
+          const Color(0xFFCD7F32),
+          const Color(0xFFB87333),
         ],
         "glow": const Color(0xFFD4A574),
       },
@@ -474,8 +473,8 @@ class FireStoreService {
         "completedTasks": 100,
         "icon": "book",
         "gradient": [
-          const Color(0xFF10B981), // Emerald green
-          const Color(0xFF059669), // Deep emerald
+          const Color(0xFF10B981),
+          const Color(0xFF059669),
         ],
         "glow": const Color(0xFF34D399),
       },
@@ -485,8 +484,8 @@ class FireStoreService {
         "completedTasks": 250,
         "icon": "hammer",
         "gradient": [
-          const Color(0xFFF59E0B), // Rich amber
-          const Color(0xFFD97706), // Deep amber
+          const Color(0xFFF59E0B),
+          const Color(0xFFD97706),
         ],
         "glow": const Color(0xFFFBBF24),
       },
@@ -496,8 +495,8 @@ class FireStoreService {
         "completedTasks": 500,
         "icon": "zap",
         "gradient": [
-          const Color(0xFFF97316), // Vibrant orange
-          const Color(0xFFEA580C), // Deep orange
+          const Color(0xFFF97316),
+          const Color(0xFFEA580C),
         ],
         "glow": const Color(0xFFFB923C),
       },
@@ -507,8 +506,8 @@ class FireStoreService {
         "completedTasks": 1000,
         "icon": "shield",
         "gradient": [
-          const Color(0xFF8B5CF6), // Rich purple
-          const Color(0xFF6D28D9), // Deep purple
+          const Color(0xFF8B5CF6),
+          const Color(0xFF6D28D9),
         ],
         "glow": const Color(0xFFA78BFA),
       },
@@ -518,8 +517,8 @@ class FireStoreService {
         "completedTasks": 2500,
         "icon": "award",
         "gradient": [
-          const Color(0xFFEC4899), // Hot pink
-          const Color(0xFFDB2777), // Deep pink
+          const Color(0xFFEC4899),
+          const Color(0xFFDB2777),
         ],
         "glow": const Color(0xFFF472B6),
       },
@@ -529,8 +528,8 @@ class FireStoreService {
         "completedTasks": 5000,
         "icon": "crown",
         "gradient": [
-          const Color(0xFF6366F1), // Indigo
-          const Color(0xFF4F46E5), // Deep indigo
+          const Color(0xFF6366F1),
+          const Color(0xFF4F46E5),
         ],
         "glow": const Color(0xFF818CF8),
       },
@@ -540,8 +539,8 @@ class FireStoreService {
         "completedTasks": 10000,
         "icon": "flame",
         "gradient": [
-          const Color(0xFFEF4444), // Bold red
-          const Color(0xFFDC2626), // Deep red
+          const Color(0xFFEF4444),
+          const Color(0xFFDC2626),
         ],
         "glow": const Color(0xFFF87171),
       },
@@ -551,8 +550,8 @@ class FireStoreService {
         "completedTasks": 15000,
         "icon": "eye",
         "gradient": [
-          const Color(0xFF06B6D4), // Cyan
-          const Color(0xFF0891B2), // Deep cyan
+          const Color(0xFF06B6D4),
+          const Color(0xFF0891B2),
         ],
         "glow": const Color(0xFF22D3EE),
       },
@@ -562,8 +561,8 @@ class FireStoreService {
         "completedTasks": 25000,
         "icon": "music",
         "gradient": [
-          const Color(0xFF14B8A6), // Teal
-          const Color(0xFF0D9488), // Deep teal
+          const Color(0xFF14B8A6),
+          const Color(0xFF0D9488),
         ],
         "glow": const Color(0xFF2DD4BF),
       },
@@ -573,8 +572,8 @@ class FireStoreService {
         "completedTasks": 40000,
         "icon": "trophy",
         "gradient": [
-          const Color(0xFFEAB308), // Gold
-          const Color(0xFFCA8A04), // Deep gold
+          const Color(0xFFEAB308),
+          const Color(0xFFCA8A04),
         ],
         "glow": const Color(0xFFFACC15),
       },
@@ -584,8 +583,8 @@ class FireStoreService {
         "completedTasks": 60000,
         "icon": "gem",
         "gradient": [
-          const Color(0xFF22C55E), // Lime green
-          const Color(0xFF16A34A), // Deep lime
+          const Color(0xFF22C55E),
+          const Color(0xFF16A34A),
         ],
         "glow": const Color(0xFF4ADE80),
       },
@@ -595,8 +594,8 @@ class FireStoreService {
         "completedTasks": 75000,
         "icon": "mountain",
         "gradient": [
-          const Color(0xFF3B82F6), // Vibrant blue
-          const Color(0xFF1E40AF), // Deep blue
+          const Color(0xFF3B82F6),
+          const Color(0xFF1E40AF),
         ],
         "glow": const Color(0xFF60A5FA),
       },
@@ -606,9 +605,9 @@ class FireStoreService {
         "completedTasks": 90000,
         "icon": "sun",
         "gradient": [
-          const Color(0xFFFFD700), // Pure gold
-          const Color(0xFFB8860B), // Dark goldenrod
-          const Color(0xFF8B6914), // Deep bronze gold
+          const Color(0xFFFFD700),
+          const Color(0xFFB8860B),
+          const Color(0xFF8B6914),
         ],
         "glow": const Color(0xFFDAA520),
         "animated": true,
@@ -619,10 +618,10 @@ class FireStoreService {
         "completedTasks": 100000,
         "icon": "infinity",
         "gradient": [
-          const Color(0xFF1A1A2E), // Deep navy
-          const Color(0xFF16213E), // Midnight blue
-          const Color(0xFF0F3460), // Dark blue
-          const Color(0xFF533483), // Deep purple
+          const Color(0xFF1A1A2E),
+          const Color(0xFF16213E),
+          const Color(0xFF0F3460),
+          const Color(0xFF533483),
         ],
         "glow": const Color(0xFF4A5568),
         "animated": true,
@@ -712,7 +711,7 @@ class FireStoreService {
         'completionsByDate': completionsByDate,
       };
     } catch (e) {
-      print('Error getting user statistics: $e');
+      debugPrint('Error getting user statistics: $e');
       return {
         'totalTasks': 0,
         'completedTasks': 0,

@@ -124,7 +124,7 @@ class UserStatsProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error calculating stats: $e');
+      debugPrint('Error calculating stats: $e');
       isLoading = false;
       notifyListeners();
     }
@@ -167,7 +167,7 @@ class UserStatsProvider extends ChangeNotifier {
       
       _calculateStats(snapshot);
     } catch (e) {
-      print('Error refreshing stats: $e');
+      debugPrint('Error refreshing stats: $e');
       isLoading = false;
       notifyListeners();
     }

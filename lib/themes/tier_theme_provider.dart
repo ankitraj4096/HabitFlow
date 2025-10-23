@@ -82,7 +82,7 @@ class TierThemeProvider extends ChangeNotifier {
           userDoc.data() == null ||
           !userDoc.data()!.containsKey('lifetimeCompletedTasks')) {
         // Initialize for existing users
-        print('Initializing lifetimeCompletedTasks for existing user');
+        debugPrint('Initializing lifetimeCompletedTasks for existing user');
         final stats = await _firestoreService.getUserStatistics();
         final completedTasks = stats['completedTasks'] ?? 0;
 
@@ -100,7 +100,7 @@ class TierThemeProvider extends ChangeNotifier {
       // Start listening to task changes in real-time
       _startListeningToTasks(user.uid);
     } catch (e) {
-      print('Error initializing tier theme: $e');
+      debugPrint('Error initializing tier theme: $e');
       _setDefaultTheme();
     } finally {
       _isLoading = false;
@@ -135,7 +135,7 @@ class TierThemeProvider extends ChangeNotifier {
 
                     _updateTierFromCount(completedTasks);
                   } catch (e) {
-                    print('Error initializing lifetimeCompletedTasks: $e');
+                    debugPrint('Error initializing lifetimeCompletedTasks: $e');
                     _updateTierFromCount(0);
                   }
                 } else {
@@ -151,7 +151,7 @@ class TierThemeProvider extends ChangeNotifier {
             }
           },
           onError: (error) {
-            print('Error listening to user doc: $error');
+            debugPrint('Error listening to user doc: $error');
             _setDefaultTheme();
             _isLoading = false;
             notifyListeners();
@@ -174,7 +174,7 @@ class TierThemeProvider extends ChangeNotifier {
             _onTasksChanged(snapshot);
           },
           onError: (error) {
-            print('Error listening to tasks: $error');
+            debugPrint('Error listening to tasks: $error');
           },
         );
   }
@@ -192,7 +192,7 @@ class TierThemeProvider extends ChangeNotifier {
 
     // Only update if completed tasks count changed
     if (completedTasks != _lastCompletedTasksCount) {
-      print('Tasks completed: $_lastCompletedTasksCount → $completedTasks');
+      debugPrint('Tasks completed: $_lastCompletedTasksCount → $completedTasks');
       _lastCompletedTasksCount = completedTasks;
     }
   }
@@ -205,7 +205,7 @@ class TierThemeProvider extends ChangeNotifier {
 
     // Only update if tier actually changed
     if (oldTierId != newTierId) {
-      print('🎉 Tier upgraded: $oldTierId → $newTierId');
+      debugPrint('🎉 Tier upgraded: $oldTierId → $newTierId');
       _userTier = newTier;
       _extractTierTheme();
       notifyListeners();
@@ -235,7 +235,7 @@ class TierThemeProvider extends ChangeNotifier {
       _extractTierTheme();
       notifyListeners();
     } catch (e) {
-      print('Error refreshing tier theme: $e');
+      debugPrint('Error refreshing tier theme: $e');
     }
   }
 
@@ -267,7 +267,7 @@ class TierThemeProvider extends ChangeNotifier {
       _primaryColor = _gradientColors.first;
     } else if (color != null) {
       // Use single color (for tiers like "The Starter")
-      _gradientColors = [color, color.withOpacity(0.8)];
+      _gradientColors = [color, color.withValues(alpha: 0.8)];
       _primaryColor = color;
     } else {
       // Default fallback

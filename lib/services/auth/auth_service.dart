@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class AuthService {
   // Firebase Auth and Firestore instances
@@ -139,7 +140,7 @@ class AuthService {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       return doc.data()?['lifetimeCompletedTasks'] ?? 0;
     } catch (e) {
-      print('Error getting lifetime tasks: $e');
+      debugPrint('Error getting lifetime tasks: $e');
       return 0;
     }
   }
@@ -154,7 +155,7 @@ class AuthService {
         'lifetimeCompletedTasks': FieldValue.increment(1),
       });
     } catch (e) {
-      print('Error incrementing lifetime tasks: $e');
+      debugPrint('Error incrementing lifetime tasks: $e');
     }
   }
 
@@ -174,7 +175,7 @@ class AuthService {
         });
       }
     } catch (e) {
-      print('Error decrementing lifetime tasks: $e');
+      debugPrint('Error decrementing lifetime tasks: $e');
     }
   }
 }
