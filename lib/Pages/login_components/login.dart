@@ -17,6 +17,7 @@ class _LoginPageState extends State<LoginPage>
   late final TextEditingController passwordController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  bool _isSigningIn = false;
 
   @override
   void initState() {
@@ -37,6 +38,9 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> signIn() async {
+    // Prevent double-tap
+    if (_isSigningIn) return;
+
     final authService = AuthService();
 
     // Validation
@@ -50,37 +54,7 @@ class _LoginPageState extends State<LoginPage>
       return;
     }
 
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Signing in...',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF667eea),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    setState(() => _isSigningIn = true);
 
     try {
       await authService.signInWithEmailPassword(
@@ -88,13 +62,10 @@ class _LoginPageState extends State<LoginPage>
         passwordController.text.trim(),
       );
 
-      // Close loading dialog
-      if (mounted) Navigator.pop(context);
-
       // Success! The auth state listener will handle navigation
+      // Don't set _isSigningIn to false - navigation will happen
     } catch (e) {
-      // Close loading dialog
-      if (mounted) Navigator.pop(context);
+      setState(() => _isSigningIn = false);
 
       // Show error
       if (mounted) {
@@ -199,7 +170,8 @@ class _LoginPageState extends State<LoginPage>
                                   offset: const Offset(0, 10),
                                 ),
                                 BoxShadow(
-                                  color: const Color(0xFF667eea).withValues(alpha: 0.2),
+                                  color:
+                                      const Color(0xFF667eea).withValues(alpha: 0.2),
                                   blurRadius: 40,
                                   offset: const Offset(0, 15),
                                 ),
@@ -338,7 +310,8 @@ class _LoginPageState extends State<LoginPage>
                                   borderRadius: BorderRadius.circular(15),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF667eea).withValues(alpha: 0.4),
+                                      color: const Color(0xFF667eea)
+                                          .withValues(alpha: 0.4),
                                       blurRadius: 15,
                                       offset: const Offset(0, 8),
                                     ),
@@ -353,16 +326,28 @@ class _LoginPageState extends State<LoginPage>
                                       borderRadius: BorderRadius.circular(15),
                                     ),
                                   ),
-                                  onPressed: signIn,
-                                  child: const Text(
-                                    'Sign In',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
+                                  onPressed: _isSigningIn ? null : signIn,
+                                  child: _isSigningIn
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
                                 ),
                               ),
                               const SizedBox(height: 18),

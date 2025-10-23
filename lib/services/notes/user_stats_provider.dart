@@ -12,7 +12,7 @@ class UserStatsProvider extends ChangeNotifier {
   int currentStreak = 0;
   int totalTasks = 0;
   int completedTasks = 0;
-  int lifetimeCompletedTasks = 0; // ✅ NEW: Lifetime counter
+  int lifetimeCompletedTasks = 0;
   int totalHours = 0;
   Map<String, dynamic> userTier = {};
   Map<String, int> heatmapData = {};
@@ -21,10 +21,83 @@ class UserStatsProvider extends ChangeNotifier {
   // Stream subscriptions
   StreamSubscription<QuerySnapshot>? _tasksSubscription;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+  StreamSubscription<User?>? _authSubscription;
   String? _currentUserId;
 
   UserStatsProvider() {
+    _startAuthListener();
+  }
+
+  /// ✅ NEW: Listen to auth state changes
+  void _startAuthListener() {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      (User? user) {
+        debugPrint('📊 UserStats - Auth state changed: ${user?.uid}');
+        
+        if (user == null) {
+          // User logged out
+          _handleUserLogout();
+        } else if (_currentUserId != user.uid) {
+          // User logged in or switched accounts
+          _handleUserLogin(user.uid);
+        }
+      },
+      onError: (error) {
+        debugPrint('Error in auth listener: $error');
+      },
+    );
+  }
+
+  /// ✅ NEW: Handle user login/switch
+  void _handleUserLogin(String userId) {
+    debugPrint('📊 UserStats - User logged in: $userId');
+    
+    // Cancel previous user's subscriptions
+    _cancelSubscriptions();
+    
+    // Reset to loading state
+    _resetToDefaultState();
+    
+    // Update current user
+    _currentUserId = userId;
+    
+    // Initialize for new user
     _initialize();
+  }
+
+  /// ✅ NEW: Handle user logout
+  void _handleUserLogout() {
+    debugPrint('📊 UserStats - User logged out');
+    
+    // Cancel all subscriptions
+    _cancelSubscriptions();
+    
+    // Reset everything
+    _currentUserId = null;
+    _resetToDefaultState();
+    notifyListeners();
+  }
+
+  /// ✅ NEW: Cancel all active subscriptions
+  void _cancelSubscriptions() {
+    _tasksSubscription?.cancel();
+    _tasksSubscription = null;
+    
+    _userSubscription?.cancel();
+    _userSubscription = null;
+  }
+
+  /// ✅ NEW: Reset to default state
+  void _resetToDefaultState() {
+    username = 'Loading...';
+    currentStreak = 0;
+    totalTasks = 0;
+    completedTasks = 0;
+    lifetimeCompletedTasks = 0;
+    totalHours = 0;
+    userTier = {};
+    heatmapData = {};
+    isLoading = true;
   }
 
   void _initialize() {
@@ -32,11 +105,11 @@ class UserStatsProvider extends ChangeNotifier {
     if (user != null) {
       _currentUserId = user.uid;
       _listenToTasks();
-      _listenToUserDoc(); // ✅ NEW: Listen to user document
+      _listenToUserDoc();
     }
   }
 
-  // ✅ NEW: Listen to user document for lifetime count
+  /// Listen to user document for lifetime count
   void _listenToUserDoc() {
     _userSubscription?.cancel();
     
@@ -47,6 +120,12 @@ class UserStatsProvider extends ChangeNotifier {
         .doc(_currentUserId)
         .snapshots()
         .listen((doc) {
+      // ✅ Check if this is still the current user
+      if (_currentUserId != doc.id) {
+        debugPrint('⚠️ UserStats - Ignoring update for old user: ${doc.id}');
+        return;
+      }
+
       if (doc.exists) {
         final data = doc.data();
         if (data != null) {
@@ -72,11 +151,16 @@ class UserStatsProvider extends ChangeNotifier {
         .where('status', isEqualTo: 'accepted')
         .snapshots()
         .listen((snapshot) {
+      // ✅ Check if this is still the current user
+      if (_currentUserId != FirebaseAuth.instance.currentUser?.uid) {
+        debugPrint('⚠️ UserStats - Ignoring task update for old user');
+        return;
+      }
       _calculateStats(snapshot);
     });
   }
 
-  /// Calculate all stats from snapshot - FIXED to use completedAt
+  /// Calculate all stats from snapshot
   void _calculateStats(QuerySnapshot snapshot) async {
     try {
       // Get username
@@ -95,7 +179,6 @@ class UserStatsProvider extends ChangeNotifier {
         if (data['isCompleted'] == true) {
           completed++;
           
-          // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
           final completedAt = data['completedAt'] as Timestamp?;
           if (completedAt != null) {
             final dateKey = _formatDate(completedAt.toDate());
@@ -113,7 +196,7 @@ class UserStatsProvider extends ChangeNotifier {
       // Calculate streak
       int streak = _calculateStreak(completions);
 
-      // Update all values (tier is updated from user doc listener)
+      // Update all values
       username = name;
       currentStreak = streak;
       totalTasks = total;
@@ -154,6 +237,8 @@ class UserStatsProvider extends ChangeNotifier {
 
   /// Manually refresh data
   Future<void> refresh() async {
+    if (_currentUserId == null) return;
+
     isLoading = true;
     notifyListeners();
     
@@ -175,8 +260,9 @@ class UserStatsProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _tasksSubscription?.cancel();
-    _userSubscription?.cancel(); // ✅ NEW: Dispose user subscription
+    _userSubscription?.cancel();
     super.dispose();
   }
 }

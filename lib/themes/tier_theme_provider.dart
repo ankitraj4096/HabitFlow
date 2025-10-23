@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:demo/services/notes/firestore.dart';
 
 /// Provider that manages user tier colors and theme throughout the app
-/// Automatically updates when tasks are completed
+/// Automatically updates when tasks are completed and when user switches accounts
 class TierThemeProvider extends ChangeNotifier {
   final FireStoreService _firestoreService = FireStoreService();
 
   // Stream subscriptions
   StreamSubscription<QuerySnapshot>? _taskSubscription;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+  StreamSubscription<User?>? _authSubscription;
 
   // Tier-related data
   Map<String, dynamic> _userTier = {};
@@ -25,6 +26,7 @@ class TierThemeProvider extends ChangeNotifier {
   bool _isAnimated = false;
   bool _isLoading = true;
   int _lastCompletedTasksCount = 0;
+  String? _currentUserId; // Track current user
 
   // New tier thresholds matching your 17-tier system
   static const List<int> _tierThresholds = [
@@ -58,6 +60,73 @@ class TierThemeProvider extends ChangeNotifier {
   String get tierName => _userTier['name'] ?? 'The Starter';
   int get tierId => _userTier['id'] ?? 1;
 
+  /// Constructor - Start listening to auth changes
+  TierThemeProvider() {
+    _startAuthListener();
+  }
+
+  /// ✅ NEW: Listen to auth state changes
+  void _startAuthListener() {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      (User? user) {
+        debugPrint('🔄 Auth state changed: ${user?.uid}');
+        
+        if (user == null) {
+          // User logged out
+          _handleUserLogout();
+        } else if (_currentUserId != user.uid) {
+          // User logged in or switched accounts
+          _handleUserLogin(user.uid);
+        }
+      },
+      onError: (error) {
+        debugPrint('Error in auth listener: $error');
+      },
+    );
+  }
+
+  /// ✅ NEW: Handle user login/switch
+  void _handleUserLogin(String userId) {
+    debugPrint('👤 User logged in: $userId');
+    
+    // Cancel previous user's subscriptions
+    _cancelSubscriptions();
+    
+    // Update current user
+    _currentUserId = userId;
+    
+    // Reset and reload theme for new user
+    _isLoading = true;
+    notifyListeners();
+    
+    // Initialize theme for new user
+    initializeTierTheme();
+  }
+
+  /// ✅ NEW: Handle user logout
+  void _handleUserLogout() {
+    debugPrint('👋 User logged out');
+    
+    // Cancel all subscriptions
+    _cancelSubscriptions();
+    
+    // Reset to default theme
+    _currentUserId = null;
+    _lastCompletedTasksCount = 0;
+    _setDefaultTheme();
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// ✅ NEW: Cancel all active subscriptions
+  void _cancelSubscriptions() {
+    _taskSubscription?.cancel();
+    _taskSubscription = null;
+    
+    _userSubscription?.cancel();
+    _userSubscription = null;
+  }
+
   /// Initialize the tier theme and start listening to task changes
   Future<void> initializeTierTheme() async {
     _isLoading = true;
@@ -71,6 +140,9 @@ class TierThemeProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
+
+      // Update current user ID
+      _currentUserId = user.uid;
 
       // Check if user document has lifetimeCompletedTasks field
       final userDoc = await FirebaseFirestore.instance
@@ -118,6 +190,12 @@ class TierThemeProvider extends ChangeNotifier {
         .snapshots()
         .listen(
           (doc) async {
+            // ✅ Check if this is still the current user
+            if (_currentUserId != userId) {
+              debugPrint('⚠️ Ignoring update for old user: $userId');
+              return;
+            }
+
             if (doc.exists) {
               final data = doc.data();
               if (data != null) {
@@ -171,6 +249,11 @@ class TierThemeProvider extends ChangeNotifier {
         .snapshots()
         .listen(
           (snapshot) {
+            // ✅ Check if this is still the current user
+            if (_currentUserId != userId) {
+              debugPrint('⚠️ Ignoring task update for old user: $userId');
+              return;
+            }
             _onTasksChanged(snapshot);
           },
           onError: (error) {
@@ -347,6 +430,7 @@ class TierThemeProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _taskSubscription?.cancel();
     _userSubscription?.cancel();
     super.dispose();
