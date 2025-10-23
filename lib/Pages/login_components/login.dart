@@ -1,3 +1,4 @@
+import 'package:demo/component/error_dialog.dart';
 import 'package:demo/component/textfield.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   late final TextEditingController emailController;
   late final TextEditingController passwordController;
   late AnimationController _animationController;
@@ -21,42 +23,100 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.initState();
     emailController = TextEditingController();
     passwordController = TextEditingController();
-    
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    
+
     _animationController.forward();
   }
 
-  Future signIn() async {
+  Future<void> signIn() async {
     final authService = AuthService();
 
-    try {
-      await authService.signInWithEmailPassword(
-        emailController.text,
-        passwordController.text,
-      );
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(e.toString()),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+    // Validation
+    if (emailController.text.trim().isEmpty) {
+      ErrorDialog.show(context, message: 'Please enter your email address');
+      return;
+    }
+
+    if (passwordController.text.trim().isEmpty) {
+      ErrorDialog.show(context, message: 'Please enter your password');
+      return;
+    }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Signing in...',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF667eea),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
-        );
+        ),
+      ),
+    );
+
+    try {
+      await authService.signInWithEmailPassword(
+        emailController.text.trim(),
+        passwordController.text.trim(),
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Success! The auth state listener will handle navigation
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show error
+      if (mounted) {
+        String errorMessage = e.toString().replaceAll('Exception: ', '');
+
+        // Better error messages
+        if (errorMessage.contains('wrong-password') ||
+            errorMessage.contains('invalid-credential')) {
+          errorMessage = 'Incorrect email or password. Please try again.';
+        } else if (errorMessage.contains('user-not-found')) {
+          errorMessage = 'No account found with this email.';
+        } else if (errorMessage.contains('invalid-email')) {
+          errorMessage = 'Invalid email address format.';
+        } else if (errorMessage.contains('too-many-requests')) {
+          errorMessage = 'Too many failed attempts. Please try again later.';
+        } else if (errorMessage.contains('network-request-failed')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else if (errorMessage.contains('user-disabled')) {
+          errorMessage = 'This account has been disabled.';
+        }
+
+        ErrorDialog.show(context, message: errorMessage);
       }
     }
   }
@@ -91,11 +151,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 20,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Premium "H" Logo - matched to RegisterPage size
+                      // Premium "H" Logo
                       Stack(
                         alignment: Alignment.center,
                         children: [
@@ -144,7 +207,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             ),
                             child: Center(
                               child: ShaderMask(
-                                shaderCallback: (bounds) => const LinearGradient(
+                                shaderCallback: (bounds) =>
+                                    const LinearGradient(
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
@@ -189,8 +253,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ],
                       ),
                       const SizedBox(height: 12),
-                      
-                      // App Title - matched to RegisterPage size
+
+                      // App Title
                       const Text(
                         "Build Better",
                         style: TextStyle(
@@ -211,7 +275,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ),
                       ),
                       const SizedBox(height: 30),
-                      
+
                       // Login Card
                       Container(
                         decoration: BoxDecoration(
@@ -247,21 +311,21 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              
+
                               MyTextField(
                                 controller: emailController,
                                 hintText: "Email Address",
                                 obscureText: false,
                               ),
                               const SizedBox(height: 12),
-                              
+
                               MyTextField(
                                 controller: passwordController,
                                 hintText: 'Password',
                                 obscureText: true,
                               ),
                               const SizedBox(height: 20),
-                              
+
                               // Login Button
                               Container(
                                 decoration: BoxDecoration(
@@ -302,7 +366,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 ),
                               ),
                               const SizedBox(height: 18),
-                              
+
                               // Register Link
                               GestureDetector(
                                 onTap: widget.showRegisterPage,

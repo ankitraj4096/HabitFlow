@@ -1,6 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:demo/component/error_dialog.dart';
 import 'package:demo/component/textfield.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 class RegisterPage extends StatefulWidget {
   final VoidCallback showLoginPage;
@@ -18,6 +21,12 @@ class _RegisterPageState extends State<RegisterPage>
   late final TextEditingController confirmPasswordController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+
+  // Username validation
+  String? usernameError;
+  String? usernameSuccess;
+  bool isCheckingUsername = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -37,63 +46,110 @@ class _RegisterPageState extends State<RegisterPage>
     );
 
     _animationController.forward();
+
+    // Listen to username changes
+    usernameController.addListener(_onUsernameChanged);
   }
 
-  void signUp() async {
+  void _onUsernameChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    final username = usernameController.text.trim();
+
+    // Reset states
+    setState(() {
+      usernameError = null;
+      usernameSuccess = null;
+      isCheckingUsername = false;
+    });
+
+    // Don't check if empty or too short
+    if (username.isEmpty || username.length < 3) {
+      return;
+    }
+
+    // Check format first
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9_]+$');
+    if (!usernameRegex.hasMatch(username)) {
+      setState(() {
+        usernameError = 'Only letters, numbers, and underscores allowed';
+      });
+      return;
+    }
+
+    // Show checking indicator
+    setState(() => isCheckingUsername = true);
+
+    // Debounce the API call
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _checkUsernameAvailability(username);
+    });
+  }
+
+  Future<void> _checkUsernameAvailability(String username) async {
+    try {
+      final query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: username)
+          .get();
+
+      if (mounted) {
+        setState(() {
+          isCheckingUsername = false;
+          if (query.docs.isNotEmpty) {
+            usernameError = 'Username already taken';
+            usernameSuccess = null;
+          } else {
+            usernameError = null;
+            usernameSuccess = 'Username available!';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isCheckingUsername = false;
+          usernameError = null;
+          usernameSuccess = null;
+        });
+      }
+      debugPrint('Error checking username: $e');
+    }
+  }
+
+  Future<void> signUp() async {
     final authService = AuthService();
 
     // Validation
     if (usernameController.text.trim().isEmpty) {
-      _showErrorDialog('Please enter a username');
+      ErrorDialog.show(context, message: 'Please enter a username');
+      return;
+    }
+
+    if (usernameError != null) {
+      ErrorDialog.show(context, message: usernameError!);
       return;
     }
 
     if (emailController.text.trim().isEmpty) {
-      _showErrorDialog('Please enter an email address');
+      ErrorDialog.show(context, message: 'Please enter an email address');
       return;
     }
 
     if (passwordController.text.trim().isEmpty) {
-      _showErrorDialog('Please enter a password');
+      ErrorDialog.show(context, message: 'Please enter a password');
+      return;
+    }
+
+    if (confirmPasswordController.text.trim().isEmpty) {
+      ErrorDialog.show(context, message: 'Please confirm your password');
       return;
     }
 
     if (passwordController.text != confirmPasswordController.text) {
-      _showErrorDialog("Passwords don't match!");
+      ErrorDialog.show(context, message: "Passwords don't match!");
       return;
     }
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Creating account...',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF667eea),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
 
     try {
       await authService.signUpWithEmailPassword(
@@ -102,121 +158,19 @@ class _RegisterPageState extends State<RegisterPage>
         usernameController.text.trim(),
       );
 
-      // Close loading dialog
-      if (mounted) Navigator.pop(context);
-
-      // Success! The auth state listener will handle navigation
+      // Success! The auth state listener will automatically navigate to home page
     } catch (e) {
-      // Close loading dialog
-      if (mounted) Navigator.pop(context);
-
-      // Show error
+      // Show error only
       if (mounted) {
         String errorMessage = e.toString().replaceAll('Exception: ', '');
-        _showErrorDialog(errorMessage);
+        ErrorDialog.show(context, message: errorMessage);
       }
     }
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.red.shade200.withValues(alpha: 0.5),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Error Icon
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.error_outline,
-                  color: Colors.red.shade400,
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Title
-              const Text(
-                'Oops!',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Message
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // OK Button
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text(
-                    'OK',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
+    _debounce?.cancel();
     emailController.dispose();
     usernameController.dispose();
     passwordController.dispose();
@@ -250,7 +204,7 @@ class _RegisterPageState extends State<RegisterPage>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Premium "H" Logo with multiple layers
+                      // Premium "H" Logo
                       Stack(
                         alignment: Alignment.center,
                         children: [
@@ -407,11 +361,91 @@ class _RegisterPageState extends State<RegisterPage>
                               ),
                               const SizedBox(height: 20),
 
+                              // Username field with validation
                               MyTextField(
                                 controller: usernameController,
                                 hintText: "Username",
                                 obscureText: false,
                               ),
+                              // Username validation feedback
+                              if (isCheckingUsername)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    left: 4,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.grey[600]!,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Checking availability...',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (usernameError != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    left: 4,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline,
+                                        size: 16,
+                                        color: Colors.red,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        usernameError!,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (usernameSuccess != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    left: 4,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle_outline,
+                                        size: 16,
+                                        color: Colors.green,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        usernameSuccess!,
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               const SizedBox(height: 12),
 
                               MyTextField(
