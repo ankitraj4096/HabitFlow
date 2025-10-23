@@ -217,7 +217,7 @@ class _AchievementPageState extends State<AchievementPage>
       Map<String, dynamic>? next;
       final currentTierId = tier['id'] as int;
       if (currentTierId < allTiers.length) {
-        next = allTiers[currentTierId]; // Next tier (index = id because 0-based in array)
+        next = allTiers[currentTierId];
       }
 
       setState(() {
@@ -227,7 +227,7 @@ class _AchievementPageState extends State<AchievementPage>
         isLoading = false;
       });
     } catch (e) {
-      print('Error loading user data: $e');
+      debugPrint('Error loading user data: $e');
       setState(() => isLoading = false);
     }
   }
@@ -283,7 +283,7 @@ class _AchievementPageState extends State<AchievementPage>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: gradient?.map((e) => e as Color).toList() ??
-              [headerColor, headerColor.withOpacity(0.7)],
+              [headerColor, headerColor.withValues(alpha: 0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -346,7 +346,7 @@ class _AchievementPageState extends State<AchievementPage>
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
-                color: tierColor.withOpacity(0.3),
+                color: tierColor.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -377,12 +377,13 @@ class _AchievementPageState extends State<AchievementPage>
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
                           colors: gradient?.map((e) => e as Color).toList() ??
-                              [tierColor, tierColor.withOpacity(0.7)],
+                              [tierColor, tierColor.withValues(alpha: 0.7)],
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color:
-                                tierColor.withOpacity(isAnimated ? 0.6 : 0.4),
+                            color: tierColor.withValues(
+                              alpha: isAnimated ? 0.6 : 0.4,
+                            ),
                             blurRadius: isAnimated ? 35 : 25,
                             spreadRadius: isAnimated ? 8 : 5,
                           ),
@@ -400,7 +401,7 @@ class _AchievementPageState extends State<AchievementPage>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
+                                color: Colors.black.withValues(alpha: 0.6),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -447,16 +448,16 @@ class _AchievementPageState extends State<AchievementPage>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: gradient
-                            ?.map((e) => (e as Color).withOpacity(0.2))
+                            ?.map((e) => (e as Color).withValues(alpha: 0.2))
                             .toList() ??
                         [
-                          tierColor.withOpacity(0.1),
-                          tierColor.withOpacity(0.2)
+                          tierColor.withValues(alpha: 0.1),
+                          tierColor.withValues(alpha: 0.2)
                         ],
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: tierColor.withOpacity(0.3),
+                    color: tierColor.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -493,13 +494,13 @@ class _AchievementPageState extends State<AchievementPage>
             gradient: LinearGradient(
               colors: [
                 const Color(0xFFFFD700),
-                const Color(0xFFFFA500).withOpacity(0.8),
+                const Color(0xFFFFA500).withValues(alpha: 0.8),
               ],
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.orange.withOpacity(0.3),
+                color: Colors.orange.withValues(alpha: 0.3),
                 blurRadius: 15,
                 offset: const Offset(0, 5),
               ),
@@ -547,7 +548,7 @@ class _AchievementPageState extends State<AchievementPage>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -631,10 +632,10 @@ class _AchievementPageState extends State<AchievementPage>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: nextTierColor.withOpacity(0.1),
+                color: nextTierColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: nextTierColor.withOpacity(0.3),
+                  color: nextTierColor.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -693,14 +694,14 @@ class _AchievementPageState extends State<AchievementPage>
                   color: isCurrent
                       ? tierColor
                       : isUnlocked
-                          ? tierColor.withOpacity(0.3)
+                          ? tierColor.withValues(alpha: 0.3)
                           : Colors.grey.shade300,
                   width: isCurrent ? 2 : 1,
                 ),
                 boxShadow: [
                   if (isCurrent)
                     BoxShadow(
-                      color: tierColor.withOpacity(0.2),
+                      color: tierColor.withValues(alpha: 0.2),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -793,7 +794,7 @@ class _AchievementPageState extends State<AchievementPage>
                         color: Colors.grey.shade400, size: 28),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
