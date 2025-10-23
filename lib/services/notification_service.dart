@@ -10,13 +10,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
-  // Notification channel details
-  static const String _channelId = 'timer_channel_v2';
-  static const String _channelName = 'Task Timer';
-  static const String _channelDescription =
-      'Shows real-time progress of running task timers';
-
-  // Notification ID for timer
+  static const String _channelId = 'habit_flow_timer';
+  static const String _channelName = 'Task Timers';
+  static const String _channelDescription = 'Running task timer notifications';
   static const int _timerNotificationId = 1000;
 
   bool _isInitialized = false;
@@ -24,62 +20,66 @@ class NotificationService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Android initialization settings
-    const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    try {
+      const AndroidInitializationSettings androidSettings =
+          AndroidInitializationSettings('@drawable/ic_notification');
 
-    // iOS initialization settings
-    const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings(
-      requestAlertPermission: false, // Changed to false to prevent pop-ups
-      requestBadgePermission: true,
-      requestSoundPermission: false,
-    );
+      const DarwinInitializationSettings iosSettings =
+          DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
 
-    const InitializationSettings initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+      const InitializationSettings initSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
 
-    await _notifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
+      await _notifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: _onNotificationTapped,
+      );
 
-    // Create notification channel for Android
-    await _createNotificationChannel();
-
-    _isInitialized = true;
+      await _createNotificationChannel();
+      _isInitialized = true;
+    } catch (e) {
+      debugPrint('Notification init error: $e');
+    }
   }
 
   Future<void> _createNotificationChannel() async {
-    // Silent notification channel - no sound, no vibration
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      _channelId,
-      _channelName,
-      description: _channelDescription,
-      importance: Importance.low, // Changed back to low to prevent pushiness
-      playSound: false,
-      enableVibration: false,
-      showBadge: false,
-      enableLights: false, // Disabled lights
-    );
+    try {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        _channelId,
+        _channelName,
+        description: _channelDescription,
+        importance: Importance.low,
+        playSound: false,
+        enableVibration: false,
+        showBadge: false,
+      );
 
-    await _notifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+      await _notifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+    } catch (e) {
+      debugPrint('Channel creation error: $e');
+    }
   }
 
   Future<bool> requestPermissions() async {
-    if (await Permission.notification.isGranted) {
-      return true;
+    try {
+      if (await Permission.notification.isGranted) return true;
+      final status = await Permission.notification.request();
+      return status.isGranted;
+    } catch (e) {
+      return false;
     }
-
-    final status = await Permission.notification.request();
-    return status.isGranted;
   }
 
+  /// Show/Update timer notification - REMAINING TIME ONLY
   Future<void> showTimerNotification({
     required String taskName,
     required String timerText,
@@ -88,90 +88,78 @@ class NotificationService {
     int? maxProgress,
     double? percentComplete,
   }) async {
-    if (!_isInitialized) {
-      await initialize();
+    try {
+      if (!_isInitialized) await initialize();
+      if (!await requestPermissions()) return;
+
+      // ✅ Calculate remaining time
+      final int remaining = (maxProgress != null && progress != null) 
+          ? maxProgress - progress 
+          : 0;
+      final String remainingTime = formatDuration(remaining);
+      
+      // ✅ Integer percentage (no decimals)
+      final int percentInt = percentComplete?.round() ?? 0;
+      
+      final AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: _channelDescription,
+        
+        importance: Importance.low,
+        priority: Priority.low,
+        ongoing: true,
+        autoCancel: false,
+        playSound: false,
+        enableVibration: false,
+        onlyAlertOnce: true,
+        showWhen: false,
+        usesChronometer: false,
+        
+        // Progress bar
+        showProgress: progress != null && maxProgress != null,
+        maxProgress: maxProgress ?? 100,
+        progress: progress ?? 0,
+        indeterminate: false,
+        
+        // ✅ Simple styling - REMAINING TIME ONLY
+        styleInformation: BigTextStyleInformation(
+          remainingTime,
+          htmlFormatBigText: false,
+          contentTitle: '⏱️ $taskName',
+          htmlFormatContentTitle: false,
+          summaryText: '$percentInt% complete',
+          htmlFormatSummaryText: false,
+        ),
+        
+        color: const Color(0xFF6A1B9A),
+        colorized: false,
+        category: AndroidNotificationCategory.progress,
+        visibility: NotificationVisibility.public,
+      );
+
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentAlert: false,
+        presentBadge: false,
+        presentSound: false,
+        threadIdentifier: 'timer_thread',
+      );
+
+      final NotificationDetails details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _notifications.show(
+        _timerNotificationId,
+        '⏱️ $taskName',
+        remainingTime,
+        details,
+      );
+    } catch (e) {
+      debugPrint('Show notification error: $e');
     }
-
-    // Request permission if not granted
-    if (!await requestPermissions()) {
-      debugPrint('Notification permission not granted');
-      return;
-    }
-
-    // Build enhanced content text
-    String contentText = subText ?? timerText;
-
-    // Enhanced Android notification details with silent updates
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      _channelId,
-      _channelName,
-      channelDescription: _channelDescription,
-      importance: Importance.low, // Low importance = less intrusive
-      priority: Priority.low, // Low priority = stays in background
-      ongoing: true, // Persistent but not pushy
-      autoCancel: false,
-      playSound: false,
-      enableVibration: false,
-      showWhen: false,
-      usesChronometer: false,
-      onlyAlertOnce: true, // KEY FIX: Only alert once, updates are silent
-      
-      // Enhanced visual styling
-      color: const Color(0xFF6A1B9A),
-      colorized: true,
-      
-      // Large icon
-      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-      
-      // Progress bar configuration
-      showProgress: progress != null && maxProgress != null,
-      maxProgress: maxProgress ?? 100,
-      progress: progress ?? 0,
-      indeterminate: progress == null || maxProgress == null,
-      
-      // Improved BigTextStyle with cleaner UI
-      styleInformation: BigTextStyleInformation(
-        contentText,
-        htmlFormatBigText: true,
-        contentTitle: '<b>$taskName</b>',
-        htmlFormatContentTitle: true,
-        summaryText: percentComplete != null
-            ? '${percentComplete.toStringAsFixed(0)}% complete'
-            : 'In progress',
-        htmlFormatSummaryText: true,
-      ),
-      
-      // Category
-      category: AndroidNotificationCategory.progress,
-      
-      // Visibility
-      visibility: NotificationVisibility.public,
-      
-      // Silent notification updates
-      silent: false, // Keep as false but onlyAlertOnce handles it
-    );
-
-    // iOS notification details - silent
-    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
-      presentAlert: false, // Don't show alert banner on updates
-      presentBadge: false,
-      presentSound: false,
-      interruptionLevel: InterruptionLevel.passive, // Changed to passive
-      threadIdentifier: 'timer_thread',
-    );
-
-    NotificationDetails notificationDetails = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-
-    // Show notification with enhanced formatting
-    await _notifications.show(
-      _timerNotificationId,
-      taskName,
-      timerText,
-      notificationDetails,
-    );
   }
 
   Future<void> updateTimerNotification({
@@ -182,7 +170,6 @@ class NotificationService {
     int? maxProgress,
     double? percentComplete,
   }) async {
-    // Simply call showTimerNotification with same ID to update silently
     await showTimerNotification(
       taskName: taskName,
       timerText: timerText,
@@ -194,18 +181,26 @@ class NotificationService {
   }
 
   Future<void> cancelTimerNotification() async {
-    await _notifications.cancel(_timerNotificationId);
+    try {
+      await _notifications.cancel(_timerNotificationId);
+    } catch (e) {
+      debugPrint('Cancel notification error: $e');
+    }
   }
 
   Future<void> cancelAllNotifications() async {
-    await _notifications.cancelAll();
+    try {
+      await _notifications.cancelAll();
+    } catch (e) {
+      debugPrint('Cancel all error: $e');
+    }
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    debugPrint('Notification tapped: ${response.payload}');
+    debugPrint('Notification tapped');
   }
 
-  // Enhanced format duration
+  /// Format duration in MM:SS or HH:MM:SS
   static String formatDuration(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
@@ -218,7 +213,6 @@ class NotificationService {
     }
   }
 
-  // Helper method with labels
   static String formatDurationWithLabels(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
@@ -233,7 +227,6 @@ class NotificationService {
     }
   }
 
-  // Helper to calculate percentage
   static double calculatePercentage(int current, int total) {
     if (total == 0) return 0.0;
     return (current / total * 100).clamp(0.0, 100.0);

@@ -76,49 +76,81 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _updateTimerNotification() async {
-    final runningTask = tasklist.firstWhere(
-      (task) => task['isRunning'] == true,
-      orElse: () => {},
-    );
+    print('═══════════════════════════════════════');
+    print('🔔 _updateTimerNotification CALLED');
 
-    if (runningTask.isEmpty) {
-      await _notificationService.cancelTimerNotification();
-      return;
+    try {
+      final runningTask = tasklist.firstWhere(
+        (task) => task['isRunning'] == true,
+        orElse: () => {},
+      );
+
+      print(
+        '📊 Running task: ${runningTask.isNotEmpty ? runningTask['taskName'] : 'None'}',
+      );
+
+      if (runningTask.isEmpty) {
+        print('⚠️ No running task - canceling notification');
+        await _notificationService.cancelTimerNotification();
+        print('═══════════════════════════════════════\n');
+        return;
+      }
+
+      final taskName = runningTask['taskName'] ?? 'Task';
+      final elapsedSeconds = runningTask['elapsedSeconds'] ?? 0;
+      final totalDuration = runningTask['totalDuration'];
+
+      print('📝 Task: $taskName');
+      print('⏱️ Elapsed: $elapsedSeconds seconds');
+      print('⏱️ Total: $totalDuration seconds');
+
+      String timerText;
+      String subText;
+      int? progress;
+      int? maxProgress;
+      double? percentComplete;
+
+      if (totalDuration != null) {
+        final remainingSeconds = totalDuration - elapsedSeconds;
+        timerText = '$remainingSeconds seconds remaining'; // ✅ Simple format
+        subText = '$elapsedSeconds seconds elapsed'; // ✅ Simple format
+        progress = elapsedSeconds;
+        maxProgress = totalDuration;
+        percentComplete = ((elapsedSeconds / totalDuration) * 100).clamp(
+          0,
+          100,
+        );
+
+        print('⏳ Timer text: $timerText');
+        print('📈 Progress: $progress / $maxProgress ($percentComplete%)');
+      } else {
+        timerText = '$elapsedSeconds seconds'; // ✅ Simple format
+        subText = 'Timer running';
+        progress = null;
+        maxProgress = null;
+        percentComplete = null;
+
+        print('⏱️ Stopwatch mode: $timerText');
+      }
+
+      print('📤 Calling updateTimerNotification...');
+
+      await _notificationService.updateTimerNotification(
+        taskName: taskName,
+        timerText: timerText,
+        subText: subText,
+        progress: progress,
+        maxProgress: maxProgress,
+        percentComplete: percentComplete,
+      );
+
+      print('✅ Notification updated successfully');
+    } catch (e, stackTrace) {
+      print('❌ ERROR in _updateTimerNotification: $e');
+      print('Stack trace: $stackTrace');
     }
 
-    final taskName = runningTask['taskName'] ?? 'Task';
-    final elapsedSeconds = runningTask['elapsedSeconds'] ?? 0;
-    final totalDuration = runningTask['totalDuration'];
-
-    String timerText;
-    String subText;
-    int? progress;
-    int? maxProgress;
-    double? percentComplete;
-
-    if (totalDuration != null) {
-      final remainingSeconds = totalDuration - elapsedSeconds;
-      timerText = _formatTimeEnhanced(remainingSeconds);
-      subText = '${_formatTimeEnhanced(elapsedSeconds)} elapsed';
-      progress = elapsedSeconds;
-      maxProgress = totalDuration;
-      percentComplete = (elapsedSeconds / totalDuration * 100).clamp(0, 100);
-    } else {
-      timerText = _formatTimeEnhanced(elapsedSeconds);
-      subText = 'Stopwatch mode';
-      progress = null;
-      maxProgress = null;
-      percentComplete = null;
-    }
-
-    await _notificationService.updateTimerNotification(
-      taskName: taskName,
-      timerText: timerText,
-      subText: subText,
-      progress: progress,
-      maxProgress: maxProgress,
-      percentComplete: percentComplete,
-    );
+    print('═══════════════════════════════════════\n');
   }
 
   String _formatTimeEnhanced(int seconds) {
@@ -1155,29 +1187,75 @@ class _HomepageState extends State<Homepage> {
   }
 
   void _startTimer(int index) async {
+    print('\n🚀🚀🚀 _startTimer CALLED - Index: $index 🚀🚀🚀');
+
     final task = _filteredTaskList[index];
     final actualIndex = tasklist.indexWhere(
       (t) => t['firebaseId'] == task['firebaseId'],
     );
 
-    if (actualIndex == -1) return;
+    print('Task: ${task['taskName']}');
+    print('Actual index: $actualIndex');
+
+    if (actualIndex == -1) {
+      print('❌ Task not found');
+      return;
+    }
 
     final firebaseId = task['firebaseId'];
-    if (firebaseId == null) return;
+    if (firebaseId == null) {
+      print('❌ Firebase ID is null');
+      return;
+    }
 
-    setState(() {
-      tasklist[actualIndex]['isRunning'] = true;
-    });
-
+    // ✅ CRITICAL: Update Firebase FIRST, then let listener update local state
     try {
+      print('📤 Calling firestoreService.startTimer...');
       await firestoreService.startTimer(firebaseId);
+      print('✅ Firebase timer started');
+
+      // ✅ Wait a moment for Firebase listener to update
+      await Future.delayed(Duration(milliseconds: 200));
+
+      // ✅ Manually set isRunning to ensure notification works immediately
+      setState(() {
+        tasklist[actualIndex]['isRunning'] = true;
+      });
+
+      print('✅ Local state updated');
+      print('Current tasklist running status:');
+      for (int i = 0; i < tasklist.length; i++) {
+        print(
+          '  Task $i: ${tasklist[i]['taskName']} - isRunning: ${tasklist[i]['isRunning']}',
+        );
+      }
+
+      // ✅ Now update notification
+      print('📤 Calling _updateTimerNotification...');
       await _updateTimerNotification();
-    } catch (e) {
-      debugPrint('Error starting timer: $e');
+      print('✅ Notification updated');
+
+      if (mounted) {
+        CustomToast.showSuccess(
+          context,
+          'Timer started',
+          duration: const Duration(seconds: 1),
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ Error starting timer: $e');
+      print('Stack trace: $stackTrace');
+
       setState(() {
         tasklist[actualIndex]['isRunning'] = false;
       });
+
+      if (mounted) {
+        CustomToast.showError(context, 'Failed to start timer');
+      }
     }
+
+    print('🚀🚀🚀 _startTimer COMPLETED 🚀🚀🚀\n');
   }
 
   void _pauseTimer(int index) async {
