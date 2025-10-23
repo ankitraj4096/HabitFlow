@@ -170,9 +170,9 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
     
     // Adjust opacity/brightness based on progress
     if (progress < 0.33) {
-      return baseColor.withOpacity(0.6);
+      return baseColor.withValues(alpha:0.6);
     } else if (progress < 0.66) {
-      return baseColor.withOpacity(0.8);
+      return baseColor.withValues(alpha:0.8);
     } else {
       return baseColor;
     }
@@ -182,8 +182,8 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
   List<Color> _getBackgroundGradient(TierThemeProvider tierProvider) {
     final colors = tierProvider.gradientColors;
     return [
-      colors.first.withOpacity(0.1),
-      colors.last.withOpacity(0.15),
+      colors.first.withValues(alpha:0.1),
+      colors.last.withValues(alpha:0.15),
       Colors.grey.shade100,
     ];
   }
@@ -222,7 +222,7 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.25),
+                      color: Colors.white.withValues(alpha:0.25),
                       width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(16),
@@ -253,9 +253,9 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            waterColor.withOpacity(0.45),
-                            waterColor.withOpacity(0.7),
-                            waterColor.withOpacity(0.88),
+                            waterColor.withValues(alpha:0.45),
+                            waterColor.withValues(alpha:0.7),
+                            waterColor.withValues(alpha:0.88),
                             waterColor,
                           ],
                         ),
@@ -270,7 +270,7 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
                                 return CustomPaint(
                                   painter: ShimmerPainter(
                                     animation: _waveAnimation.value,
-                                    color: Colors.white.withOpacity(0.1),
+                                    color: Colors.white.withValues(alpha:0.1),
                                   ),
                                 );
                               },
@@ -288,7 +288,7 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
                                   return CustomPaint(
                                     painter: RipplePainter(
                                       progress: _rippleProgress,
-                                      color: Colors.white.withOpacity(0.45),
+                                      color: Colors.white.withValues(alpha:0.45),
                                     ),
                                     size: const Size(80, 80),
                                   );
@@ -361,8 +361,8 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
                   borderRadius: BorderRadius.circular(50),
                   gradient: LinearGradient(
                     colors: [
-                      Colors.white.withOpacity(0.22),
-                      Colors.white.withOpacity(0.0),
+                      Colors.white.withValues(alpha:0.22),
+                      Colors.white.withValues(alpha:0.0),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -389,9 +389,9 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
           center: const Alignment(-0.3, -0.4),
           radius: 0.75,
           colors: [
-            Colors.white.withOpacity(0.96 * opacity),
-            waterColor.withOpacity(0.82 * opacity),
-            waterColor.withOpacity(opacity),
+            Colors.white.withValues(alpha:0.96 * opacity),
+            waterColor.withValues(alpha:0.82 * opacity),
+            waterColor.withValues(alpha:opacity),
           ],
         ),
         borderRadius: BorderRadius.only(
@@ -402,7 +402,7 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
         ),
         boxShadow: [
           BoxShadow(
-            color: waterColor.withOpacity(0.35 * opacity),
+            color: waterColor.withValues(alpha:0.35 * opacity),
             blurRadius: 10,
             spreadRadius: 0.5,
           ),
@@ -410,7 +410,7 @@ class _WaterDropletEffectState extends State<WaterDropletEffect>
       ),
       child: CustomPaint(
         painter: DropletHighlightPainter(
-          color: Colors.white.withOpacity(0.72 * opacity),
+          color: Colors.white.withValues(alpha:0.72 * opacity),
         ),
       ),
     );
@@ -509,7 +509,7 @@ class RipplePainter extends CustomPainter {
       final opacity = (1.0 - rippleProgress) * 0.45;
 
       final paint = Paint()
-        ..color = color.withOpacity(opacity)
+        ..color = color.withValues(alpha:opacity)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.2;
 

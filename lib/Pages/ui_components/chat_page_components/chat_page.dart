@@ -138,7 +138,7 @@ class _ChatPageState extends State<ChatPage> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: tierProvider.glowColor.withOpacity(0.3),
+                      color: tierProvider.glowColor.withValues(alpha:0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -187,7 +187,7 @@ class _ChatPageState extends State<ChatPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: tierProvider.gradientColors
-                    .map((c) => c.withOpacity(0.1))
+                    .map((c) => c.withValues(alpha:0.1))
                     .toList(),
               ),
               borderRadius: BorderRadius.circular(12),
@@ -214,7 +214,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Column(
         children: [
-          Divider(height: 1, color: tierProvider.primaryColor.withOpacity(0.1)),
+          Divider(height: 1, color: tierProvider.primaryColor.withValues(alpha:0.1)),
           Expanded(child: _buildMessageList(tierProvider)),
           _buildUserInput(tierProvider),
         ],
@@ -257,7 +257,7 @@ class _ChatPageState extends State<ChatPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: tierProvider.gradientColors
-                          .map((c) => c.withOpacity(0.2))
+                          .map((c) => c.withValues(alpha:0.2))
                           .toList(),
                     ),
                     shape: BoxShape.circle,
@@ -370,7 +370,7 @@ class _ChatPageState extends State<ChatPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: tierProvider.primaryColor.withOpacity(0.1),
+                color: tierProvider.primaryColor.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -412,7 +412,7 @@ class _ChatPageState extends State<ChatPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: tierProvider.primaryColor.withOpacity(0.05),
+            color: tierProvider.primaryColor.withValues(alpha:0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -428,7 +428,7 @@ class _ChatPageState extends State<ChatPage> {
                   color: const Color(0xFFF5F7FA),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: tierProvider.primaryColor.withOpacity(0.1),
+                    color: tierProvider.primaryColor.withValues(alpha:0.1),
                     width: 1,
                   ),
                 ),
@@ -458,7 +458,7 @@ class _ChatPageState extends State<ChatPage> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: tierProvider.glowColor.withOpacity(0.3),
+                    color: tierProvider.glowColor.withValues(alpha:0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),

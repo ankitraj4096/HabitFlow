@@ -1,4 +1,4 @@
-import 'package:demo/Pages/login_components/authPage.dart';
+import 'package:demo/Pages/login_components/auth_page.dart';
 import 'package:demo/Pages/ui_components/navbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
