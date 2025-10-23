@@ -94,7 +94,7 @@ class NotificationService {
 
     // Request permission if not granted
     if (!await requestPermissions()) {
-      print('Notification permission not granted');
+      debugPrint('Notification permission not granted');
       return;
     }
 
@@ -202,7 +202,7 @@ class NotificationService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    print('Notification tapped: ${response.payload}');
+    debugPrint('Notification tapped: ${response.payload}');
   }
 
   // Enhanced format duration

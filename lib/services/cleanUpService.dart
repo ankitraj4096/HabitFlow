@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class CleanupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -28,9 +29,9 @@ class CleanupService {
         }
       }
 
-      print('🗑️ Cleaned up $deletedMessages old messages');
+      debugPrint('🗑️ Cleaned up $deletedMessages old messages');
     } catch (e) {
-      print('Error cleaning up old messages: $e');
+      debugPrint('Error cleaning up old messages: $e');
     }
   }
 
@@ -57,9 +58,9 @@ class CleanupService {
         deletedTasks++;
       }
 
-      print('🗑️ Cleaned up $deletedTasks old tasks for user $userID');
+      debugPrint('🗑️ Cleaned up $deletedTasks old tasks for user $userID');
     } catch (e) {
-      print('Error cleaning up old tasks: $e');
+      debugPrint('Error cleaning up old tasks: $e');
     }
   }
 
@@ -89,21 +90,21 @@ class CleanupService {
             totalDeletedTasks++;
           }
         } catch (e) {
-          print('Error cleaning tasks for user ${user.id}: $e');
+          debugPrint('Error cleaning tasks for user ${user.id}: $e');
         }
       }
 
-      print('🗑️ Cleaned up $totalDeletedTasks old tasks across all users');
+      debugPrint('🗑️ Cleaned up $totalDeletedTasks old tasks across all users');
     } catch (e) {
-      print('Error in cleanup all users: $e');
+      debugPrint('Error in cleanup all users: $e');
     }
   }
 
   /// Run all cleanup operations (messages + tasks for current user)
   Future<void> runFullCleanup(String userID) async {
-    print('🧹 Starting full cleanup...');
+    debugPrint('🧹 Starting full cleanup...');
     await cleanupOldMessages();
     await cleanupOldTasks(userID);
-    print('✅ Cleanup completed');
+    debugPrint('✅ Cleanup completed');
   }
 }

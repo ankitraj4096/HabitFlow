@@ -1,5 +1,5 @@
-import 'package:demo/themes/darkMode.dart';
-import 'package:demo/themes/lightMode.dart';
+import 'package:demo/themes/dark_mode.dart';
+import 'package:demo/themes/light_mode.dart';
 import 'package:flutter/material.dart';
 
 class ThemeSwitch extends ChangeNotifier {

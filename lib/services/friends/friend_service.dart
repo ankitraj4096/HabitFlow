@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class FriendService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,7 +15,7 @@ class FriendService {
     return _firestore
         .collection('users')
         .where('username', isGreaterThanOrEqualTo: query)
-        .where('username', isLessThanOrEqualTo: query + '\uf8ff')
+        .where('username', isLessThanOrEqualTo: '$query\uf8ff')
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => doc.data()).toList();
@@ -131,7 +132,7 @@ class FriendService {
         });
       });
     } catch (e) {
-      print('Error accepting friend request: $e');
+      debugPrint('Error accepting friend request: $e');
       rethrow;
     }
   }
@@ -245,9 +246,9 @@ class FriendService {
       // Delete the chat room document itself
       await chatRoomRef.delete();
 
-      print('✅ Chat room deleted: $chatRoomID');
+      debugPrint('✅ Chat room deleted: $chatRoomID');
     } catch (e) {
-      print('Error deleting chat room: $e');
+      debugPrint('Error deleting chat room: $e');
     }
   }
 
@@ -274,9 +275,9 @@ class FriendService {
       // 2. Delete chat history between them
       await _deleteChatRoom(userId, friendId);
 
-      print('✅ Friend removed and chat deleted');
+      debugPrint('✅ Friend removed and chat deleted');
     } catch (e) {
-      print('Error removing friend: $e');
+      debugPrint('Error removing friend: $e');
       rethrow;
     }
   }
@@ -314,7 +315,7 @@ class FriendService {
           allFriends
               .addAll(friendDocs.docs.map((doc) => doc.data()).toList());
         } catch (e) {
-          print('Error fetching friends batch: $e');
+          debugPrint('Error fetching friends batch: $e');
         }
       }
 
