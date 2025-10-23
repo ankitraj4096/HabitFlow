@@ -24,7 +24,7 @@ class _NavBarState extends State<Navbar> {
   final List<Widget> _pages = [
     const ChatListPage(),
     const Homepage(),
-    ProfilePage(),
+    const ProfilePage(),
   ];
 
   final List<IconData> _icons = [
@@ -40,7 +40,7 @@ class _NavBarState extends State<Navbar> {
     super.initState();
     // Initialize stream once and cache it
     _unreadStream = _chatService.getUnreadMessagesCount();
-    print('🔄 Navbar initialized, stream created');
+    debugPrint('🔄 Navbar initialized, stream created');
   }
 
   void _onItemTapped(int index) {
@@ -74,7 +74,7 @@ class _NavBarState extends State<Navbar> {
         stream: _unreadStream,
         initialData: 0,
         builder: (context, snapshot) {
-          print('🎨 Navbar rebuild - ConnectionState: ${snapshot.connectionState}, hasData: ${snapshot.hasData}, data: ${snapshot.data}');
+          debugPrint('🎨 Navbar rebuild - ConnectionState: ${snapshot.connectionState}, hasData: ${snapshot.hasData}, data: ${snapshot.data}');
 
           final unreadCount = snapshot.data ?? 0;
 
@@ -86,7 +86,7 @@ class _NavBarState extends State<Navbar> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: tierProvider.primaryColor.withOpacity(0.15),
+                  color: tierProvider.primaryColor.withValues(alpha: 0.15),
                   blurRadius: 15,
                   offset: const Offset(0, 4),
                 ),
@@ -102,7 +102,7 @@ class _NavBarState extends State<Navbar> {
                   final hasUnread = isChatTab && unreadCount > 0;
 
                   if (hasUnread) {
-                    print('🔴 Should show badge with count: $unreadCount');
+                    debugPrint('🔴 Should show badge with count: $unreadCount');
                   }
 
                   return Expanded(
@@ -111,7 +111,7 @@ class _NavBarState extends State<Navbar> {
                       child: InkWell(
                         onTap: () => _onItemTapped(index),
                         borderRadius: BorderRadius.circular(30),
-                        splashColor: dynamicColors[index].withOpacity(0.1),
+                        splashColor: dynamicColors[index].withValues(alpha: 0.1),
                         highlightColor: Colors.transparent,
                         child: Container(
                           padding: EdgeInsets.zero,
@@ -143,7 +143,7 @@ class _NavBarState extends State<Navbar> {
                                             ? [
                                                 BoxShadow(
                                                   color: tierProvider.glowColor
-                                                      .withOpacity(0.3),
+                                                      .withValues(alpha: 0.3),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, 2),
                                                 ),
@@ -212,7 +212,7 @@ class _NavBarState extends State<Navbar> {
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.red.withOpacity(0.6),
+                                            color: Colors.red.withValues(alpha: 0.6),
                                             blurRadius: 8,
                                             offset: const Offset(0, 2),
                                           ),
