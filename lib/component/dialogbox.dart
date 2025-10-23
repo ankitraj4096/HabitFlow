@@ -24,9 +24,9 @@ class TaskDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF7C4DFF).withOpacity(0.2),
+              color: const Color(0xFF7C4DFF).withValues(alpha: 0.2), // ✅ FIXED Line 27
               blurRadius: 30,
-              offset: Offset(0, 10),
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -40,9 +40,9 @@ class TaskDialog extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -55,11 +55,11 @@ class TaskDialog extends StatelessWidget {
                       size: 24,
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2C3E50),
@@ -69,15 +69,15 @@ class TaskDialog extends StatelessWidget {
                 ],
               ),
               
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               
               // Text Field
               Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFFF5F5F5),
+                  color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Color(0xFF7C4DFF).withOpacity(0.1),
+                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.1), // ✅ FIXED Line 80
                     width: 1.5,
                   ),
                 ),
@@ -85,7 +85,7 @@ class TaskDialog extends StatelessWidget {
                   controller: controller,
                   autofocus: true,
                   maxLines: 3,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Color(0xFF2C3E50),
                   ),
@@ -96,12 +96,12 @@ class TaskDialog extends StatelessWidget {
                       fontSize: 16,
                     ),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
+                    contentPadding: const EdgeInsets.all(16),
                   ),
                 ),
               ),
               
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               
               // Buttons
               Row(
@@ -141,14 +141,14 @@ class TaskDialog extends StatelessWidget {
                     ),
                   ),
                   
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   
                   // Confirm Button
                   Expanded(
                     child: Container(
                       height: 50,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
+                        gradient: const LinearGradient(
                           colors: [Color(0xFF7C4DFF), Color(0xFF448AFF)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -156,9 +156,9 @@ class TaskDialog extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0xFF7C4DFF).withOpacity(0.3),
+                            color: const Color(0xFF7C4DFF).withValues(alpha: 0.3), // ✅ FIXED Line 159
                             blurRadius: 12,
-                            offset: Offset(0, 6),
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -170,7 +170,7 @@ class TaskDialog extends StatelessWidget {
                           child: Center(
                             child: Text(
                               buttonText,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,

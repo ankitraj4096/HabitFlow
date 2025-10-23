@@ -19,16 +19,16 @@ class MyTextField extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF7C4DFF).withOpacity(0.08),
+            color: const Color(0xFF7C4DFF).withValues(alpha: 0.08), // ✅ FIXED
             blurRadius: 15,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 16,
           color: Color(0xFF2C3E50),
           fontWeight: FontWeight.w500,
@@ -42,7 +42,7 @@ class MyTextField extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(
+            borderSide: const BorderSide(
               color: Color(0xFF7C4DFF),
               width: 2,
             ),
@@ -56,17 +56,17 @@ class MyTextField extends StatelessWidget {
             fontSize: 16,
             fontWeight: FontWeight.normal,
           ),
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 18,
           ),
           prefixIcon: obscureText
-              ? Icon(
+              ? const Icon(
                   Icons.lock_rounded,
                   color: Color(0xFF7C4DFF),
                   size: 22,
                 )
-              : Icon(
+              : const Icon(
                   Icons.person_rounded,
                   color: Color(0xFF7C4DFF),
                   size: 22,
