@@ -5,7 +5,7 @@ import 'package:demo/Pages/ui_components/profile_page_components/changePasswordP
 import 'package:demo/Pages/ui_components/profile_page_components/editUsernamePage.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/themeSelectionPage.dart';
 import 'package:demo/component/achievements.dart';
-import 'package:demo/component/customToast.dart';
+import 'package:demo/component/custom_toast.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';

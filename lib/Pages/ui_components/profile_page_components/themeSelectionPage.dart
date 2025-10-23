@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo/component/customToast.dart';
+import 'package:demo/component/custom_toast.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';

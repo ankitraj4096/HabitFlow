@@ -1,4 +1,4 @@
-import 'package:demo/component/customToast.dart';
+import 'package:demo/component/custom_toast.dart';
 import 'package:demo/component/water_droplet.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
