@@ -50,7 +50,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
         setState(() => isLoading = false);
       }
     } catch (e) {
-      print('Error loading preferences: $e');
+      debugPrint('Error loading preferences: $e');
       setState(() => isLoading = false);
     }
   }
@@ -73,7 +73,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
         selectedThemeId = autoEnabled ? null : themeId;
       });
 
-      if (context.mounted) {
+      if (mounted) {
         final tierProvider = context.read<TierThemeProvider>();
         if (autoEnabled) {
           await tierProvider.refreshTierTheme();
@@ -86,7 +86,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
         CustomToast.showSuccess(context, 'Theme updated successfully!');
       }
     } catch (e) {
-      print('Error saving theme preference: $e');
+      debugPrint('Error saving theme preference: $e');
       if (mounted) {
         CustomToast.showError(context, 'Failed to update theme');
       }
@@ -166,7 +166,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -233,10 +233,10 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: tierProvider.primaryColor.withOpacity(0.1),
+                color: tierProvider.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: tierProvider.primaryColor.withOpacity(0.3),
+                  color: tierProvider.primaryColor.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -346,7 +346,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: tierProvider.glowColor.withOpacity(0.3),
+                color: tierProvider.glowColor.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -362,7 +362,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                     gradient: LinearGradient(
                       colors: isUnlocked
                           ? gradient
-                          : gradient.map((c) => c.withOpacity(0.3)).toList(),
+                          : gradient.map((c) => c.withValues(alpha: 0.3)).toList(),
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -372,7 +372,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
               if (!isUnlocked)
                 Positioned.fill(
                   child: Container(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -407,7 +407,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
+                          color: Colors.white.withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -436,7 +436,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
+                              color: Colors.white.withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -464,7 +464,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 8,
                         ),
                       ],
@@ -490,7 +490,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withValues(alpha: 0.2),
                           blurRadius: 8,
                         ),
                       ],
