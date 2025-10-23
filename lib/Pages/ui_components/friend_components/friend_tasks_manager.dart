@@ -734,7 +734,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                     'firebaseId':
                         doc.id, // ✅ doc.id works on QueryDocumentSnapshot
                   });
-                }).toList(),
+                }),
                 const SizedBox(height: 16),
               ],
             );
@@ -793,7 +793,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                     'firebaseId':
                         doc.id, // ✅ doc.id works on QueryDocumentSnapshot
                   }, highlightMyTask: true);
-                }).toList(),
+                }),
                 const SizedBox(height: 16),
               ],
             );

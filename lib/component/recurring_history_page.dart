@@ -643,7 +643,7 @@ class _RecurringTaskHistoryPageState extends State<RecurringTaskHistoryPage> {
                 ],
               ),
             );
-          }).toList(),
+          }),
           if (sortedDates.length > 10)
             Padding(
               padding: const EdgeInsets.only(top: 8),
