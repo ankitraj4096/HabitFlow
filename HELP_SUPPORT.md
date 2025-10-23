@@ -49,6 +49,15 @@ A: Tap the + button, enter task name, and optionally add timer duration in minut
 **Q: Can I add a task without a timer?**  
 A: Yes! Leave the timer field empty or set it to 0 to create a simple checklist task.
 
+**Q: What are recurring tasks?**  
+A: Recurring tasks are daily tasks that automatically reset each day. Perfect for habits you want to track daily! Enable "Daily Recurring" when creating a task.
+
+**Q: How do recurring tasks work?**  
+A: Recurring tasks reset every day at midnight. When you complete them, your progress is saved in history, but the task reappears the next day for you to complete again.
+
+**Q: Can I view my recurring task history?**  
+A: Yes! Tap on any recurring task to view a calendar heatmap showing all the days you've completed it.
+
 **Q: Can I mark a task complete while the timer is running?**  
 A: No, you must pause or complete the timer first. This prevents accidental completion.
 
@@ -56,19 +65,22 @@ A: No, you must pause or complete the timer first. This prevents accidental comp
 A: The task is automatically marked as complete and you earn tier progress!
 
 **Q: How do I reset a timer?**  
-A: Tap the reset button (🔄) on the task card and confirm. The timer will drain back to zero.
+A: Tap the reset button (🔄) on the task card and confirm. The timer will drain back to zero with a smooth animation.
 
 **Q: Can I edit a task after creating it?**  
 A: Yes! Swipe left on any task and tap "Edit" to modify the task name or timer duration.
 
 **Q: What happens to my tasks at midnight?**  
-A: Tasks are automatically cleaned up daily. Completed tasks are archived, and incomplete tasks remain visible for the next day.
+A: Regular completed tasks are archived. Recurring tasks reset and reappear for the next day. The app automatically cleans up old data every 24 hours.
 
 **Q: Can I pause a timer and resume it later?**  
 A: Yes! Tap the pause button and the timer will stop. Tap play to resume from where you left off.
 
 **Q: Do timers continue running in the background?**  
-A: Timers will continue for a short time in the background, but for best results, keep the app open while running a timer.
+A: Yes! Timers run in the background and show a persistent notification. You can control the timer from the notification.
+
+**Q: Can I complete a task from the notification?**  
+A: Yes! The timer notification shows pause, resume, and complete buttons for easy access.
 
 ---
 
@@ -94,22 +106,29 @@ A: Yes! Long-press any note to edit or delete. Changes sync automatically.
 ### Friends & Social Features
 
 **Q: How do I add friends?**  
-A: Go to Settings → Friends → Add Friend, then enter their username (case-sensitive).
+A: Go to Profile → Friends → Add Friend, then enter their username (case-sensitive).
 
 **Q: Can I assign tasks to friends?**  
-A: Yes! Visit a friend's profile and tap "Assign Task" to create tasks for them.
+A: Yes! Visit a friend's profile and tap "Assign Task" to create tasks for them. You can assign both regular and recurring tasks!
 
 **Q: How do I accept/reject task requests?**  
-A: Check your inbox (📥 icon on the home page) for pending task assignments.
+A: Check your inbox (📥 icon on the home page) for pending task assignments. You can accept, reject, or modify them.
 
 **Q: Can I see my friend's completed tasks?**  
-A: Yes, visit their profile to view their task history, daily completions, and achievements.
+A: Yes! Visit their profile to view:
+- Their heatmap showing daily activity
+- Completed tasks for any specific day (tap any date on their heatmap)
+- Their tier progress and statistics
+- Their recurring task streaks
 
 **Q: How do I remove a friend?**  
-A: Go to Settings → Friends, find the friend, and tap "Remove Friend".
+A: Go to Profile → Friends, find the friend, and tap "Remove Friend".
 
 **Q: Will my friends see all my tasks?**  
-A: No, friends only see limited information like completion counts and tier progress, not your private task details.
+A: No, friends only see limited information like completion counts, tier progress, and heatmap. They won't see private task names or notes unless you assign a task to them.
+
+**Q: Can I view a friend's task history?**  
+A: Yes! Tap on any date in their heatmap to see all tasks they completed that day, including recurring tasks.
 
 ---
 
@@ -145,10 +164,13 @@ A: Complete tasks to progress through all 17 tiers:
 A: Each tier unlocks unique gradient colors, animated effects, themes, and special badges to customize your app. The top 2 tiers (Luminary & Ascended) feature special animations!
 
 **Q: Can I see how many tasks I need for the next tier?**  
-A: Yes! Your profile page and the Achievements screen show your current tier, progress bar, and exact tasks remaining for the next level.
+A: Yes! Your profile page shows your current tier, progress bar, and exact tasks remaining for the next level.
 
 **Q: Do tasks assigned by friends count toward my tier progress?**  
-A: Yes! Completing any task (self-created or friend-assigned) contributes to your tier progress.
+A: Yes! Completing any task (self-created, friend-assigned, or recurring) contributes to your tier progress.
+
+**Q: Do recurring tasks count toward tier progress?**  
+A: Yes! Each time you complete a recurring task, it counts as 1 task toward your tier progress. Complete it daily to progress faster!
 
 **Q: Can I lose tier progress?**  
 A: No, your total completed tasks never decrease. Once you unlock a tier, it's yours forever!
@@ -158,6 +180,28 @@ A: These are the ultimate tiers with animated icons, multi-color gradients, and 
 
 **Q: How long does it take to reach The Ascended?**  
 A: Reaching 100,000 tasks requires serious dedication! Most users progress steadily over months or years. Focus on consistency, not speed.
+
+---
+
+### Heatmap & Activity Tracking
+
+**Q: What is the heatmap?**  
+A: The heatmap is a calendar view showing your daily task completion activity. Darker green colors indicate more tasks completed that day.
+
+**Q: How do I view tasks completed on a specific day?**  
+A: Simply tap any date on your heatmap to see all tasks (including recurring tasks) you completed that day.
+
+**Q: Can I see my friend's heatmap?**  
+A: Yes! Visit any friend's profile to see their activity heatmap and tap on dates to view their completed tasks for that day.
+
+**Q: Why are some dates darker green?**  
+A: The shade of green represents the number of tasks completed:
+- Light green = 1-2 tasks
+- Medium green = 3-5 tasks
+- Dark green = 6+ tasks
+
+**Q: Does the heatmap show recurring task completions?**  
+A: Yes! Both regular and recurring task completions are shown in the heatmap.
 
 ---
 
@@ -178,6 +222,9 @@ A: No, you must complete the required tasks to unlock higher tier themes. This m
 **Q: Do theme changes sync across devices?**  
 A: Yes! Your theme preference syncs automatically when you log in on another device.
 
+**Q: Do tier colors show in my friend's view?**  
+A: Yes! When friends view your profile, they see your current tier colors in the header and UI elements.
+
 ---
 
 ### Data & Storage
@@ -186,10 +233,17 @@ A: Yes! Your theme preference syncs automatically when you log in on another dev
 A: HabitFlow uses minimal storage (<50MB typically). Tasks and notes are stored efficiently in the cloud.
 
 **Q: What happens to old completed tasks?**  
-A: Completed tasks are automatically archived after 30 days to keep your app fast and clean. You can still view them in your history.
+A: Regular completed tasks older than 3 months are automatically archived. Recurring task history older than 3 months is also cleaned up to keep the app fast.
 
 **Q: Does HabitFlow clean up old data?**  
-A: Yes! The app runs automatic cleanup every 24 hours to remove outdated cache files and optimize performance.
+A: Yes! The app runs automatic cleanup every 24 hours to:
+- Archive completed tasks older than 3 months
+- Remove recurring task history older than 3 months
+- Clean up old chat messages (1 month+)
+- Optimize cache and performance
+
+**Q: Will I lose my tier progress if old tasks are deleted?**  
+A: No! Your lifetime completed task count (used for tier progress) is stored separately and never decreases.
 
 **Q: Can I export my task history?**  
 A: This feature is coming soon! For now, contact support if you need a data export.
@@ -208,16 +262,40 @@ A: This feature is coming soon! For now, contact support if you need a data expo
 - Check if Firebase services are online
 
 **Problem: Timer not updating**
-- Ensure the app stays open while timer runs
-- Check that Battery Optimization is disabled for HabitFlow in your device settings (Settings → Apps → HabitFlow → Battery → Unrestricted)
+- Ensure notifications are enabled (Settings → Apps → HabitFlow → Notifications)
+- Check that Battery Optimization is disabled (Settings → Apps → HabitFlow → Battery → Unrestricted)
 - Try restarting the timer
 - Update to the latest version
+
+**Problem: Timer notification not showing**
+- Go to Settings → Notifications and enable HabitFlow
+- Ensure "Display over other apps" permission is granted
+- Check that Do Not Disturb is off
+- Restart the app
 
 **Problem: Can't add friends**
 - Verify the username is correct (case-sensitive)
 - Ensure you're not already friends with that user
 - Check your internet connection
 - Make sure the friend's account exists
+
+**Problem: Recurring tasks not resetting**
+- Wait until midnight (tasks reset at 00:00 local time)
+- Force close and reopen the app after midnight
+- Check your internet connection
+- Pull down to refresh on the home screen
+
+**Problem: Heatmap not loading**
+- Check your internet connection
+- Pull down to refresh
+- Sign out and sign back in
+- Clear app cache
+
+**Problem: Can't see friend's completed tasks**
+- Ensure you're tapping on a date with activity (darker green)
+- Check your internet connection
+- Try reloading the friend's profile
+- Make sure the friend has actually completed tasks on that date
 
 **Problem: App crashes on startup**
 - Update to the latest version from GitHub Releases
@@ -239,7 +317,7 @@ A: This feature is coming soon! For now, contact support if you need a data expo
 - Check your device storage (needs at least 100MB free)
 
 **Problem: Tier progress not updating**
-- Pull down to refresh on the Achievements screen
+- Pull down to refresh on your profile
 - Force close and reopen the app
 - Check that the task was marked as complete
 - Wait a few seconds for sync to complete
@@ -250,16 +328,11 @@ A: This feature is coming soon! For now, contact support if you need a data expo
 - Restart your device
 - Update to the latest version
 
-**Problem: Push notifications not working**
-- Go to Settings → Notifications and enable HabitFlow
-- Check that Battery Optimization is turned off
-- Restart the app
-
-**Problem: Achievements screen not loading**
+**Problem: Recurring task history not showing**
+- Tap the task to open the history page
 - Check your internet connection
-- Pull down to refresh
-- Sign out and sign back in
-- Clear app cache and restart
+- Ensure the task is marked as "Daily Recurring"
+- Wait a few seconds for data to load
 
 ---
 
@@ -300,13 +373,14 @@ Have an idea to improve HabitFlow? We'd love to hear it!
 **Popular requested features:**
 - iOS version
 - Desktop/web version
-- Recurring tasks
+- Weekly/monthly recurring tasks
 - Task categories/tags
-- Data export functionality
+- CSV data export
 - Dark mode customization
-- Weekly/monthly statistics
+- Weekly/monthly statistics dashboard
 - Custom tier icons
-- Task reminders and notifications
+- Advanced task reminders
+- Team/group features
 
 ---
 
@@ -321,6 +395,7 @@ Concerned about your data? Read our [Privacy Policy](https://github.com/ankitraj
 - You can delete your account and all data anytime
 - All communication is encrypted with SSL/TLS
 - We comply with GDPR and international data protection standards
+- Automatic cleanup removes old data (3+ months) to protect privacy
 
 ---
 
@@ -331,34 +406,42 @@ Concerned about your data? Read our [Privacy Policy](https://github.com/ankitraj
 **Platform:** Android (Flutter)  
 **Minimum Android Version:** Android 5.0 (API 21)  
 **App Size:** ~25MB  
-**License:** Open Source (MIT License)
+**License:** Source-Available (See LICENSE)
 
 **Check for updates:** [GitHub Releases](https://github.com/ankitraj4096/HabitFlow/releases)
 
 **What's New in 1.0.0:**
 - 🎉 Initial release
 - ⏱️ Task timers with pause/resume
+- 🔄 Daily recurring tasks with history tracking
 - 👥 Friend system and task assignments
 - 🏆 17-tier progression system (0 to 100,000 tasks)
 - 🎨 Theme customization with unique tier colors
-- 📝 Note-taking for tasks
+- 📝 Note-taking for tasks with cloud sync
 - ☁️ Cloud sync across devices
-- 🧹 Automatic data cleanup
+- 🧹 Automatic data cleanup (3+ months)
 - ✨ Animated icons for top tiers
-- 📊 Achievements and progress tracking
+- 📊 Activity heatmap and progress tracking
+- 📱 Background timer notifications
+- 👀 View friend's daily completed tasks
+- 🗓️ Tap any heatmap date to see completed tasks
 
 ---
 
 ## 💡 Tips for Success
 
+- **Use recurring tasks for habits** - Mark daily habits (exercise, reading) as recurring to track consistency
 - **Set realistic timer durations** - Start with shorter times and build up
 - **Connect with friends** - Accountability helps you stay consistent
 - **Check your tier progress** - Small wins motivate bigger achievements
 - **Complete tasks daily** - Build streaks for maximum progress
+- **Tap on heatmap dates** - Review your past accomplishments to stay motivated
 - **Customize your theme** - Make the app feel like yours!
 - **Add notes to complex tasks** - Break down big goals into smaller steps
 - **Use task assignments** - Challenge friends to stay motivated together
 - **Keep your app updated** - New features and fixes are released regularly
+- **Check recurring task history** - See your streaks and stay motivated!
+- **Enable notifications** - Never miss a running timer
 - **Don't rush to The Ascended** - Focus on building real habits, not just numbers
 - **Celebrate milestones** - Each tier unlock is an achievement worth celebrating!
 
@@ -399,12 +482,14 @@ Reserved for the most dedicated achievers.
 
 ## 🔄 Known Limitations
 
-- Timers may pause if the app is force-closed by the system
 - Background timer accuracy depends on device battery optimization settings
 - Maximum timer duration: 24 hours per task
 - Friend search is case-sensitive (we're working on fixing this!)
 - Notes sync requires active internet connection
 - Achievement animations require Android 6.0 or higher for best performance
+- Recurring tasks reset at midnight local device time
+- Heatmap shows last 365 days of activity
+- Old data (3+ months) is automatically cleaned up
 
 ---
 
@@ -421,6 +506,7 @@ Reserved for the most dedicated achievers.
 - 500MB free storage
 - Stable WiFi or 4G connection
 - 4GB RAM
+- Notifications enabled
 
 **For best animation performance:**
 - Android 9.0 or higher
@@ -433,11 +519,41 @@ Reserved for the most dedicated achievers.
 
 1. **Create an account** - Sign up with email and password
 2. **Add your first task** - Tap the + button and create a simple task
-3. **Complete it** - Mark it done and unlock The Awakened tier!
-4. **Add friends** - Go to Settings → Friends to connect with others
-5. **Customize your theme** - Settings → Theme to change colors
-6. **Check achievements** - View your progress and upcoming tiers
-7. **Keep going** - Build the habit of daily task completion!
+3. **Try a recurring task** - Enable "Daily Recurring" for habits you want to track daily
+4. **Complete it** - Mark it done and unlock The Awakened tier!
+5. **Add friends** - Go to Profile → Friends to connect with others
+6. **View your heatmap** - See your activity calendar on the profile page
+7. **Tap on dates** - View tasks you completed on any specific day
+8. **Customize your theme** - Settings → Theme to change colors
+9. **Assign tasks to friends** - Visit a friend's profile and challenge them!
+10. **Keep going** - Build the habit of daily task completion!
+
+---
+
+## 🎯 Recurring Tasks Guide
+
+### What Are Recurring Tasks?
+Recurring tasks are perfect for daily habits like:
+- Morning exercise
+- Reading for 30 minutes
+- Meditation
+- Journaling
+- Learning a new skill
+
+### How to Use Recurring Tasks
+1. **Create a recurring task** - Enable "Daily Recurring" when adding a task
+2. **Complete it daily** - Mark it done each day
+3. **View your streak** - Tap the task to see your completion history
+4. **Track progress** - The heatmap shows all days you've completed it
+5. **Build consistency** - Aim for long streaks!
+
+### Recurring Task Features
+- Automatically resets at midnight every day
+- Tracks completion history forever
+- Shows calendar heatmap of all completions
+- Counts toward tier progress each time
+- Can be assigned to friends
+- Supports timers
 
 ---
 
