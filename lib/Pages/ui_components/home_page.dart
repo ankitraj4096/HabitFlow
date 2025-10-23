@@ -1104,6 +1104,7 @@ class _HomepageState extends State<Homepage> {
                             debugPrint('Error updating Firebase: $e');
                             if (mounted) {
                               CustomToast.showError(
+                                // ignore: use_build_context_synchronously
                                 context,
                                 'Failed to update task.',
                               );
