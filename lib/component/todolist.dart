@@ -25,10 +25,14 @@ class Todolist extends StatefulWidget {
   final VoidCallback? onTimerStart;
   final VoidCallback? onTimerPause;
   final VoidCallback? onTimerStop;
+
   final int resetKey;
 
   // Sync status
   final bool isSynced;
+
+  // ✅ NEW: Recurring status
+  final bool isRecurring;
 
   const Todolist({
     super.key,
@@ -48,6 +52,7 @@ class Todolist extends StatefulWidget {
     required this.assignedByUsername,
     required this.onTimerComplete,
     this.resetKey = 0,
+    this.isRecurring = false,  // ✅ NEW
   });
 
   @override
@@ -55,15 +60,15 @@ class Todolist extends StatefulWidget {
 }
 
 class _TodolistState extends State<Todolist> {
-  Timer? _timer;
-  int _currentElapsed = 0;
+  Timer? timer;
+  int currentElapsed = 0;
 
   @override
   void initState() {
     super.initState();
-    _currentElapsed = widget.elapsedSeconds;
+    currentElapsed = widget.elapsedSeconds;
     if (widget.isRunning) {
-      _startLocalTimer();
+      startLocalTimer();
     }
   }
 
@@ -73,71 +78,67 @@ class _TodolistState extends State<Todolist> {
 
     if (widget.isRunning != oldWidget.isRunning) {
       if (widget.isRunning) {
-        _startLocalTimer();
+        startLocalTimer();
       } else {
-        _stopLocalTimer();
+        stopLocalTimer();
       }
     }
 
-    // ✅ Update local elapsed time immediately when prop changes
     if (widget.elapsedSeconds != oldWidget.elapsedSeconds) {
       setState(() {
-        _currentElapsed = widget.elapsedSeconds;
+        currentElapsed = widget.elapsedSeconds;
       });
     }
 
-    // ✅ Handle reset key change for instant drain
     if (widget.resetKey != oldWidget.resetKey) {
       setState(() {
-        _currentElapsed = widget.elapsedSeconds;
+        currentElapsed = widget.elapsedSeconds;
       });
     }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    timer?.cancel();
     super.dispose();
   }
 
-  void _startLocalTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  void startLocalTimer() {
+    timer?.cancel();
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (widget.totalDuration != null &&
-          _currentElapsed >= widget.totalDuration!) {
-        _stopLocalTimer();
+          currentElapsed >= widget.totalDuration!) {
+        stopLocalTimer();
         widget.onTimerPause?.call();
-        _showTimerCompleteToast();
+        showTimerCompleteToast();
         if (widget.onTimerComplete != null && !widget.isChecked) {
           widget.onTimerComplete!();
         }
         return;
       }
-
       setState(() {
-        _currentElapsed++;
+        currentElapsed++;
       });
     });
   }
 
-  void _stopLocalTimer() {
-    _timer?.cancel();
+  void stopLocalTimer() {
+    timer?.cancel();
   }
 
-  void _showTimerCompleteToast() {
-    if (mounted) {
-      final tierProvider = context.read<TierThemeProvider>();
-      CustomToast.showCustom(
-        context,
-        'Timer completed for "${widget.taskName}"!',
-        icon: Icons.alarm,
-        gradientColors: tierProvider.gradientColors,
-        duration: const Duration(seconds: 3),
-      );
-    }
+  void showTimerCompleteToast() {
+    if (!mounted) return;
+    final tierProvider = context.read<TierThemeProvider>();
+    CustomToast.showCustom(
+      context,
+      'Timer completed for ${widget.taskName}!',
+      icon: Icons.alarm,
+      gradientColors: tierProvider.gradientColors,
+      duration: const Duration(seconds: 3),
+    );
   }
 
-  String _formatTime(int seconds) {
+  String formatTime(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
     final secs = seconds % 60;
@@ -148,21 +149,18 @@ class _TodolistState extends State<Todolist> {
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
-  double _getProgress() {
+  double getProgress() {
     if (widget.totalDuration == null || widget.totalDuration == 0) {
       return 0.0;
     }
-
-    // If task is completed, show full progress
     if (widget.isChecked) {
       return 1.0;
     }
-
-    return (_currentElapsed / widget.totalDuration!).clamp(0.0, 1.0);
+    return (currentElapsed / widget.totalDuration!).clamp(0.0, 1.0);
   }
 
-  Color _getWaterColor() {
-    final progress = _getProgress();
+  Color getWaterColor() {
+    final progress = getProgress();
     if (progress < 0.33) {
       return const Color(0xFF4FC3F7);
     } else if (progress < 0.66) {
@@ -172,9 +170,8 @@ class _TodolistState extends State<Todolist> {
     }
   }
 
-  void _showResetDialog() {
+  void showResetDialog() {
     final tierProvider = context.read<TierThemeProvider>();
-
     showDialog(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -192,7 +189,7 @@ class _TodolistState extends State<Todolist> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.glowColor.withValues(alpha:0.3),
+                color: tierProvider.glowColor.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -201,7 +198,6 @@ class _TodolistState extends State<Todolist> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon with gradient background
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -213,7 +209,7 @@ class _TodolistState extends State<Todolist> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: tierProvider.glowColor.withValues(alpha:0.5),
+                      color: tierProvider.glowColor.withValues(alpha: 0.5),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -225,10 +221,7 @@ class _TodolistState extends State<Todolist> {
                   size: 40,
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Title
               Text(
                 'Reset Timer?',
                 style: TextStyle(
@@ -237,22 +230,15 @@ class _TodolistState extends State<Todolist> {
                   color: tierProvider.primaryColor,
                 ),
               ),
-
               const SizedBox(height: 12),
-
-              // Concise description
               Text(
                 'All progress will be lost.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 15, color: Colors.grey[600]),
               ),
-
               const SizedBox(height: 28),
-
-              // Action buttons
               Row(
                 children: [
-                  // Cancel button
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -281,10 +267,7 @@ class _TodolistState extends State<Todolist> {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
-                  // Reset button with gradient from tierProvider
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -296,7 +279,9 @@ class _TodolistState extends State<Todolist> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: tierProvider.glowColor.withValues(alpha:0.4),
+                            color: tierProvider.glowColor.withValues(
+                              alpha: 0.4,
+                            ),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -315,9 +300,9 @@ class _TodolistState extends State<Todolist> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.refresh_rounded,
                               color: Colors.white,
@@ -357,16 +342,13 @@ class _TodolistState extends State<Todolist> {
           motion: const DrawerMotion(),
           extentRatio: 0.45,
           children: [
-            // Edit Action with gradient
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 4, right: 2),
                 child: GestureDetector(
                   onTap: () => widget.updateFun?.call(context),
                   child: Container(
-                    constraints: const BoxConstraints(
-                      minHeight: 80, // Minimum height to prevent overflow
-                    ),
+                    constraints: const BoxConstraints(minHeight: 80),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: tierProvider.gradientColors,
@@ -376,7 +358,7 @@ class _TodolistState extends State<Todolist> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: tierProvider.glowColor.withValues(alpha:0.4),
+                          color: tierProvider.glowColor.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -388,7 +370,7 @@ class _TodolistState extends State<Todolist> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha:0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -412,17 +394,13 @@ class _TodolistState extends State<Todolist> {
                 ),
               ),
             ),
-
-            // Delete Action with gradient
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 2, right: 4),
                 child: GestureDetector(
                   onTap: () => widget.deleteFun?.call(context),
                   child: Container(
-                    constraints: const BoxConstraints(
-                      minHeight: 80, // Minimum height to prevent overflow
-                    ),
+                    constraints: const BoxConstraints(minHeight: 80),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFFEF5350), Color(0xFFE53935)],
@@ -432,7 +410,7 @@ class _TodolistState extends State<Todolist> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFEF5350).withValues(alpha:0.4),
+                          color: const Color(0xFFEF5350).withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -444,7 +422,7 @@ class _TodolistState extends State<Todolist> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha:0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -471,24 +449,22 @@ class _TodolistState extends State<Todolist> {
           ],
         ),
         child: Container(
-          constraints: const BoxConstraints(
-            minHeight: 80, // Ensures card has minimum height
-          ),
+          constraints: const BoxConstraints(minHeight: 80),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: widget.isChecked
-                  ? tierProvider.primaryColor.withValues(alpha:0.3)
+                  ? tierProvider.primaryColor.withValues(alpha: 0.3)
                   : widget.isSynced
-                  ? Colors.grey.withValues(alpha:0.2)
-                  : Colors.orange.withValues(alpha:0.4),
+                      ? Colors.grey.withValues(alpha: 0.2)
+                      : Colors.orange.withValues(alpha: 0.4),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
                 color: widget.isChecked
-                    ? tierProvider.glowColor.withValues(alpha:0.15)
-                    : Colors.black.withValues(alpha:0.08),
+                    ? tierProvider.glowColor.withValues(alpha: 0.15)
+                    : Colors.black.withValues(alpha: 0.08),
                 offset: const Offset(0, 4),
                 blurRadius: 12,
                 spreadRadius: 0,
@@ -499,18 +475,15 @@ class _TodolistState extends State<Todolist> {
             borderRadius: BorderRadius.circular(16),
             child: Stack(
               children: [
-                // ✅ Water droplet background
                 if (widget.hasTimer && widget.totalDuration != null)
                   Positioned.fill(
                     child: WaterDropletEffect(
-                      progress: _getProgress(),
+                      progress: getProgress(),
                       isRunning: widget.isRunning,
-                      waterColor: _getWaterColor(),
+                      waterColor: getWaterColor(),
                       resetKey: widget.resetKey,
                     ),
                   ),
-
-                // ✅ Gradient overlay for non-timer tasks
                 if (!widget.hasTimer || widget.totalDuration == null)
                   Positioned.fill(
                     child: Container(
@@ -518,23 +491,24 @@ class _TodolistState extends State<Todolist> {
                         gradient: LinearGradient(
                           colors: widget.isChecked
                               ? [
-                                  tierProvider.primaryColor.withValues(alpha:0.15),
-                                  tierProvider.glowColor.withValues(alpha:0.1),
+                                  tierProvider.primaryColor
+                                      .withValues(alpha: 0.15),
+                                  tierProvider.glowColor.withValues(alpha: 0.1),
                                 ]
-                              : [Colors.white, const Color(0xFFFAFAFA)],
+                              : [
+                                  Colors.white,
+                                  const Color(0xFFFAFAFA),
+                                ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                       ),
                     ),
                   ),
-
-                // ✅ Content overlay
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      // Prevent marking complete if timer is running
                       if (widget.isRunning) {
                         CustomToast.warning(
                           context,
@@ -546,18 +520,14 @@ class _TodolistState extends State<Todolist> {
                     },
                     borderRadius: BorderRadius.circular(16),
                     child: Padding(
-                      padding: const EdgeInsets.all(
-                        16,
-                      ), // Increased from 14 to 16
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // ✅ Main Task Row
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Checkbox
                               Container(
                                 width: 26,
                                 height: 26,
@@ -580,10 +550,9 @@ class _TodolistState extends State<Todolist> {
                                   boxShadow: [
                                     BoxShadow(
                                       color: widget.isChecked
-                                          ? tierProvider.glowColor.withValues(alpha:
-                                              0.3,
-                                            )
-                                          : Colors.black.withValues(alpha:0.12),
+                                          ? tierProvider.glowColor
+                                              .withValues(alpha: 0.3)
+                                          : Colors.black.withValues(alpha: 0.12),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -598,14 +567,11 @@ class _TodolistState extends State<Todolist> {
                                     : null,
                               ),
                               const SizedBox(width: 10),
-
-                              // ✅ Task text
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    // Task name
                                     Wrap(
                                       children: [
                                         Container(
@@ -614,17 +580,14 @@ class _TodolistState extends State<Todolist> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha:
-                                              0.95,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
+                                            color: Colors.white
+                                                .withValues(alpha: 0.95),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black.withValues(alpha:
-                                                  0.08,
-                                                ),
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.08),
                                                 blurRadius: 4,
                                                 offset: const Offset(0, 2),
                                               ),
@@ -650,8 +613,6 @@ class _TodolistState extends State<Todolist> {
                                         ),
                                       ],
                                     ),
-
-                                    // Assigned by
                                     if (widget.assignedByUsername != null) ...[
                                       const SizedBox(height: 4),
                                       Wrap(
@@ -662,15 +623,14 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha:
-                                                0.95,
-                                              ),
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.95),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               boxShadow: [
                                                 BoxShadow(
                                                   color: Colors.black
-                                                      .withValues(alpha:0.08),
+                                                      .withValues(alpha: 0.08),
                                                   blurRadius: 3,
                                                   offset: const Offset(0, 1),
                                                 ),
@@ -687,7 +647,7 @@ class _TodolistState extends State<Todolist> {
                                                 ),
                                                 const SizedBox(width: 3),
                                                 Text(
-                                                  'From: ${widget.assignedByUsername}',
+                                                  'From ${widget.assignedByUsername}',
                                                   style: TextStyle(
                                                     fontSize: 10,
                                                     color: tierProvider
@@ -702,8 +662,6 @@ class _TodolistState extends State<Todolist> {
                                         ],
                                       ),
                                     ],
-
-                                    // Completed badge
                                     if (widget.isChecked) ...[
                                       const SizedBox(height: 3),
                                       Wrap(
@@ -714,15 +672,14 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha:
-                                                0.95,
-                                              ),
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.95),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               boxShadow: [
                                                 BoxShadow(
                                                   color: Colors.black
-                                                      .withValues(alpha:0.08),
+                                                      .withValues(alpha: 0.08),
                                                   blurRadius: 3,
                                                   offset: const Offset(0, 1),
                                                 ),
@@ -756,10 +713,7 @@ class _TodolistState extends State<Todolist> {
                                   ],
                                 ),
                               ),
-
                               const SizedBox(width: 8),
-
-                              // Badges column
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 mainAxisSize: MainAxisSize.min,
@@ -771,13 +725,13 @@ class _TodolistState extends State<Todolist> {
                                         vertical: 3,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(alpha:0.96),
+                                        color: Colors.orange
+                                            .withValues(alpha: 0.96),
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha:
-                                              0.08,
-                                            ),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.08),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
@@ -793,8 +747,8 @@ class _TodolistState extends State<Todolist> {
                                               strokeWidth: 1,
                                               valueColor:
                                                   AlwaysStoppedAnimation<Color>(
-                                                    Colors.white,
-                                                  ),
+                                                Colors.white,
+                                              ),
                                             ),
                                           ),
                                           SizedBox(width: 3),
@@ -811,6 +765,48 @@ class _TodolistState extends State<Todolist> {
                                     ),
                                   if (!widget.isSynced)
                                     const SizedBox(height: 3),
+                                  // ✅ NEW: Recurring badge
+                                  if (widget.isRecurring)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF9C27B0)
+                                            .withValues(alpha: 0.96),
+                                        borderRadius: BorderRadius.circular(5),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.08),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.repeat_rounded,
+                                            size: 10,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 3),
+                                          Text(
+                                            'Daily',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (widget.isRecurring)
+                                    const SizedBox(height: 3),
                                   if (widget.hasTimer)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
@@ -819,13 +815,12 @@ class _TodolistState extends State<Todolist> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: tierProvider.primaryColor
-                                            .withValues(alpha:0.96),
+                                            .withValues(alpha: 0.96),
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha:
-                                              0.08,
-                                            ),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.08),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
@@ -855,26 +850,23 @@ class _TodolistState extends State<Todolist> {
                               ),
                             ],
                           ),
-
-                          // ✅ Timer controls row
-                          if (widget.hasTimer &&
-                              widget.totalDuration != null) ...[
+                          if (widget.hasTimer && widget.totalDuration != null) ...[
                             const SizedBox(height: 10),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Time display
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha:0.95),
+                                    color: Colors.white.withValues(alpha: 0.95),
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha:0.08),
+                                        color:
+                                            Colors.black.withValues(alpha: 0.08),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -886,22 +878,22 @@ class _TodolistState extends State<Todolist> {
                                       Icon(
                                         Icons.water_drop,
                                         size: 12,
-                                        color: _getWaterColor(),
+                                        color: getWaterColor(),
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         widget.isChecked
-                                            ? _formatTime(widget.totalDuration!)
-                                            : _formatTime(_currentElapsed),
+                                            ? formatTime(widget.totalDuration!)
+                                            : formatTime(currentElapsed),
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
-                                          color: _getWaterColor(),
+                                          color: getWaterColor(),
                                           height: 1,
                                         ),
                                       ),
                                       Text(
-                                        ' / ${_formatTime(widget.totalDuration!)}',
+                                        ' / ${formatTime(widget.totalDuration!)}',
                                         style: TextStyle(
                                           fontSize: 9,
                                           color: Colors.grey.shade600,
@@ -911,46 +903,46 @@ class _TodolistState extends State<Todolist> {
                                     ],
                                   ),
                                 ),
-
-                                // Control buttons
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _buildMicroButton(
+                                    buildMicroButton(
                                       icon: widget.isRunning
                                           ? Icons.pause_rounded
                                           : Icons.play_arrow_rounded,
                                       color: widget.isRunning
                                           ? const Color(0xFFFFA726)
                                           : const Color(0xFF4CAF50),
-                                      onTap: widget.isChecked
-                                          ? () {
-                                              CustomToast.warning(
-                                                context,
-                                                'Timer controls disabled for completed tasks',
-                                              );
-                                            }
-                                          : () {
-                                              if (widget.isRunning) {
-                                                widget.onTimerPause?.call();
-                                              } else {
-                                                widget.onTimerStart?.call();
-                                              }
-                                            },
+                                      onTap: () {
+                                        if (widget.isChecked) {
+                                          CustomToast.warning(
+                                            context,
+                                            'Timer controls disabled for completed tasks',
+                                          );
+                                          return;
+                                        }
+                                        if (widget.isRunning) {
+                                          widget.onTimerPause?.call();
+                                        } else {
+                                          widget.onTimerStart?.call();
+                                        }
+                                      },
                                       isDisabled: widget.isChecked,
                                     ),
                                     const SizedBox(width: 5),
-                                    _buildMicroButton(
+                                    buildMicroButton(
                                       icon: Icons.refresh_rounded,
                                       color: const Color(0xFFEF5350),
-                                      onTap: widget.isChecked
-                                          ? () {
-                                              CustomToast.warning(
-                                                context,
-                                                'Timer controls disabled for completed tasks',
-                                              );
-                                            }
-                                          : _showResetDialog,
+                                      onTap: () {
+                                        if (widget.isChecked) {
+                                          CustomToast.warning(
+                                            context,
+                                            'Timer controls disabled for completed tasks',
+                                          );
+                                          return;
+                                        }
+                                        showResetDialog();
+                                      },
                                       isDisabled: widget.isChecked,
                                     ),
                                   ],
@@ -971,7 +963,7 @@ class _TodolistState extends State<Todolist> {
     );
   }
 
-  Widget _buildMicroButton({
+  Widget buildMicroButton({
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
@@ -986,10 +978,10 @@ class _TodolistState extends State<Todolist> {
           color: isDisabled ? Colors.grey.shade400 : color,
           borderRadius: BorderRadius.circular(14),
           boxShadow: isDisabled
-              ? []
+              ? null
               : [
                   BoxShadow(
-                    color: color.withValues(alpha:0.3),
+                    color: color.withValues(alpha: 0.3),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),

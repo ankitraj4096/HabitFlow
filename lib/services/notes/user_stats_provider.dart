@@ -28,17 +28,15 @@ class UserStatsProvider extends ChangeNotifier {
     _startAuthListener();
   }
 
-  /// ✅ NEW: Listen to auth state changes
+  /// Listen to auth state changes
   void _startAuthListener() {
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
       (User? user) {
         debugPrint('📊 UserStats - Auth state changed: ${user?.uid}');
         
         if (user == null) {
-          // User logged out
           _handleUserLogout();
         } else if (_currentUserId != user.uid) {
-          // User logged in or switched accounts
           _handleUserLogin(user.uid);
         }
       },
@@ -48,37 +46,27 @@ class UserStatsProvider extends ChangeNotifier {
     );
   }
 
-  /// ✅ NEW: Handle user login/switch
+  /// Handle user login/switch
   void _handleUserLogin(String userId) {
     debugPrint('📊 UserStats - User logged in: $userId');
     
-    // Cancel previous user's subscriptions
     _cancelSubscriptions();
-    
-    // Reset to loading state
     _resetToDefaultState();
-    
-    // Update current user
     _currentUserId = userId;
-    
-    // Initialize for new user
     _initialize();
   }
 
-  /// ✅ NEW: Handle user logout
+  /// Handle user logout
   void _handleUserLogout() {
     debugPrint('📊 UserStats - User logged out');
     
-    // Cancel all subscriptions
     _cancelSubscriptions();
-    
-    // Reset everything
     _currentUserId = null;
     _resetToDefaultState();
     notifyListeners();
   }
 
-  /// ✅ NEW: Cancel all active subscriptions
+  /// Cancel all active subscriptions
   void _cancelSubscriptions() {
     _tasksSubscription?.cancel();
     _tasksSubscription = null;
@@ -87,7 +75,7 @@ class UserStatsProvider extends ChangeNotifier {
     _userSubscription = null;
   }
 
-  /// ✅ NEW: Reset to default state
+  /// Reset to default state
   void _resetToDefaultState() {
     username = 'Loading...';
     currentStreak = 0;
@@ -120,7 +108,6 @@ class UserStatsProvider extends ChangeNotifier {
         .doc(_currentUserId)
         .snapshots()
         .listen((doc) {
-      // ✅ Check if this is still the current user
       if (_currentUserId != doc.id) {
         debugPrint('⚠️ UserStats - Ignoring update for old user: ${doc.id}');
         return;
@@ -130,8 +117,6 @@ class UserStatsProvider extends ChangeNotifier {
         final data = doc.data();
         if (data != null) {
           lifetimeCompletedTasks = data['lifetimeCompletedTasks'] ?? 0;
-          
-          // Update tier based on lifetime count
           userTier = _firestoreService.getUserTier(lifetimeCompletedTasks);
           notifyListeners();
         }
@@ -151,7 +136,6 @@ class UserStatsProvider extends ChangeNotifier {
         .where('status', isEqualTo: 'accepted')
         .snapshots()
         .listen((snapshot) {
-      // ✅ Check if this is still the current user
       if (_currentUserId != FirebaseAuth.instance.currentUser?.uid) {
         debugPrint('⚠️ UserStats - Ignoring task update for old user');
         return;
@@ -160,22 +144,22 @@ class UserStatsProvider extends ChangeNotifier {
     });
   }
 
-  /// Calculate all stats from snapshot
-  void _calculateStats(QuerySnapshot snapshot) async {
+  /// ✅ FIXED: Changed to Future<void> so await works
+  Future<void> _calculateStats(QuerySnapshot snapshot) async {
     try {
-      // Get username
       final name = await _firestoreService.getUsername();
 
-      // Calculate stats from tasks
       int total = snapshot.docs.length;
       int completed = 0;
       int hours = 0;
       Map<String, int> completions = {};
       Map<String, int> heatmap = {};
 
+      // Calculate stats from current tasks
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
 
+        // Count completed tasks
         if (data['isCompleted'] == true) {
           completed++;
           
@@ -185,6 +169,11 @@ class UserStatsProvider extends ChangeNotifier {
             completions[dateKey] = (completions[dateKey] ?? 0) + 1;
             heatmap[dateKey] = (heatmap[dateKey] ?? 0) + 1;
           }
+        }
+
+        // ✅ For recurring tasks, fetch their history
+        if (data['isRecurring'] == true) {
+          await _addRecurringHistoryToHeatmap(doc.id, heatmap, completions);
         }
 
         // Calculate hours from elapsed time
@@ -213,17 +202,52 @@ class UserStatsProvider extends ChangeNotifier {
     }
   }
 
+  /// ✅ Add recurring task history to heatmap
+  Future<void> _addRecurringHistoryToHeatmap(
+    String taskId,
+    Map<String, int> heatmap,
+    Map<String, int> completions,
+  ) async {
+    try {
+      if (_currentUserId == null) return;
+
+      final historySnapshot = await FirebaseFirestore.instance
+          .collection('recurringHistory')
+          .doc(_currentUserId)
+          .collection(taskId)
+          .doc('completions')
+          .collection('dates')
+          .get();
+
+      for (var doc in historySnapshot.docs) {
+        final dateKey = doc.id; // Date is the document ID (YYYY-MM-DD)
+        
+        // Add to heatmap and completions (but don't double count today)
+        final today = _formatDate(DateTime.now());
+        if (dateKey != today) {
+          heatmap[dateKey] = (heatmap[dateKey] ?? 0) + 1;
+          completions[dateKey] = (completions[dateKey] ?? 0) + 1;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching recurring history: $e');
+    }
+  }
+
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
+  /// Calculate streak
   int _calculateStreak(Map<String, int> completionsByDate) {
     if (completionsByDate.isEmpty) return 0;
     final today = DateTime.now();
     int streak = 0;
+    
     for (int i = 0; i < 365; i++) {
       final checkDate = today.subtract(Duration(days: i));
       final dateKey = _formatDate(checkDate);
+      
       if (completionsByDate.containsKey(dateKey)) {
         streak++;
       } else {
@@ -250,7 +274,7 @@ class UserStatsProvider extends ChangeNotifier {
           .where('status', isEqualTo: 'accepted')
           .get();
       
-      _calculateStats(snapshot);
+      await _calculateStats(snapshot);
     } catch (e) {
       debugPrint('Error refreshing stats: $e');
       isLoading = false;

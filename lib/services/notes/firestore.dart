@@ -15,11 +15,25 @@ class FireStoreService {
         .collection('notes');
   }
 
-  /// Adds a new task to Firebase
+  /// ✅ NEW: Get reference to recurring history for a specific task
+  CollectionReference _getTaskHistoryRef(String taskId) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    return FirebaseFirestore.instance
+        .collection('recurringHistory')
+        .doc(user.uid)
+        .collection(taskId)
+        .doc('completions')
+        .collection('dates');
+  }
+
+  /// ✅ UPDATED: Adds a new task to Firebase with recurring support
   Future<String?> addTask(
     bool isCompleted,
     String taskName, [
     int? durationMins,
+    bool isRecurring = false, // NEW parameter
   ]) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -30,6 +44,10 @@ class FireStoreService {
           .doc(user.uid)
           .set({}, SetOptions(merge: true));
 
+      final now = DateTime.now();
+      final todayDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final Map<String, dynamic> taskData = {
         'isCompleted': isCompleted,
         'taskName': taskName,
@@ -38,6 +56,10 @@ class FireStoreService {
         'assignedByUserID': null,
         'assignedByUsername': null,
         'status': 'accepted',
+        'isRecurring': isRecurring, // ✅ NEW
+        'completedToday': isCompleted && isRecurring
+            ? todayDate
+            : null, // ✅ NEW
       };
 
       if (durationMins != null && durationMins > 0) {
@@ -52,6 +74,12 @@ class FireStoreService {
       }
 
       final docRef = await _userNotes.add(taskData);
+
+      // ✅ NEW: If recurring and completed, save to history
+      if (isRecurring && isCompleted) {
+        await _saveCompletionToHistory(docRef.id, taskData);
+      }
+
       return docRef.id;
     } catch (e) {
       debugPrint('Error adding task to Firebase: $e');
@@ -59,11 +87,34 @@ class FireStoreService {
     }
   }
 
+  /// ✅ NEW: Save task completion to history
+  Future<void> _saveCompletionToHistory(
+    String taskId,
+    Map<String, dynamic> taskData,
+  ) async {
+    try {
+      final now = DateTime.now();
+      final todayDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      await _getTaskHistoryRef(taskId).doc(todayDate).set({
+        'completedAt': Timestamp.now(),
+        'taskName': taskData['taskName'],
+        'duration': taskData['elapsedSeconds'] ?? 0,
+        'totalDuration': taskData['totalDuration'] ?? 0,
+      });
+    } catch (e) {
+      debugPrint('Error saving to history: $e');
+    }
+  }
+
+  /// Assign a task to a friend
   /// Assign a task to a friend
   Future<String?> assignTaskToFriend({
     required String friendUserID,
     required String taskName,
     int? durationMins,
+    bool isRecurring = false, // ✅ NEW parameter
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -76,6 +127,10 @@ class FireStoreService {
           .doc(friendUserID)
           .set({}, SetOptions(merge: true));
 
+      final now = DateTime.now();
+      final todayDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final Map<String, dynamic> taskData = {
         'isCompleted': false,
         'taskName': taskName,
@@ -84,6 +139,8 @@ class FireStoreService {
         'assignedByUserID': user.uid,
         'assignedByUsername': currentUsername,
         'status': 'pending',
+        'isRecurring': isRecurring, 
+        'completedToday': null, 
       };
 
       if (durationMins != null && durationMins > 0) {
@@ -182,19 +239,36 @@ class FireStoreService {
     }
   }
 
-  /// Updates a task in Firebase
+  /// ✅ UPDATED: Updates a task in Firebase with recurring support
   Future<void> updateTask(
     String docID,
     bool isCompleted,
     String taskName, [
     int? durationMins,
+    bool? isRecurring, // NEW optional parameter
   ]) async {
     try {
+      final now = DateTime.now();
+      final todayDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final Map<String, dynamic> updateData = {
         'isCompleted': isCompleted,
         'taskName': taskName,
         'lastUpdated': Timestamp.now(),
       };
+
+      // ✅ NEW: Update recurring status if provided
+      if (isRecurring != null) {
+        updateData['isRecurring'] = isRecurring;
+      }
+
+      // ✅ NEW: Track if completed today
+      if (isCompleted) {
+        updateData['completedToday'] = todayDate;
+      } else {
+        updateData['completedToday'] = null;
+      }
 
       if (durationMins != null && durationMins > 0) {
         updateData.addAll({
@@ -210,6 +284,14 @@ class FireStoreService {
       }
 
       await _userNotes.doc(docID).update(updateData);
+
+      // ✅ NEW: Save to history if recurring and completed
+      final taskDoc = await _userNotes.doc(docID).get();
+      final taskData = taskDoc.data() as Map<String, dynamic>?;
+
+      if (taskData != null && taskData['isRecurring'] == true && isCompleted) {
+        await _saveCompletionToHistory(docID, taskData);
+      }
     } catch (e) {
       debugPrint('Error updating task in Firebase: $e');
       rethrow;
@@ -226,19 +308,50 @@ class FireStoreService {
     }
   }
 
-  /// Toggle task completion status - UPDATE to increment lifetime counter
+  /// ✅ NEW: Delete task with optional history preservation
+  Future<void> deleteTaskWithHistory(
+    String docID, {
+    bool deleteHistory = false,
+  }) async {
+    try {
+      await _userNotes.doc(docID).delete();
+
+      if (deleteHistory) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final historyRef = FirebaseFirestore.instance
+              .collection('recurringHistory')
+              .doc(user.uid)
+              .collection(docID);
+
+          final docs = await historyRef.get();
+          for (var doc in docs.docs) {
+            await doc.reference.delete();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting task: $e');
+      rethrow;
+    }
+  }
+
+  /// Toggle task completion status
   Future<void> toggleCompletion(String docID, bool currentStatus) async {
     try {
+      final now = DateTime.now();
+      final todayDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
       final Map<String, dynamic> updateData = {
         'isCompleted': !currentStatus,
         'lastUpdated': Timestamp.now(),
       };
 
       if (!currentStatus) {
-        // Task is being completed
         updateData['completedAt'] = Timestamp.now();
+        updateData['completedToday'] = todayDate; // ✅ NEW
 
-        // ✅ NEW: Increment lifetime completed tasks
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           await FirebaseFirestore.instance
@@ -246,11 +359,17 @@ class FireStoreService {
               .doc(user.uid)
               .update({'lifetimeCompletedTasks': FieldValue.increment(1)});
         }
-      } else {
-        // Task is being uncompleted
-        updateData['completedAt'] = FieldValue.delete();
 
-        // ✅ NEW: Decrement lifetime completed tasks
+        // ✅ NEW: Save to history if recurring
+        final taskDoc = await _userNotes.doc(docID).get();
+        final taskData = taskDoc.data() as Map<String, dynamic>?;
+        if (taskData != null && taskData['isRecurring'] == true) {
+          await _saveCompletionToHistory(docID, taskData);
+        }
+      } else {
+        updateData['completedAt'] = FieldValue.delete();
+        updateData['completedToday'] = null; // ✅ NEW
+
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final userDoc = await FirebaseFirestore.instance
@@ -272,6 +391,102 @@ class FireStoreService {
     } catch (e) {
       debugPrint('Error toggling completion in Firebase: $e');
       rethrow;
+    }
+  }
+
+  /// ✅ NEW: Reset recurring tasks for the new day
+  Future<void> resetRecurringTasks() async {
+    try {
+      final now = DateTime.now();
+      final todayDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final snapshot = await _userNotes
+          .where('status', isEqualTo: 'accepted')
+          .where('isRecurring', isEqualTo: true)
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final completedToday = data['completedToday'] as String?;
+
+        // Only reset if not completed today
+        if (completedToday != todayDate) {
+          batch.update(doc.reference, {
+            'isCompleted': false,
+            'completedToday': null,
+            'lastUpdated': Timestamp.now(),
+            'elapsedSeconds': 0,
+            'isRunning': false,
+            'startTime': FieldValue.delete(),
+          });
+        }
+      }
+
+      await batch.commit();
+      debugPrint('✅ Recurring tasks reset successfully');
+    } catch (e) {
+      debugPrint('Error resetting recurring tasks: $e');
+    }
+  }
+
+  /// ✅ NEW: Check if we need to reset recurring tasks
+  Future<bool> shouldResetRecurringTasks() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return false;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final lastResetTimestamp =
+          userDoc.data()?['lastRecurringReset'] as Timestamp?;
+
+      if (lastResetTimestamp == null) return true;
+
+      final lastReset = lastResetTimestamp.toDate();
+      final now = DateTime.now();
+
+      return lastReset.year != now.year ||
+          lastReset.month != now.month ||
+          lastReset.day != now.day;
+    } catch (e) {
+      debugPrint('Error checking recurring reset: $e');
+      return false;
+    }
+  }
+
+  /// ✅ NEW: Mark that we've reset recurring tasks today
+  Future<void> markRecurringTasksReset() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'lastRecurringReset': Timestamp.now(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error marking recurring reset: $e');
+    }
+  }
+
+  /// ✅ NEW: Get completion history for a recurring task
+  Future<List<Map<String, dynamic>>> getTaskHistory(String taskId) async {
+    try {
+      final snapshot = await _getTaskHistoryRef(
+        taskId,
+      ).orderBy('completedAt', descending: true).limit(30).get();
+
+      return snapshot.docs
+          .map((doc) => {'date': doc.id, ...doc.data() as Map<String, dynamic>})
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting task history: $e');
+      return [];
     }
   }
 
@@ -322,7 +537,7 @@ class FireStoreService {
     }
   }
 
-  /// Get user statistics - FIXED to use completedAt
+  /// Get user statistics
   Future<Map<String, dynamic>> getUserStatistics() async {
     try {
       final snapshot = await _userNotes
@@ -339,7 +554,6 @@ class FireStoreService {
 
         if (data['isCompleted'] == true) {
           completedTasks++;
-          // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
           final completedAt = data['completedAt'] as Timestamp?;
           if (completedAt != null) {
             final dateKey = _formatDate(completedAt.toDate());
@@ -373,7 +587,7 @@ class FireStoreService {
     }
   }
 
-  /// Get heatmap data stream - FIXED to use completedAt
+  /// Get heatmap data stream
   Stream<Map<String, int>> getHeatmapData() {
     return _userNotes
         .where('status', isEqualTo: 'accepted')
@@ -383,7 +597,6 @@ class FireStoreService {
           final Map<String, int> heatmap = {};
           for (var doc in snapshot.docs) {
             final data = doc.data() as Map<String, dynamic>;
-            // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
             final completedAt = data['completedAt'] as Timestamp?;
             if (completedAt != null) {
               final d = completedAt.toDate();
@@ -439,10 +652,7 @@ class FireStoreService {
         "name": "The Starter",
         "completedTasks": 0,
         "icon": "circle",
-        "gradient": [
-          const Color(0xFF64748B),
-          const Color(0xFF334155),
-        ],
+        "gradient": [const Color(0xFF64748B), const Color(0xFF334155)],
         "glow": const Color(0xFF94A3B8),
       },
       {
@@ -450,10 +660,7 @@ class FireStoreService {
         "name": "The Awakened",
         "completedTasks": 10,
         "icon": "sunrise",
-        "gradient": [
-          const Color(0xFF667eea),
-          const Color(0xFF764ba2),
-        ],
+        "gradient": [const Color(0xFF667eea), const Color(0xFF764ba2)],
         "glow": const Color(0xFFf093fb),
       },
       {
@@ -461,10 +668,7 @@ class FireStoreService {
         "name": "The Seeker",
         "completedTasks": 50,
         "icon": "target",
-        "gradient": [
-          const Color(0xFFCD7F32),
-          const Color(0xFFB87333),
-        ],
+        "gradient": [const Color(0xFFCD7F32), const Color(0xFFB87333)],
         "glow": const Color(0xFFD4A574),
       },
       {
@@ -472,10 +676,7 @@ class FireStoreService {
         "name": "The Novice",
         "completedTasks": 100,
         "icon": "book",
-        "gradient": [
-          const Color(0xFF10B981),
-          const Color(0xFF059669),
-        ],
+        "gradient": [const Color(0xFF10B981), const Color(0xFF059669)],
         "glow": const Color(0xFF34D399),
       },
       {
@@ -483,10 +684,7 @@ class FireStoreService {
         "name": "The Apprentice",
         "completedTasks": 250,
         "icon": "hammer",
-        "gradient": [
-          const Color(0xFFF59E0B),
-          const Color(0xFFD97706),
-        ],
+        "gradient": [const Color(0xFFF59E0B), const Color(0xFFD97706)],
         "glow": const Color(0xFFFBBF24),
       },
       {
@@ -494,10 +692,7 @@ class FireStoreService {
         "name": "The Adept",
         "completedTasks": 500,
         "icon": "zap",
-        "gradient": [
-          const Color(0xFFF97316),
-          const Color(0xFFEA580C),
-        ],
+        "gradient": [const Color(0xFFF97316), const Color(0xFFEA580C)],
         "glow": const Color(0xFFFB923C),
       },
       {
@@ -505,10 +700,7 @@ class FireStoreService {
         "name": "The Disciplined",
         "completedTasks": 1000,
         "icon": "shield",
-        "gradient": [
-          const Color(0xFF8B5CF6),
-          const Color(0xFF6D28D9),
-        ],
+        "gradient": [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)],
         "glow": const Color(0xFFA78BFA),
       },
       {
@@ -516,10 +708,7 @@ class FireStoreService {
         "name": "The Specialist",
         "completedTasks": 2500,
         "icon": "award",
-        "gradient": [
-          const Color(0xFFEC4899),
-          const Color(0xFFDB2777),
-        ],
+        "gradient": [const Color(0xFFEC4899), const Color(0xFFDB2777)],
         "glow": const Color(0xFFF472B6),
       },
       {
@@ -527,10 +716,7 @@ class FireStoreService {
         "name": "The Expert",
         "completedTasks": 5000,
         "icon": "crown",
-        "gradient": [
-          const Color(0xFF6366F1),
-          const Color(0xFF4F46E5),
-        ],
+        "gradient": [const Color(0xFF6366F1), const Color(0xFF4F46E5)],
         "glow": const Color(0xFF818CF8),
       },
       {
@@ -538,10 +724,7 @@ class FireStoreService {
         "name": "The Vanguard",
         "completedTasks": 10000,
         "icon": "flame",
-        "gradient": [
-          const Color(0xFFEF4444),
-          const Color(0xFFDC2626),
-        ],
+        "gradient": [const Color(0xFFEF4444), const Color(0xFFDC2626)],
         "glow": const Color(0xFFF87171),
       },
       {
@@ -549,10 +732,7 @@ class FireStoreService {
         "name": "The Sentinel",
         "completedTasks": 15000,
         "icon": "eye",
-        "gradient": [
-          const Color(0xFF06B6D4),
-          const Color(0xFF0891B2),
-        ],
+        "gradient": [const Color(0xFF06B6D4), const Color(0xFF0891B2)],
         "glow": const Color(0xFF22D3EE),
       },
       {
@@ -560,10 +740,7 @@ class FireStoreService {
         "name": "The Virtuoso",
         "completedTasks": 25000,
         "icon": "music",
-        "gradient": [
-          const Color(0xFF14B8A6),
-          const Color(0xFF0D9488),
-        ],
+        "gradient": [const Color(0xFF14B8A6), const Color(0xFF0D9488)],
         "glow": const Color(0xFF2DD4BF),
       },
       {
@@ -571,10 +748,7 @@ class FireStoreService {
         "name": "The Master",
         "completedTasks": 40000,
         "icon": "trophy",
-        "gradient": [
-          const Color(0xFFEAB308),
-          const Color(0xFFCA8A04),
-        ],
+        "gradient": [const Color(0xFFEAB308), const Color(0xFFCA8A04)],
         "glow": const Color(0xFFFACC15),
       },
       {
@@ -582,10 +756,7 @@ class FireStoreService {
         "name": "The Grandmaster",
         "completedTasks": 60000,
         "icon": "gem",
-        "gradient": [
-          const Color(0xFF22C55E),
-          const Color(0xFF16A34A),
-        ],
+        "gradient": [const Color(0xFF22C55E), const Color(0xFF16A34A)],
         "glow": const Color(0xFF4ADE80),
       },
       {
@@ -593,10 +764,7 @@ class FireStoreService {
         "name": "The Titan",
         "completedTasks": 75000,
         "icon": "mountain",
-        "gradient": [
-          const Color(0xFF3B82F6),
-          const Color(0xFF1E40AF),
-        ],
+        "gradient": [const Color(0xFF3B82F6), const Color(0xFF1E40AF)],
         "glow": const Color(0xFF60A5FA),
       },
       {
@@ -629,15 +797,12 @@ class FireStoreService {
       },
     ];
 
-    // Always default to Tier 1 (The Starter) for users with 0-9 tasks
     Map<String, dynamic> currentTier = tiers[0];
 
-    // Find the highest tier the user qualifies for
     for (final tier in tiers) {
       if (completedTasks >= tier['completedTasks']) {
         currentTier = tier;
       } else {
-        // Once we find a tier we don't qualify for, stop checking
         break;
       }
     }
@@ -670,7 +835,7 @@ class FireStoreService {
     return iconMap[iconName] ?? LucideIcons.star;
   }
 
-  /// Get statistics for a specific user - FIXED to use completedAt
+  /// Get statistics for a specific user
   Future<Map<String, dynamic>> getUserStatisticsForUser(String userID) async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -689,7 +854,6 @@ class FireStoreService {
         final data = doc.data();
         if (data['isCompleted'] == true) {
           completedTasks++;
-          // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
           final completedAt = data['completedAt'] as Timestamp?;
           if (completedAt != null) {
             final dateKey = _formatDate(completedAt.toDate());
@@ -722,7 +886,7 @@ class FireStoreService {
     }
   }
 
-  /// Get heatmap data for a specific user - FIXED to use completedAt
+  /// Get heatmap data for a specific user
   Stream<Map<String, int>> getHeatmapDataForUser(String userID) {
     return FirebaseFirestore.instance
         .collection('user_notes')
@@ -735,7 +899,6 @@ class FireStoreService {
           final Map<String, int> heatmap = {};
           for (var doc in snapshot.docs) {
             final data = doc.data();
-            // ✅ FIXED: Changed from 'timestamp' to 'completedAt'
             final completedAt = data['completedAt'] as Timestamp?;
             if (completedAt != null) {
               final d = completedAt.toDate();

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/friend_components/friend_lists_page.dart';
 import 'package:demo/Pages/ui_components/friend_components/friend_tasks_manager.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/settings_page.dart';
@@ -15,7 +16,7 @@ class ProfilePage extends StatefulWidget {
   final bool isOwnProfile;
 
   const ProfilePage({super.key, this.viewingUserID, this.viewingUsername})
-      : isOwnProfile = viewingUserID == null;
+    : isOwnProfile = viewingUserID == null;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -37,7 +38,7 @@ class _ProfilePageState extends State<ProfilePage>
 
   List<Color> viewedUserGradient = [
     const Color(0xFF7C4DFF),
-    const Color(0xFF448AFF)
+    const Color(0xFF448AFF),
   ];
   Color viewedUserGlowColor = const Color(0xFF7C4DFF);
 
@@ -54,7 +55,7 @@ class _ProfilePageState extends State<ProfilePage>
     _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
-    
+
     // Load friend data if viewing friend's profile
     if (!widget.isOwnProfile) {
       _loadFriendData();
@@ -70,9 +71,28 @@ class _ProfilePageState extends State<ProfilePage>
   Future<void> _loadFriendData() async {
     setState(() => isFriendLoading = true);
     try {
-      final stats = await _firestoreService
-          .getUserStatisticsForUser(widget.viewingUserID!);
-      final tier = _firestoreService.getUserTier(stats['completedTasks']);
+      final stats = await _firestoreService.getUserStatisticsForUser(
+        widget.viewingUserID!,
+      );
+
+      // ✅ NEW: Fetch friend's lifetime completed tasks count
+      int friendLifetimeCount = 0;
+      try {
+        final friendUserDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.viewingUserID!)
+            .get();
+
+        friendLifetimeCount =
+            friendUserDoc.data()?['lifetimeCompletedTasks'] ?? 0;
+      } catch (e) {
+        debugPrint('Error fetching friend lifetime count: $e');
+      }
+
+      // ✅ FIXED: Use lifetime count for tier calculation
+      final tier = _firestoreService.getUserTier(
+        friendLifetimeCount > 0 ? friendLifetimeCount : stats['completedTasks'],
+      );
 
       if (mounted) {
         setState(() {
@@ -86,8 +106,10 @@ class _ProfilePageState extends State<ProfilePage>
           viewedUserGlowColor =
               tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
           viewedUserGradient =
-              (tier['gradient'] as List<dynamic>?)?.map((e) => e as Color).toList() ??
-                  [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+              (tier['gradient'] as List<dynamic>?)
+                  ?.map((e) => e as Color)
+                  .toList() ??
+              [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
           isFriendLoading = false;
         });
       }
@@ -104,25 +126,43 @@ class _ProfilePageState extends State<ProfilePage>
     final tierProvider = context.watch<TierThemeProvider>();
 
     // For own profile, use provider data
-    final statsProvider = widget.isOwnProfile ? context.watch<UserStatsProvider>() : null;
+    final statsProvider = widget.isOwnProfile
+        ? context.watch<UserStatsProvider>()
+        : null;
 
     // Decide which data to use
-    final username = widget.isOwnProfile ? statsProvider!.username : friendUsername;
-    final currentStreak = widget.isOwnProfile ? statsProvider!.currentStreak : friendCurrentStreak;
-    final totalTasks = widget.isOwnProfile ? statsProvider!.totalTasks : friendTotalTasks;
-    final completedTasks = widget.isOwnProfile ? statsProvider!.completedTasks : friendCompletedTasks;
-    final totalHours = widget.isOwnProfile ? statsProvider!.totalHours : friendTotalHours;
-    final userTier = widget.isOwnProfile ? statsProvider!.userTier : friendUserTier;
-    final isLoading = widget.isOwnProfile ? statsProvider!.isLoading : isFriendLoading;
+    final username = widget.isOwnProfile
+        ? statsProvider!.username
+        : friendUsername;
+    final currentStreak = widget.isOwnProfile
+        ? statsProvider!.currentStreak
+        : friendCurrentStreak;
+    final totalTasks = widget.isOwnProfile
+        ? statsProvider!.totalTasks
+        : friendTotalTasks;
+    final completedTasks = widget.isOwnProfile
+        ? statsProvider!.completedTasks
+        : friendCompletedTasks;
+    final totalHours = widget.isOwnProfile
+        ? statsProvider!.totalHours
+        : friendTotalHours;
+    final userTier = widget.isOwnProfile
+        ? statsProvider!.userTier
+        : friendUserTier;
+    final isLoading = widget.isOwnProfile
+        ? statsProvider!.isLoading
+        : isFriendLoading;
 
     // Decide which colors to use
     final displayGradient = widget.isOwnProfile
         ? tierProvider.gradientColors
         : viewedUserGradient;
-    final displayGlowColor =
-        widget.isOwnProfile ? tierProvider.glowColor : viewedUserGlowColor;
-    final displayPrimaryColor =
-        widget.isOwnProfile ? tierProvider.primaryColor : viewedUserGlowColor;
+    final displayGlowColor = widget.isOwnProfile
+        ? tierProvider.glowColor
+        : viewedUserGlowColor;
+    final displayPrimaryColor = widget.isOwnProfile
+        ? tierProvider.primaryColor
+        : viewedUserGlowColor;
 
     return Scaffold(
       body: Container(
@@ -138,8 +178,9 @@ class _ProfilePageState extends State<ProfilePage>
           child: isLoading
               ? Center(
                   child: CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(displayPrimaryColor),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      displayPrimaryColor,
+                    ),
                   ),
                 )
               : RefreshIndicator(
@@ -168,10 +209,7 @@ class _ProfilePageState extends State<ProfilePage>
                           totalHours,
                           totalTasks,
                         ),
-                        _buildActionButtons(
-                          displayGradient,
-                          displayGlowColor,
-                        ),
+                        _buildActionButtons(displayGradient, displayGlowColor),
                         const SizedBox(height: 24),
                         _buildHeatmapSection(displayPrimaryColor),
                         const SizedBox(height: 24),
@@ -240,8 +278,10 @@ class _ProfilePageState extends State<ProfilePage>
                       widget.isOwnProfile
                           ? 'Keep building great habits! 🚀'
                           : 'View their progress',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 14),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -533,10 +573,12 @@ class _ProfilePageState extends State<ProfilePage>
                   context,
                   MaterialPageRoute(
                     builder: (context) => FriendsListPage(
-                      viewingUserID:
-                          widget.isOwnProfile ? null : widget.viewingUserID,
-                      viewingUsername:
-                          widget.isOwnProfile ? null : widget.viewingUsername,
+                      viewingUserID: widget.isOwnProfile
+                          ? null
+                          : widget.viewingUserID,
+                      viewingUsername: widget.isOwnProfile
+                          ? null
+                          : widget.viewingUsername,
                     ),
                   ),
                 );
@@ -557,7 +599,8 @@ class _ProfilePageState extends State<ProfilePage>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const SettingsPage()),
+                      builder: (context) => const SettingsPage(),
+                    ),
                   );
                 } else {
                   Navigator.push(
@@ -648,8 +691,10 @@ class _ProfilePageState extends State<ProfilePage>
             ? Consumer<UserStatsProvider>(
                 builder: (context, statsProvider, child) {
                   final heatmapData = statsProvider.heatmapData;
-                  final totalCompletions =
-                      heatmapData.values.fold(0, (sum, count) => sum + count);
+                  final totalCompletions = heatmapData.values.fold(
+                    0,
+                    (sum, count) => sum + count,
+                  );
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,7 +743,9 @@ class _ProfilePageState extends State<ProfilePage>
                           Text(
                             'Less',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey[600]),
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           const SizedBox(width: 8),
                           ...List.generate(
@@ -708,8 +755,12 @@ class _ProfilePageState extends State<ProfilePage>
                               width: 12,
                               height: 12,
                               decoration: BoxDecoration(
-                                color:
-                                    Color.fromRGBO(76, 175, 80, (i + 1) * 0.2),
+                                color: Color.fromRGBO(
+                                  76,
+                                  175,
+                                  80,
+                                  (i + 1) * 0.2,
+                                ),
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             ),
@@ -718,7 +769,9 @@ class _ProfilePageState extends State<ProfilePage>
                           Text(
                             'More',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey[600]),
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
@@ -728,8 +781,9 @@ class _ProfilePageState extends State<ProfilePage>
                 },
               )
             : StreamBuilder<Map<String, int>>(
-                stream: _firestoreService
-                    .getHeatmapDataForUser(widget.viewingUserID!),
+                stream: _firestoreService.getHeatmapDataForUser(
+                  widget.viewingUserID!,
+                ),
                 builder: (context, snap) {
                   if (snap.hasError) {
                     return const Center(
@@ -744,15 +798,18 @@ class _ProfilePageState extends State<ProfilePage>
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
                         child: CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(primaryColor),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            primaryColor,
+                          ),
                         ),
                       ),
                     );
                   }
                   final heatmapData = snap.data!;
-                  final totalCompletions =
-                      heatmapData.values.fold(0, (sum, count) => sum + count);
+                  final totalCompletions = heatmapData.values.fold(
+                    0,
+                    (sum, count) => sum + count,
+                  );
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -800,7 +857,9 @@ class _ProfilePageState extends State<ProfilePage>
                           Text(
                             'Less',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey[600]),
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           const SizedBox(width: 8),
                           ...List.generate(
@@ -810,8 +869,12 @@ class _ProfilePageState extends State<ProfilePage>
                               width: 12,
                               height: 12,
                               decoration: BoxDecoration(
-                                color:
-                                    Color.fromRGBO(76, 175, 80, (i + 1) * 0.2),
+                                color: Color.fromRGBO(
+                                  76,
+                                  175,
+                                  80,
+                                  (i + 1) * 0.2,
+                                ),
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             ),
@@ -820,7 +883,9 @@ class _ProfilePageState extends State<ProfilePage>
                           Text(
                             'More',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey[600]),
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),

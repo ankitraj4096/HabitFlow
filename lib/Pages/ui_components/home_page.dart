@@ -21,6 +21,7 @@ class _HomepageState extends State<Homepage> {
   List<Map<String, dynamic>> tasklist = [];
   final TextEditingController control = TextEditingController();
   final TextEditingController timerController = TextEditingController();
+  bool isRecurringTask = false; // ✅ NEW: Track if task is recurring
   final FireStoreService firestoreService = FireStoreService();
   final NotificationService _notificationService = NotificationService();
   bool _isSyncing = false;
@@ -34,6 +35,7 @@ class _HomepageState extends State<Homepage> {
   void initState() {
     super.initState();
     _initializeNotificationService();
+    checkAndResetRecurringTasks();
     _initializeData();
     _startUIUpdateTimer();
     _startNotificationUpdateTimer();
@@ -47,6 +49,21 @@ class _HomepageState extends State<Homepage> {
     control.dispose();
     timerController.dispose();
     super.dispose();
+  }
+
+  Future<void> checkAndResetRecurringTasks() async {
+    try {
+      final shouldReset = await firestoreService.shouldResetRecurringTasks();
+
+      if (shouldReset) {
+        debugPrint('🔄 Resetting recurring tasks for new day...');
+        await firestoreService.resetRecurringTasks();
+        await firestoreService.markRecurringTasksReset();
+        debugPrint('✅ Recurring tasks reset complete');
+      }
+    } catch (e) {
+      debugPrint('Error checking recurring reset: $e');
+    }
   }
 
   Future<void> _initializeNotificationService() async {
@@ -195,6 +212,8 @@ class _HomepageState extends State<Homepage> {
             'assignedByUserID': data['assignedByUserID'],
             'assignedByUsername': data['assignedByUsername'],
             'status': status ?? 'accepted',
+            'isRecurring': data['isRecurring'] ?? false,
+            'completedToday': data['completedToday'],
           });
         }
 
@@ -265,30 +284,36 @@ class _HomepageState extends State<Homepage> {
     final timerMinutes = timerController.text.isNotEmpty
         ? int.tryParse(timerController.text)
         : null;
+    final isRecurring = isRecurringTask; // ✅ NEW: Capture recurring state
 
     Navigator.of(context).pop();
     control.clear();
     timerController.clear();
-
-    setState(() => _isSyncing = true);
+    setState(() {
+      isRecurringTask = false; // ✅ NEW: Reset toggle
+      _isSyncing = true;
+    });
 
     try {
       final firebaseId = await firestoreService.addTask(
         false,
         taskName,
         timerMinutes,
+        isRecurring, // ✅ NEW: Pass recurring parameter
       );
 
       if (firebaseId == null) {
         throw Exception('Failed to add task to Firebase');
       }
     } catch (e) {
-      debugPrint('Error adding to Firebase: $e');
+      debugPrint('❌ Error adding to Firebase: $e');
       if (mounted) {
         CustomToast.showError(context, 'Failed to add task. Please try again.');
       }
     } finally {
-      setState(() => _isSyncing = false);
+      setState(() {
+        _isSyncing = false;
+      });
     }
   }
 
@@ -301,7 +326,10 @@ class _HomepageState extends State<Homepage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(28),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -313,178 +341,15 @@ class _HomepageState extends State<Homepage> {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: tierProvider.gradientColors,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: tierProvider.glowColor.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.add_task_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Add New Task',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: tierProvider.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Create your task below',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!, width: 1),
-                ),
-                child: TextField(
-                  controller: control,
-                  decoration: InputDecoration(
-                    labelText: 'Task Name',
-                    labelStyle: TextStyle(color: Colors.grey[600]),
-                    hintText: 'Enter your task...',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    prefixIcon: Icon(
-                      Icons.edit_rounded,
-                      color: tierProvider.primaryColor,
-                      size: 22,
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: tierProvider.primaryColor,
-                        width: 2,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!, width: 1),
-                ),
-                child: TextField(
-                  controller: timerController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Timer (minutes)',
-                    labelStyle: TextStyle(color: Colors.grey[600]),
-                    hintText: 'Optional, e.g., 25',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    prefixIcon: Icon(
-                      Icons.timer_outlined,
-                      color: tierProvider.primaryColor,
-                      size: 22,
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: tierProvider.primaryColor,
-                        width: 2,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.grey[300]!,
-                          width: 1.5,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          control.clear();
-                          timerController.clear();
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: tierProvider.gradientColors,
@@ -497,46 +362,297 @@ class _HomepageState extends State<Homepage> {
                             color: tierProvider.glowColor.withValues(
                               alpha: 0.4,
                             ),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      child: ElevatedButton(
-                        onPressed: addTask,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      child: const Icon(
+                        Icons.add_task_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Add New Task',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: tierProvider.primaryColor,
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 20,
+                          const SizedBox(height: 2),
+                          Text(
+                            'Create your task below',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Save',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!, width: 1),
+                  ),
+                  child: TextField(
+                    controller: control,
+                    decoration: InputDecoration(
+                      labelText: 'Task Name',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                      hintText: 'Enter your task...',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon: Icon(
+                        Icons.edit_rounded,
+                        color: tierProvider.primaryColor,
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: tierProvider.primaryColor,
+                          width: 2,
                         ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!, width: 1),
+                  ),
+                  child: TextField(
+                    controller: timerController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Timer (minutes)',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                      hintText: 'Optional, e.g., 25',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon: Icon(
+                        Icons.timer_outlined,
+                        color: tierProvider.primaryColor,
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: tierProvider.primaryColor,
+                          width: 2,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // ✅ UPDATED: Recurring task toggle
+                StatefulBuilder(
+                  builder: (context, setDialogState) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: isRecurringTask
+                            ? tierProvider.primaryColor.withValues(alpha: 0.08)
+                            : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isRecurringTask
+                              ? tierProvider.primaryColor.withValues(alpha: 0.3)
+                              : Colors.grey[200]!,
+                          width: 1,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isRecurringTask
+                                    ? tierProvider.primaryColor.withValues(
+                                        alpha: 0.3,
+                                      )
+                                    : Colors.grey[300]!,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.repeat_rounded,
+                              color: isRecurringTask
+                                  ? tierProvider.primaryColor
+                                  : Colors.grey[600],
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Daily Recurring',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isRecurringTask
+                                    ? tierProvider.primaryColor
+                                    : Colors.grey[800],
+                              ),
+                            ),
+                          ),
+                          Switch(
+                            value: isRecurringTask,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                setState(() {
+                                  isRecurringTask = value;
+                                });
+                              });
+                            },
+                            activeColor: tierProvider.primaryColor,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.grey[300]!,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            control.clear();
+                            timerController.clear();
+                            setState(() {
+                              isRecurringTask = false;
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: tierProvider.gradientColors,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: tierProvider.glowColor.withValues(
+                                alpha: 0.4,
+                              ),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: addTask,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Save',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -859,6 +975,10 @@ class _HomepageState extends State<Homepage> {
       timerController.text = (task['totalDuration'] / 60).round().toString();
     }
 
+    setState(() {
+      isRecurringTask = task['isRecurring'] ?? false;
+    });
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1083,10 +1203,14 @@ class _HomepageState extends State<Homepage> {
                               ? int.tryParse(timerController.text)
                               : null;
                           final updatedtaskName = control.text;
+                          final isRecurring = isRecurringTask;
 
                           Navigator.of(context).pop();
                           control.clear();
                           timerController.clear();
+                          setState(() {
+                            isRecurringTask = false;
+                          });
 
                           try {
                             await firestoreService.updateTask(
@@ -1094,6 +1218,7 @@ class _HomepageState extends State<Homepage> {
                               tasklist[actualIndex]['isCompleted'],
                               updatedtaskName,
                               timerMinutes,
+                              isRecurring,
                             );
                           } catch (e) {
                             debugPrint('Error updating Firebase: $e');
@@ -1546,6 +1671,9 @@ class _HomepageState extends State<Homepage> {
                             onTimerPause: () => _pauseTimer(index),
                             onTimerStop: () => _stopTimer(index),
                             assignedByUsername: task['assignedByUsername'],
+                            isRecurring:
+                                task['isRecurring'] ??
+                                false, // ✅ NEW: Pass to Todolist
                             onTimerComplete: () {
                               final actualIndex = tasklist.indexWhere(
                                 (t) => t['firebaseId'] == task['firebaseId'],
@@ -1584,7 +1712,7 @@ class _HomepageState extends State<Homepage> {
             onPressed: newTask,
             backgroundColor: Colors.transparent,
             elevation: 0,
-            child: const Icon(Icons.add, size: 32),
+            child: const Icon(Icons.add, size: 32, color: Colors.white),
           ),
         ),
       ),

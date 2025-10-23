@@ -163,6 +163,7 @@ class TaskRequestsPage extends StatelessWidget {
                           hasTimer: data['hasTimer'] ?? false,
                           totalDuration: data['totalDuration'],
                           timestamp: data['timestamp'] as Timestamp?,
+                          isRecurring: data['isRecurring'] ?? false,  // ✅ NEW
                         );
                       },
                     );
@@ -186,6 +187,7 @@ class TaskRequestsPage extends StatelessWidget {
     required bool hasTimer,
     int? totalDuration,
     Timestamp? timestamp,
+    required bool isRecurring,  // ✅ NEW parameter
   }) {
     final timeAgo =
         timestamp != null ? _getTimeAgo(timestamp.toDate()) : 'Just now';
@@ -298,40 +300,82 @@ class TaskRequestsPage extends StatelessWidget {
               ],
             ),
 
-            if (hasTimer && totalDuration != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: tierProvider.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: tierProvider.primaryColor.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.timer,
-                      size: 16,
-                      color: tierProvider.primaryColor,
+            // ✅ NEW: Badges section
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (isRecurring)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${(totalDuration / 60).round()} minutes',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: tierProvider.primaryColor,
-                        fontWeight: FontWeight.w600,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF9C27B0).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
+                        width: 1,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.repeat_rounded,
+                          size: 16,
+                          color: Color(0xFF9C27B0),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Daily Recurring',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF9C27B0),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (hasTimer && totalDuration != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tierProvider.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: tierProvider.primaryColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.timer,
+                          size: 16,
+                          color: tierProvider.primaryColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${(totalDuration / 60).round()} minutes',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: tierProvider.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
 
             const SizedBox(height: 16),
             Divider(color: tierProvider.primaryColor.withValues(alpha: 0.1)),
