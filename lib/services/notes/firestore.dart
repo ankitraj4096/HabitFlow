@@ -437,9 +437,9 @@ class FireStoreService {
     final List<Map<String, dynamic>> tiers = [
       {
         "id": 1,
-        "name": "The Initiate",
-        "completedTasks": 10,
-        "icon": "sparkles",
+        "name": "The Starter",
+        "completedTasks": 0,
+        "icon": "circle",
         "gradient": [
           const Color(0xFF64748B), // Slate blue
           const Color(0xFF334155), // Deep slate
@@ -448,6 +448,17 @@ class FireStoreService {
       },
       {
         "id": 2,
+        "name": "The Awakened",
+        "completedTasks": 10,
+        "icon": "sunrise",
+        "gradient": [
+          const Color(0xFF667eea), // Purple blue (from login page)
+          const Color(0xFF764ba2), // Deep purple (from login page)
+        ],
+        "glow": const Color(0xFFf093fb), // Pink glow
+      },
+      {
+        "id": 3,
         "name": "The Seeker",
         "completedTasks": 50,
         "icon": "target",
@@ -458,7 +469,7 @@ class FireStoreService {
         "glow": const Color(0xFFD4A574),
       },
       {
-        "id": 3,
+        "id": 4,
         "name": "The Novice",
         "completedTasks": 100,
         "icon": "book",
@@ -469,7 +480,7 @@ class FireStoreService {
         "glow": const Color(0xFF34D399),
       },
       {
-        "id": 4,
+        "id": 5,
         "name": "The Apprentice",
         "completedTasks": 250,
         "icon": "hammer",
@@ -480,7 +491,7 @@ class FireStoreService {
         "glow": const Color(0xFFFBBF24),
       },
       {
-        "id": 5,
+        "id": 6,
         "name": "The Adept",
         "completedTasks": 500,
         "icon": "zap",
@@ -491,7 +502,7 @@ class FireStoreService {
         "glow": const Color(0xFFFB923C),
       },
       {
-        "id": 6,
+        "id": 7,
         "name": "The Disciplined",
         "completedTasks": 1000,
         "icon": "shield",
@@ -502,7 +513,7 @@ class FireStoreService {
         "glow": const Color(0xFFA78BFA),
       },
       {
-        "id": 7,
+        "id": 8,
         "name": "The Specialist",
         "completedTasks": 2500,
         "icon": "award",
@@ -513,7 +524,7 @@ class FireStoreService {
         "glow": const Color(0xFFF472B6),
       },
       {
-        "id": 8,
+        "id": 9,
         "name": "The Expert",
         "completedTasks": 5000,
         "icon": "crown",
@@ -524,7 +535,7 @@ class FireStoreService {
         "glow": const Color(0xFF818CF8),
       },
       {
-        "id": 9,
+        "id": 10,
         "name": "The Vanguard",
         "completedTasks": 10000,
         "icon": "flame",
@@ -535,7 +546,7 @@ class FireStoreService {
         "glow": const Color(0xFFF87171),
       },
       {
-        "id": 10,
+        "id": 11,
         "name": "The Sentinel",
         "completedTasks": 15000,
         "icon": "eye",
@@ -546,7 +557,7 @@ class FireStoreService {
         "glow": const Color(0xFF22D3EE),
       },
       {
-        "id": 11,
+        "id": 12,
         "name": "The Virtuoso",
         "completedTasks": 25000,
         "icon": "music",
@@ -557,7 +568,7 @@ class FireStoreService {
         "glow": const Color(0xFF2DD4BF),
       },
       {
-        "id": 12,
+        "id": 13,
         "name": "The Master",
         "completedTasks": 40000,
         "icon": "trophy",
@@ -568,7 +579,7 @@ class FireStoreService {
         "glow": const Color(0xFFFACC15),
       },
       {
-        "id": 13,
+        "id": 14,
         "name": "The Grandmaster",
         "completedTasks": 60000,
         "icon": "gem",
@@ -579,7 +590,7 @@ class FireStoreService {
         "glow": const Color(0xFF4ADE80),
       },
       {
-        "id": 14,
+        "id": 15,
         "name": "The Titan",
         "completedTasks": 75000,
         "icon": "mountain",
@@ -590,7 +601,7 @@ class FireStoreService {
         "glow": const Color(0xFF60A5FA),
       },
       {
-        "id": 15,
+        "id": 16,
         "name": "The Luminary",
         "completedTasks": 90000,
         "icon": "sun",
@@ -603,7 +614,7 @@ class FireStoreService {
         "animated": true,
       },
       {
-        "id": 16,
+        "id": 17,
         "name": "The Ascended",
         "completedTasks": 100000,
         "icon": "infinity",
@@ -619,7 +630,7 @@ class FireStoreService {
       },
     ];
 
-    // Always default to Tier 1 (The Initiate) for users with 0-9 tasks
+    // Always default to Tier 1 (The Starter) for users with 0-9 tasks
     Map<String, dynamic> currentTier = tiers[0];
 
     // Find the highest tier the user qualifies for
@@ -637,7 +648,8 @@ class FireStoreService {
 
   IconData getIconFromString(String iconName) {
     final iconMap = {
-      'sparkles': LucideIcons.sparkles,
+      'circle': LucideIcons.circle,
+      'sunrise': LucideIcons.sunrise,
       'target': LucideIcons.target,
       'book': LucideIcons.book,
       'hammer': LucideIcons.hammer,
@@ -653,7 +665,9 @@ class FireStoreService {
       'mountain': LucideIcons.mountain,
       'sun': LucideIcons.sun,
       'infinity': LucideIcons.infinity,
+      'star': LucideIcons.star,
     };
+
     return iconMap[iconName] ?? LucideIcons.star;
   }
 

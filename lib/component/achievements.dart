@@ -19,28 +19,37 @@ class _AchievementPageState extends State<AchievementPage>
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  // All tier data matching your new color system
+  // All tier data matching your new 17-tier system
   final List<Map<String, dynamic>> allTiers = [
     {
       'id': 1,
-      'name': 'The Initiate',
-      'requirement': 10,
-      'icon': 'sparkles',
-      'gradient': [const Color(0xFFCD7F32), const Color(0xFFB87333)],
-      'color': const Color(0xFFCD7F32), // Bronze for preview
-      'description': 'Welcome! Begin your journey to productivity.',
+      'name': 'The Starter',
+      'requirement': 0,
+      'icon': 'circle',
+      'gradient': [const Color(0xFF64748B), const Color(0xFF334155)],
+      'color': const Color(0xFF64748B),
+      'description': 'Welcome! Your journey begins here.',
     },
     {
       'id': 2,
-      'name': 'The Seeker',
-      'requirement': 50,
-      'icon': 'target',
-      'gradient': [const Color(0xFF64748B), const Color(0xFF334155)],
-      'color': const Color(0xFF64748B),
-      'description': 'You\'re discovering your path. Keep going!',
+      'name': 'The Awakened',
+      'requirement': 10,
+      'icon': 'sunrise',
+      'gradient': [const Color(0xFF667eea), const Color(0xFF764ba2)],
+      'color': const Color(0xFF667eea),
+      'description': 'You\'ve taken your first steps to greatness!',
     },
     {
       'id': 3,
+      'name': 'The Seeker',
+      'requirement': 50,
+      'icon': 'target',
+      'gradient': [const Color(0xFFCD7F32), const Color(0xFFB87333)],
+      'color': const Color(0xFFCD7F32),
+      'description': 'You\'re discovering your path. Keep going!',
+    },
+    {
+      'id': 4,
       'name': 'The Novice',
       'requirement': 100,
       'icon': 'book',
@@ -49,7 +58,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Learning the ropes. Great progress!',
     },
     {
-      'id': 4,
+      'id': 5,
       'name': 'The Apprentice',
       'requirement': 250,
       'icon': 'hammer',
@@ -58,7 +67,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Building strong habits. Well done!',
     },
     {
-      'id': 5,
+      'id': 6,
       'name': 'The Adept',
       'requirement': 500,
       'icon': 'zap',
@@ -67,7 +76,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'You\'ve mastered the basics!',
     },
     {
-      'id': 6,
+      'id': 7,
       'name': 'The Disciplined',
       'requirement': 1000,
       'icon': 'shield',
@@ -76,7 +85,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Discipline is your strength!',
     },
     {
-      'id': 7,
+      'id': 8,
       'name': 'The Specialist',
       'requirement': 2500,
       'icon': 'award',
@@ -85,7 +94,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Specialized excellence achieved!',
     },
     {
-      'id': 8,
+      'id': 9,
       'name': 'The Expert',
       'requirement': 5000,
       'icon': 'crown',
@@ -94,7 +103,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'True expertise unlocked!',
     },
     {
-      'id': 9,
+      'id': 10,
       'name': 'The Vanguard',
       'requirement': 10000,
       'icon': 'flame',
@@ -103,7 +112,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Leading the way to greatness!',
     },
     {
-      'id': 10,
+      'id': 11,
       'name': 'The Sentinel',
       'requirement': 15000,
       'icon': 'eye',
@@ -112,7 +121,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Watchful and unstoppable!',
     },
     {
-      'id': 11,
+      'id': 12,
       'name': 'The Virtuoso',
       'requirement': 25000,
       'icon': 'music',
@@ -121,7 +130,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Perfection in every task!',
     },
     {
-      'id': 12,
+      'id': 13,
       'name': 'The Master',
       'requirement': 40000,
       'icon': 'trophy',
@@ -130,7 +139,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Mastery achieved!',
     },
     {
-      'id': 13,
+      'id': 14,
       'name': 'The Grandmaster',
       'requirement': 60000,
       'icon': 'gem',
@@ -139,7 +148,7 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Legendary prowess!',
     },
     {
-      'id': 14,
+      'id': 15,
       'name': 'The Titan',
       'requirement': 75000,
       'icon': 'mountain',
@@ -148,21 +157,30 @@ class _AchievementPageState extends State<AchievementPage>
       'description': 'Unshakable and mighty!',
     },
     {
-      'id': 15,
+      'id': 16,
       'name': 'The Luminary',
       'requirement': 90000,
       'icon': 'sun',
-      'gradient': [const Color(0xFFFFD700), const Color(0xFFB8860B), const Color(0xFF8B6914)],
+      'gradient': [
+        const Color(0xFFFFD700),
+        const Color(0xFFB8860B),
+        const Color(0xFF8B6914)
+      ],
       'color': const Color(0xFFFFD700),
       'description': 'Shining beacon of excellence!',
       'animated': true,
     },
     {
-      'id': 16,
+      'id': 17,
       'name': 'The Ascended',
       'requirement': 100000,
       'icon': 'infinity',
-      'gradient': [const Color(0xFF1A1A2E), const Color(0xFF16213E), const Color(0xFF0F3460), const Color(0xFF533483)],
+      'gradient': [
+        const Color(0xFF1A1A2E),
+        const Color(0xFF16213E),
+        const Color(0xFF0F3460),
+        const Color(0xFF533483)
+      ],
       'color': const Color(0xFF533483),
       'description': 'Beyond limits. Truly transcendent!',
       'animated': true,
@@ -199,7 +217,7 @@ class _AchievementPageState extends State<AchievementPage>
       Map<String, dynamic>? next;
       final currentTierId = tier['id'] as int;
       if (currentTierId < allTiers.length) {
-        next = allTiers[currentTierId]; // Next tier (index = id because 0-based)
+        next = allTiers[currentTierId]; // Next tier (index = id because 0-based in array)
       }
 
       setState(() {
@@ -313,7 +331,7 @@ class _AchievementPageState extends State<AchievementPage>
 
   Widget _buildCurrentTierCard() {
     final tierIcon =
-        _firestoreService.getIconFromString(currentTier['icon'] ?? 'sparkles');
+        _firestoreService.getIconFromString(currentTier['icon'] ?? 'circle');
     final gradient = currentTier['gradient'] as List<dynamic>?;
     final tierColor = currentTier['glow'] as Color? ?? const Color(0xFF7C4DFF);
     final isAnimated = currentTier['animated'] == true;
@@ -347,7 +365,8 @@ class _AchievementPageState extends State<AchievementPage>
               ),
               const SizedBox(height: 16),
               AnimatedBuilder(
-                animation: isAnimated ? _animation : const AlwaysStoppedAnimation(1.0),
+                animation:
+                    isAnimated ? _animation : const AlwaysStoppedAnimation(1.0),
                 builder: (context, child) {
                   return Transform.scale(
                     scale: isAnimated ? _animation.value : 1.0,
@@ -362,7 +381,8 @@ class _AchievementPageState extends State<AchievementPage>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: tierColor.withOpacity(isAnimated ? 0.6 : 0.4),
+                            color:
+                                tierColor.withOpacity(isAnimated ? 0.6 : 0.4),
                             blurRadius: isAnimated ? 35 : 25,
                             spreadRadius: isAnimated ? 8 : 5,
                           ),
@@ -401,7 +421,7 @@ class _AchievementPageState extends State<AchievementPage>
               ),
               const SizedBox(height: 20),
               Text(
-                currentTier['name'] ?? 'The Initiate',
+                currentTier['name'] ?? 'The Starter',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -426,8 +446,13 @@ class _AchievementPageState extends State<AchievementPage>
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: gradient?.map((e) => (e as Color).withOpacity(0.2)).toList() ??
-                        [tierColor.withOpacity(0.1), tierColor.withOpacity(0.2)],
+                    colors: gradient
+                            ?.map((e) => (e as Color).withOpacity(0.2))
+                            .toList() ??
+                        [
+                          tierColor.withOpacity(0.1),
+                          tierColor.withOpacity(0.2)
+                        ],
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
@@ -512,8 +537,7 @@ class _AchievementPageState extends State<AchievementPage>
     final tasksRemaining = nextTierRequirement - completedTasks;
     final progress = (completedTasks / nextTierRequirement).clamp(0.0, 1.0);
     final nextTierColor = nextTier!['color'] as Color;
-    final nextTierIcon =
-        _firestoreService.getIconFromString(nextTier!['icon']);
+    final nextTierIcon = _firestoreService.getIconFromString(nextTier!['icon']);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -705,9 +729,8 @@ class _AchievementPageState extends State<AchievementPage>
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isUnlocked
-                              ? tierColor
-                              : Colors.grey.shade600,
+                          color:
+                              isUnlocked ? tierColor : Colors.grey.shade600,
                         ),
                       ),
                     ),

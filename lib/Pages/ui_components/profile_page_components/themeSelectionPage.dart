@@ -32,7 +32,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // Get user's lifetime completed tasks
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -74,7 +73,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
         selectedThemeId = autoEnabled ? null : themeId;
       });
 
-      // Update provider with new theme
       if (context.mounted) {
         final tierProvider = context.read<TierThemeProvider>();
         if (autoEnabled) {
@@ -148,15 +146,9 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
           child: Column(
             children: [
               const SizedBox(height: 24),
-              
-              // Auto Theme Toggle
               _buildAutoThemeSection(tierProvider),
-              
               const SizedBox(height: 32),
-              
-              // Theme Grid
               _buildThemeGrid(tierProvider),
-              
               const SizedBox(height: 32),
             ],
           ),
@@ -227,10 +219,8 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                 value: isAutoThemeEnabled,
                 onChanged: (value) async {
                   if (value) {
-                    // Enable auto theme
                     await _saveThemePreference(tierProvider.tierId, true);
                   } else {
-                    // Disable auto theme, keep current tier as selected
                     await _saveThemePreference(tierProvider.tierId, false);
                   }
                 },
@@ -366,7 +356,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
-              // Gradient Background
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -380,8 +369,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                   ),
                 ),
               ),
-
-              // Lock overlay
               if (!isUnlocked)
                 Positioned.fill(
                   child: Container(
@@ -410,8 +397,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                     ),
                   ),
                 ),
-
-              // Content
               if (isUnlocked)
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -419,7 +404,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Tier Icon
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
@@ -432,8 +416,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                           size: 28,
                         ),
                       ),
-
-                      // Tier Info
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -471,8 +453,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                     ],
                   ),
                 ),
-
-              // Selected badge
               if (isSelected)
                 Positioned(
                   top: 8,
@@ -496,8 +476,6 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
                     ),
                   ),
                 ),
-
-              // Current tier badge
               if (isCurrentTier && isAutoThemeEnabled)
                 Positioned(
                   top: 8,
@@ -538,104 +516,111 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
     return [
       {
         "id": 1,
-        "name": "The Initiate",
-        "completedTasks": 10,
-        "icon": "sparkles",
-        "gradient": [const Color(0xFFCD7F32), const Color(0xFFB87333)],
-      },
-      {
-        "id": 2,
-        "name": "The Seeker",
-        "completedTasks": 50,
-        "icon": "target",
+        "name": "The Starter",
+        "completedTasks": 0,
+        "icon": "circle",
         "gradient": [const Color(0xFF64748B), const Color(0xFF334155)],
       },
       {
+        "id": 2,
+        "name": "The Awakened",
+        "completedTasks": 10,
+        "icon": "sunrise",
+        "gradient": [const Color(0xFF667eea), const Color(0xFF764ba2)],
+      },
+      {
         "id": 3,
+        "name": "The Seeker",
+        "completedTasks": 50,
+        "icon": "target",
+        "gradient": [const Color(0xFFCD7F32), const Color(0xFFB87333)],
+      },
+      {
+        "id": 4,
         "name": "The Novice",
         "completedTasks": 100,
         "icon": "book",
         "gradient": [const Color(0xFF10B981), const Color(0xFF059669)],
       },
       {
-        "id": 4,
+        "id": 5,
         "name": "The Apprentice",
         "completedTasks": 250,
         "icon": "hammer",
         "gradient": [const Color(0xFFF59E0B), const Color(0xFFD97706)],
       },
       {
-        "id": 5,
+        "id": 6,
         "name": "The Adept",
         "completedTasks": 500,
         "icon": "zap",
         "gradient": [const Color(0xFFF97316), const Color(0xFFEA580C)],
       },
       {
-        "id": 6,
+        "id": 7,
         "name": "The Disciplined",
         "completedTasks": 1000,
         "icon": "shield",
         "gradient": [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)],
       },
       {
-        "id": 7,
+        "id": 8,
         "name": "The Specialist",
         "completedTasks": 2500,
         "icon": "award",
         "gradient": [const Color(0xFFEC4899), const Color(0xFFDB2777)],
       },
       {
-        "id": 8,
+        "id": 9,
         "name": "The Expert",
         "completedTasks": 5000,
         "icon": "crown",
         "gradient": [const Color(0xFF6366F1), const Color(0xFF4F46E5)],
       },
       {
-        "id": 9,
+        "id": 10,
         "name": "The Vanguard",
         "completedTasks": 10000,
         "icon": "flame",
         "gradient": [const Color(0xFFEF4444), const Color(0xFFDC2626)],
       },
       {
-        "id": 10,
+        "id": 11,
         "name": "The Sentinel",
         "completedTasks": 15000,
         "icon": "eye",
         "gradient": [const Color(0xFF06B6D4), const Color(0xFF0891B2)],
       },
       {
-        "id": 11,
+        "id": 12,
         "name": "The Virtuoso",
         "completedTasks": 25000,
         "icon": "music",
         "gradient": [const Color(0xFF14B8A6), const Color(0xFF0D9488)],
       },
       {
-        "id": 12,
+        "id": 13,
         "name": "The Master",
         "completedTasks": 40000,
         "icon": "trophy",
         "gradient": [const Color(0xFFEAB308), const Color(0xFFCA8A04)],
       },
       {
-        "id": 13,
+        "id": 14,
         "name": "The Grandmaster",
         "completedTasks": 60000,
         "icon": "gem",
         "gradient": [const Color(0xFF22C55E), const Color(0xFF16A34A)],
       },
       {
-        "id": 14,
+        "id": 15,
         "name": "The Titan",
         "completedTasks": 75000,
         "icon": "mountain",
         "gradient": [const Color(0xFF3B82F6), const Color(0xFF1E40AF)],
       },
       {
-        "id": 15,
+        "id": 16,
         "name": "The Luminary",
         "completedTasks": 90000,
         "icon": "sun",
@@ -646,7 +631,7 @@ class _ThemeSelectionPageState extends State<ThemeSelectionPage> {
         ],
       },
       {
-        "id": 16,
+        "id": 17,
         "name": "The Ascended",
         "completedTasks": 100000,
         "icon": "infinity",

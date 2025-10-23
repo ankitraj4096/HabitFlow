@@ -26,24 +26,25 @@ class TierThemeProvider extends ChangeNotifier {
   bool _isLoading = true;
   int _lastCompletedTasksCount = 0;
 
-  // New tier thresholds matching your new system
+  // New tier thresholds matching your 17-tier system
   static const List<int> _tierThresholds = [
-    10,
-    50,
-    100,
-    250,
-    500,
-    1000,
-    2500,
-    5000,
-    10000,
-    15000,
-    25000,
-    40000,
-    60000,
-    75000,
-    90000,
-    100000,
+    0,      // Tier 1: The Starter (slate blue)
+    10,     // Tier 2: The Awakened (login purple gradient)
+    50,     // Tier 3: The Seeker
+    100,    // Tier 4: The Novice
+    250,    // Tier 5: The Apprentice
+    500,    // Tier 6: The Adept
+    1000,   // Tier 7: The Disciplined
+    2500,   // Tier 8: The Specialist
+    5000,   // Tier 9: The Expert
+    10000,  // Tier 10: The Vanguard
+    15000,  // Tier 11: The Sentinel
+    25000,  // Tier 12: The Virtuoso
+    40000,  // Tier 13: The Master
+    60000,  // Tier 14: The Grandmaster
+    75000,  // Tier 15: The Titan
+    90000,  // Tier 16: The Luminary
+    100000, // Tier 17: The Ascended
   ];
 
   // Getters
@@ -54,7 +55,7 @@ class TierThemeProvider extends ChangeNotifier {
   IconData get tierIcon => _tierIcon;
   bool get isAnimated => _isAnimated;
   bool get isLoading => _isLoading;
-  String get tierName => _userTier['name'] ?? 'The Initiate';
+  String get tierName => _userTier['name'] ?? 'The Starter';
   int get tierId => _userTier['id'] ?? 1;
 
   /// Initialize the tier theme and start listening to task changes
@@ -265,7 +266,7 @@ class TierThemeProvider extends ChangeNotifier {
       _gradientColors = gradient.map((e) => e as Color).toList();
       _primaryColor = _gradientColors.first;
     } else if (color != null) {
-      // Use single color (for tiers like "The Initiate")
+      // Use single color (for tiers like "The Starter")
       _gradientColors = [color, color.withOpacity(0.8)];
       _primaryColor = color;
     } else {
@@ -288,21 +289,21 @@ class TierThemeProvider extends ChangeNotifier {
   }
 
   /// Set default theme values
-  /// Set default theme values
   void _setDefaultTheme() {
-    _userTier = _firestoreService.getUserTier(
-      0,
-    ); // Pass 0 for users with no tasks
+    _userTier = _firestoreService.getUserTier(0); // Pass 0 for users with no tasks
 
     // If tier data is incomplete, set manual fallback
     if (_userTier.isEmpty || !_userTier.containsKey('id')) {
       _userTier = {
         "id": 1,
-        "name": "The Initiate",
-        "completedTasks": 10,
-        "icon": "sparkles",
-        "color": const Color.fromARGB(255, 245, 244, 244),
-        "glow": const Color.fromARGB(255, 228, 225, 225),
+        "name": "The Starter",
+        "completedTasks": 0,
+        "icon": "circle",
+        "gradient": [
+          const Color(0xFF64748B), // Slate blue
+          const Color(0xFF334155), // Deep slate
+        ],
+        "glow": const Color(0xFF94A3B8),
       };
     }
 
