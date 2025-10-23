@@ -1,4 +1,5 @@
 import 'package:demo/component/error_dialog.dart';
+import 'package:demo/component/forgot_password_page.dart';
 import 'package:demo/component/textfield.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -295,6 +296,31 @@ class _LoginPageState extends State<LoginPage>
                                 controller: passwordController,
                                 hintText: 'Password',
                                 obscureText: true,
+                              ),
+                              
+                              // Forgot Password Link
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ForgotPasswordPage(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    'Forgot Password?',
+                                    style: TextStyle(
+                                      color: const Color(0xFF667eea),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 20),
 
