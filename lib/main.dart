@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:demo/Pages/login_components/mainPage.dart';
+import 'package:demo/Pages/login_components/main_page.dart';
 import 'package:demo/firebase_options.dart';
 import 'package:demo/services/clean_up_service.dart';
 import 'package:demo/services/notes/user_stats_provider.dart';

@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo/Pages/ui_components/chat_page_components/chatPage.dart';
+import 'package:demo/Pages/ui_components/chat_page_components/chat_page.dart';
 import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
 import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
@@ -94,7 +94,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha:0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
@@ -149,7 +149,7 @@ class _ChatListPageState extends State<ChatListPage> {
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha:0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -180,7 +180,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 return Text(
                   '$count friend${count != 1 ? 's' : ''}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha:0.9),
                     fontSize: 16,
                   ),
                 );
@@ -188,7 +188,7 @@ class _ChatListPageState extends State<ChatListPage> {
               return Text(
                 '0 friends',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha:0.9),
                   fontSize: 16,
                 ),
               );
@@ -207,7 +207,7 @@ class _ChatListPageState extends State<ChatListPage> {
           color: const Color(0xFFF5F7FA),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: tierProvider.primaryColor.withOpacity(0.1),
+            color: tierProvider.primaryColor.withValues(alpha:0.1),
             width: 1,
           ),
         ),
@@ -223,13 +223,13 @@ class _ChatListPageState extends State<ChatListPage> {
             hintStyle: TextStyle(color: Colors.grey.shade500),
             prefixIcon: Icon(
               Icons.search,
-              color: tierProvider.primaryColor.withOpacity(0.7),
+              color: tierProvider.primaryColor.withValues(alpha:0.7),
             ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
                     icon: Icon(
                       Icons.clear,
-                      color: tierProvider.primaryColor.withOpacity(0.7),
+                      color: tierProvider.primaryColor.withValues(alpha:0.7),
                     ),
                     onPressed: () {
                       _searchController.clear();
@@ -282,7 +282,7 @@ class _ChatListPageState extends State<ChatListPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: tierProvider.gradientColors
-                          .map((c) => c.withOpacity(0.2))
+                          .map((c) => c.withValues(alpha:0.2))
                           .toList(),
                     ),
                     shape: BoxShape.circle,
@@ -397,7 +397,7 @@ class _ChatListPageState extends State<ChatListPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tierProvider.primaryColor.withOpacity(0.1),
+          color: tierProvider.primaryColor.withValues(alpha:0.1),
           width: 1,
         ),
       ),
@@ -405,7 +405,7 @@ class _ChatListPageState extends State<ChatListPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: tierProvider.primaryColor.withOpacity(0.1),
+          splashColor: tierProvider.primaryColor.withValues(alpha:0.1),
           onTap: () {
             Navigator.push(
               context,
@@ -436,7 +436,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: tierProvider.glowColor.withOpacity(0.2),
+                            color: tierProvider.glowColor.withValues(alpha:0.2),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -481,7 +481,7 @@ class _ChatListPageState extends State<ChatListPage> {
                               border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.red.withOpacity(0.4),
+                                  color: Colors.red.withValues(alpha:0.4),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -548,7 +548,7 @@ class _ChatListPageState extends State<ChatListPage> {
                               style: TextStyle(
                                 fontSize: 14,
                                 color:
-                                    tierProvider.primaryColor.withOpacity(0.6),
+                                    tierProvider.primaryColor.withValues(alpha:0.6),
                                 fontWeight: FontWeight.w500,
                               ),
                             );
@@ -560,7 +560,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 ),
                 Icon(
                   Icons.chevron_right,
-                  color: tierProvider.primaryColor.withOpacity(0.5),
+                  color: tierProvider.primaryColor.withValues(alpha:0.5),
                 ),
               ],
             ),
