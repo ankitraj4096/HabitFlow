@@ -7,14 +7,14 @@ class ChatBubble extends StatelessWidget {
   final String message;
   final bool isCurrentUser;
   final DateTime timestamp;
-  final bool isRead; // ✅ NEW: Pass isRead status
+  final bool isRead;
   
   const ChatBubble({
     super.key,
     required this.isCurrentUser,
     required this.message,
     required this.timestamp,
-    this.isRead = false, // ✅ NEW: Default to false
+    this.isRead = false,
   });
 
   String _formatTime(DateTime dateTime) {
@@ -59,8 +59,8 @@ class ChatBubble extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: isCurrentUser 
-                        ? tierProvider.glowColor.withOpacity(0.15)
-                        : Colors.black.withOpacity(0.04),
+                        ? tierProvider.glowColor.withValues(alpha: 0.15)
+                        : Colors.black.withValues(alpha: 0.04),
                     blurRadius: 4,
                     offset: const Offset(0, 1),
                   ),
@@ -96,19 +96,19 @@ class ChatBubble extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           color: isCurrentUser 
-                              ? Colors.white.withOpacity(0.8)
+                              ? Colors.white.withValues(alpha: 0.8)
                               : Colors.grey.shade600,
                         ),
                       ),
-                      // ✅ Show checkmark only for current user's messages
+                      // Show checkmark only for current user's messages
                       if (isCurrentUser) ...[
                         const SizedBox(width: 4),
                         Icon(
                           Icons.done_all,
                           size: 14,
                           color: isRead 
-                              ? const Color(0xFF4FC3F7) // ✅ Blue for read
-                              : Colors.white.withOpacity(0.6), // ✅ White for sent
+                              ? const Color(0xFF4FC3F7)
+                              : Colors.white.withValues(alpha: 0.6),
                         ),
                       ],
                     ],
