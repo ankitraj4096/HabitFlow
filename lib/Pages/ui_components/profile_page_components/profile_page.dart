@@ -4,7 +4,7 @@ import 'package:demo/Pages/ui_components/profile_page_components/settings_page.d
 import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/notes/firestore.dart';
-import 'package:demo/services/notes/userStatsProvider.dart';
+import 'package:demo/services/notes/user_stats_provider.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
