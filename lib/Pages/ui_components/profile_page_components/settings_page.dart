@@ -1,5 +1,5 @@
 import 'package:demo/Pages/login_components/mainPage.dart';
-import 'package:demo/Pages/ui_components/friend_components/friendListsPage.dart';
+import 'package:demo/Pages/ui_components/friend_components/friend_lists_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/about_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/change_password_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/edit_username_page.dart';

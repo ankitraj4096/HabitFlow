@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo/Pages/ui_components/friend_components/taskRequestsPage.dart';
+import 'package:demo/Pages/ui_components/friend_components/task_requests_page.dart';
 import 'package:demo/component/custom_toast.dart';
 import 'package:demo/component/todolist.dart';
 import 'package:demo/services/notes/firestore.dart';

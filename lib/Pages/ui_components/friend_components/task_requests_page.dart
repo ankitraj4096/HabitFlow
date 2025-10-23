@@ -5,13 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class TaskRequestsPage extends StatelessWidget {
-  TaskRequestsPage({super.key});
-
-  final FireStoreService _firestoreService = FireStoreService();
+  const TaskRequestsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Get tier colors from provider
+    final FireStoreService firestoreService = FireStoreService();
     final tierProvider = context.watch<TierThemeProvider>();
 
     return Scaffold(
@@ -41,7 +39,7 @@ class TaskRequestsPage extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: tierProvider.glowColor.withOpacity(0.3),
+                      color: tierProvider.glowColor.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -84,7 +82,7 @@ class TaskRequestsPage extends StatelessWidget {
               // Requests List
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: _firestoreService.getPendingTaskRequestsStream(),
+                  stream: firestoreService.getPendingTaskRequestsStream(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return const Center(
@@ -115,7 +113,7 @@ class TaskRequestsPage extends StatelessWidget {
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: tierProvider.gradientColors
-                                      .map((c) => c.withOpacity(0.2))
+                                      .map((c) => c.withValues(alpha: 0.2))
                                       .toList(),
                                 ),
                                 shape: BoxShape.circle,
@@ -158,6 +156,7 @@ class TaskRequestsPage extends StatelessWidget {
                         return _buildRequestCard(
                           context,
                           tierProvider,
+                          firestoreService,
                           docId: doc.id,
                           taskName: data['taskName'] ?? '',
                           assignedBy: data['assignedByUsername'] ?? 'Unknown',
@@ -179,7 +178,8 @@ class TaskRequestsPage extends StatelessWidget {
 
   Widget _buildRequestCard(
     BuildContext context,
-    TierThemeProvider tierProvider, {
+    TierThemeProvider tierProvider,
+    FireStoreService firestoreService, {
     required String docId,
     required String taskName,
     required String assignedBy,
@@ -197,13 +197,13 @@ class TaskRequestsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.primaryColor.withOpacity(0.1),
+            color: tierProvider.primaryColor.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
         ],
         border: Border.all(
-          color: tierProvider.primaryColor.withOpacity(0.2),
+          color: tierProvider.primaryColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -224,7 +224,7 @@ class TaskRequestsPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: tierProvider.glowColor.withOpacity(0.3),
+                        color: tierProvider.glowColor.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -264,7 +264,7 @@ class TaskRequestsPage extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: tierProvider.glowColor.withOpacity(0.2),
+                        color: tierProvider.glowColor.withValues(alpha: 0.2),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -304,10 +304,10 @@ class TaskRequestsPage extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: tierProvider.primaryColor.withOpacity(0.1),
+                  color: tierProvider.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: tierProvider.primaryColor.withOpacity(0.3),
+                    color: tierProvider.primaryColor.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -334,7 +334,7 @@ class TaskRequestsPage extends StatelessWidget {
             ],
 
             const SizedBox(height: 16),
-            Divider(color: tierProvider.primaryColor.withOpacity(0.1)),
+            Divider(color: tierProvider.primaryColor.withValues(alpha: 0.1)),
             const SizedBox(height: 8),
 
             // Action Buttons
@@ -344,7 +344,7 @@ class TaskRequestsPage extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       try {
-                        await _firestoreService.declineTaskRequest(docId);
+                        await firestoreService.declineTaskRequest(docId);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -353,7 +353,7 @@ class TaskRequestsPage extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
+                                      color: Colors.white.withValues(alpha: 0.2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
@@ -390,7 +390,7 @@ class TaskRequestsPage extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.grey[700],
                       side: BorderSide(
-                        color: tierProvider.primaryColor.withOpacity(0.3),
+                        color: tierProvider.primaryColor.withValues(alpha: 0.3),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -409,7 +409,7 @@ class TaskRequestsPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: tierProvider.glowColor.withOpacity(0.3),
+                          color: tierProvider.glowColor.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -418,7 +418,7 @@ class TaskRequestsPage extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         try {
-                          await _firestoreService.acceptTaskRequest(docId);
+                          await firestoreService.acceptTaskRequest(docId);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -427,7 +427,7 @@ class TaskRequestsPage extends StatelessWidget {
                                     Container(
                                       padding: const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
