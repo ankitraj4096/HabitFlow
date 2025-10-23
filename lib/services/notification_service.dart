@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
+import 'package:demo/services/notification_preferences.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -9,6 +10,8 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+
+  final NotificationPreferences _prefs = NotificationPreferences();
 
   static const String _channelId = 'habit_flow_timer';
   static const String _channelName = 'Task Timers';
@@ -21,15 +24,16 @@ class NotificationService {
     if (_isInitialized) return;
 
     try {
+      // ✅ USE MIPMAP INSTEAD OF DRAWABLE
       const AndroidInitializationSettings androidSettings =
-          AndroidInitializationSettings('@drawable/ic_notification');
+          AndroidInitializationSettings('@mipmap/ic_launcher'); // Add @mipmap/
 
       const DarwinInitializationSettings iosSettings =
           DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      );
+            requestAlertPermission: false,
+            requestBadgePermission: false,
+            requestSoundPermission: false,
+          );
 
       const InitializationSettings initSettings = InitializationSettings(
         android: androidSettings,
@@ -62,7 +66,8 @@ class NotificationService {
 
       await _notifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.createNotificationChannel(channel);
     } catch (e) {
       debugPrint('Channel creation error: $e');
@@ -75,11 +80,11 @@ class NotificationService {
       final status = await Permission.notification.request();
       return status.isGranted;
     } catch (e) {
+      debugPrint('Permission error: $e');
       return false;
     }
   }
 
-  /// Show/Update timer notification - REMAINING TIME ONLY
   Future<void> showTimerNotification({
     required String taskName,
     required String timerText,
@@ -92,52 +97,98 @@ class NotificationService {
       if (!_isInitialized) await initialize();
       if (!await requestPermissions()) return;
 
-      // ✅ Calculate remaining time
-      final int remaining = (maxProgress != null && progress != null) 
-          ? maxProgress - progress 
+      // Load user preferences with fallback to defaults
+      ProgressBarStyle progressBarStyle = ProgressBarStyle.thickBlocks;
+      bool showPercentage = true;
+      bool showElapsedTime = false;
+      bool showTotalTime = false;
+      bool showSystemProgressBar = false;
+
+      try {
+        progressBarStyle = await _prefs.getProgressBarStyle();
+        showPercentage = await _prefs.getShowPercentage();
+        showElapsedTime = await _prefs.getShowElapsedTime();
+        showTotalTime = await _prefs.getShowTotalTime();
+        showSystemProgressBar = await _prefs.getShowSystemProgressBar();
+      } catch (e) {
+        debugPrint('Error loading preferences: $e');
+      }
+
+      // Calculate times
+      final int remaining = (maxProgress != null && progress != null)
+          ? maxProgress - progress
           : 0;
+      final int elapsed = progress ?? 0;
+      final int total = maxProgress ?? 0;
+
       final String remainingTime = formatDuration(remaining);
-      
-      // ✅ Integer percentage (no decimals)
+      final String elapsedTime = formatDuration(elapsed);
+      final String totalTime = formatDuration(total);
+
       final int percentInt = percentComplete?.round() ?? 0;
-      
+
+      // Create progress bar based on user preference
+      final String progressBar = _prefs.getProgressBarChars(
+        progressBarStyle,
+        percentInt,
+      );
+
+      // Build content based on user preferences
+      final List<String> contentLines = [];
+
+      if (showPercentage) {
+        contentLines.add('$progressBar  $percentInt%');
+      } else {
+        contentLines.add(progressBar);
+      }
+
+      if (showElapsedTime) {
+        contentLines.add('⏱️ Elapsed: $elapsedTime');
+      }
+
+      if (showTotalTime) {
+        contentLines.add('🎯 Total: $totalTime');
+      }
+
+      final String contentText = contentLines.join('\n');
+
       final AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
-        _channelId,
-        _channelName,
-        channelDescription: _channelDescription,
-        
-        importance: Importance.low,
-        priority: Priority.low,
-        ongoing: true,
-        autoCancel: false,
-        playSound: false,
-        enableVibration: false,
-        onlyAlertOnce: true,
-        showWhen: false,
-        usesChronometer: false,
-        
-        // Progress bar
-        showProgress: progress != null && maxProgress != null,
-        maxProgress: maxProgress ?? 100,
-        progress: progress ?? 0,
-        indeterminate: false,
-        
-        // ✅ Simple styling - REMAINING TIME ONLY
-        styleInformation: BigTextStyleInformation(
-          remainingTime,
-          htmlFormatBigText: false,
-          contentTitle: '⏱️ $taskName',
-          htmlFormatContentTitle: false,
-          summaryText: '$percentInt% complete',
-          htmlFormatSummaryText: false,
-        ),
-        
-        color: const Color(0xFF6A1B9A),
-        colorized: false,
-        category: AndroidNotificationCategory.progress,
-        visibility: NotificationVisibility.public,
-      );
+            _channelId,
+            _channelName,
+            channelDescription: _channelDescription,
+
+            importance: Importance.low,
+            priority: Priority.low,
+            ongoing: true,
+            autoCancel: false,
+            playSound: false,
+            enableVibration: false,
+            onlyAlertOnce: true,
+            showWhen: false,
+            usesChronometer: false,
+
+            showProgress:
+                showSystemProgressBar &&
+                progress != null &&
+                maxProgress != null,
+            maxProgress: maxProgress ?? 100,
+            progress: progress ?? 0,
+
+            styleInformation: BigTextStyleInformation(
+              contentText,
+              htmlFormatBigText: false,
+              contentTitle: taskName,
+              htmlFormatContentTitle: false,
+              summaryText: null,
+              htmlFormatSummaryText: false,
+            ),
+
+            color: const Color(0xFF6A1B9A),
+            colorized: false,
+            category: AndroidNotificationCategory.progress,
+            visibility: NotificationVisibility.public,
+          );
 
       const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
         presentAlert: false,
@@ -153,7 +204,7 @@ class NotificationService {
 
       await _notifications.show(
         _timerNotificationId,
-        '⏱️ $taskName',
+        taskName,
         remainingTime,
         details,
       );
@@ -197,10 +248,9 @@ class NotificationService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    debugPrint('Notification tapped');
+    // Handle notification tap if needed
   }
 
-  /// Format duration in MM:SS or HH:MM:SS
   static String formatDuration(int seconds) {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;

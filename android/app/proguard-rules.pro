@@ -7,7 +7,7 @@
 -keep class io.flutter.plugins.** { *; }
 -dontwarn io.flutter.**
 
-# Google Play Core (fixes missing classes)
+# Google Play Core
 -keep class com.google.android.play.core.** { *; }
 -dontwarn com.google.android.play.core.**
 -keep class com.google.android.play.** { *; }
@@ -43,9 +43,6 @@
     boolean mounted;
 }
 
-# Notification support
--keep class com.dexterous.** { *; }
-
 # Prevent stripping of native methods
 -keepclasseswithmembernames class * {
     native <methods>;
@@ -70,18 +67,66 @@
 -renamesourcefileattribute SourceFile
 
 # ════════════════════════════════════════════════════════════
-#              ✅ NEW RULES FOR TIMER FIX
+#              ✅ NOTIFICATION PLUGIN RULES (CRITICAL)
 # ════════════════════════════════════════════════════════════
 
-# ═══ LAMBDA AND CLOSURE FIXES ═══
-# Keep all lambda classes
+# Keep ALL notification plugin classes
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-dontwarn com.dexterous.flutterlocalnotifications.**
+
+# Keep notification channel classes
+-keep class android.app.NotificationChannel { *; }
+-keep class android.app.NotificationManager { *; }
+-keep class androidx.core.app.NotificationCompat** { *; }
+-keep class androidx.core.app.NotificationManagerCompat { *; }
+
+# Keep notification builder
+-keep class android.app.Notification$** { *; }
+-keep class android.app.NotificationChannel$** { *; }
+
+# Keep receivers for notifications
+-keep class * extends android.content.BroadcastReceiver {
+    <init>(...);
+}
+
+# Keep services for foreground notifications
+-keep class * extends android.app.Service {
+    <init>(...);
+}
+
+# ✅ CRITICAL: Keep drawable resources
+-keep class **.R$drawable { *; }
+-keep class **.R$* {
+    public static <fields>;
+}
+
+# ✅ CRITICAL: Don't obfuscate resource IDs
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+
+# ✅ Keep integer resource access (for icon loading)
+-keepclassmembers class * {
+    *** getDrawable(...);
+    *** getIdentifier(...);
+}
+
+# ✅ Keep notification style information
+-keep class android.app.Notification$BigTextStyle { *; }
+-keep class android.app.Notification$InboxStyle { *; }
+-keep class android.app.Notification$BigPictureStyle { *; }
+
+# ════════════════════════════════════════════════════════════
+#              ✅ TIMER FIX RULES
+# ════════════════════════════════════════════════════════════
+
+# Keep lambda classes
 -keep class **$$Lambda$* { *; }
 -keepclassmembers class ** {
     private synthetic <methods>;
 }
 
-# ═══ LIST OPERATIONS ═══
-# Keep List and collection operations
+# Keep List operations
 -keepclassmembers class ** {
     ** any(...);
     ** where(...);
@@ -90,14 +135,14 @@
     ** firstWhere(...);
 }
 
-# ═══ TIMER-SPECIFIC METHOD PROTECTION ═══
-# Don't inline or optimize timer methods
+# Keep timer methods
 -keepclassmembers class ** {
     ** _startTimer(...);
     ** _pauseTimer(...);
     ** _stopTimer(...);
     ** _startUIUpdateTimer(...);
     ** _autoCompleteTask(...);
+    ** _updateTimerNotification(...);
 }
 
 # Keep all timer callback methods
@@ -106,15 +151,13 @@
     ** onTimer*;
 }
 
-# ═══ FLUTTER WIDGET STATE PROTECTION ═══
 # Keep tasklist and related fields
 -keepclassmembers class ** {
     ** tasklist;
     ** _filteredTaskList;
 }
 
-# ═══ ASYNC AND FUTURE PROTECTION ═══
-# Don't optimize Future and async operations
+# Keep async operations
 -keep class dart.async.** { *; }
 
 # Keep microtask and postFrameCallback
@@ -122,14 +165,12 @@
     ** addPostFrameCallback(...);
 }
 
-# ═══ WIDGET KEY PROTECTION ═══
-# Keep all Key classes
+# Keep widget keys
 -keepclassmembers class ** {
     ** key;
 }
 
-# ═══ PREVENT DEAD CODE ELIMINATION ═══
-# Don't remove callback functions
+# Keep callback functions
 -keepclasseswithmembers class ** {
     ** onChanged(...);
     ** deleteFun(...);
@@ -137,7 +178,6 @@
     ** onTimerComplete(...);
 }
 
-# ═══ TOAST AND DIALOG PROTECTION ═══
 # Keep custom toast classes
 -keepclassmembers class ** {
     ** CustomToast*;
@@ -147,16 +187,21 @@
     ** showError(...);
 }
 
-# ═══ DISABLE AGGRESSIVE OPTIMIZATIONS ═══
-# Don't merge classes or inline methods
+# ✅ CRITICAL: Keep SharedPreferences for notification preferences
+-keep class android.content.SharedPreferences { *; }
+-keep class android.content.SharedPreferences$** { *; }
+-keepclassmembers class ** {
+    ** getSharedPreferences(...);
+}
+
+# Disable aggressive optimizations
 -optimizations !class/merging/*
 -optimizations !code/simplification/arithmetic
 -optimizations !code/simplification/cast
 -optimizations !field/*
 -optimizations !method/inlining/*
 
-# ═══ ATTRIBUTE PRESERVATION ═══
-# Keep all attributes for reflection
+# Keep attributes for reflection
 -keepattributes *Annotation*
 -keepattributes Signature
 -keepattributes InnerClasses

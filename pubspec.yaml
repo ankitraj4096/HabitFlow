@@ -39,6 +39,7 @@ dependencies:
   firebase_core: ^4.1.0
   firebase_auth: ^6.0.0
   cloud_firestore: ^6.0.0
+
   
   # State Management
   provider: ^6.1.5+1
@@ -56,6 +57,7 @@ dependencies:
   # Notifications
   flutter_local_notifications: ^19.0.1
   permission_handler: ^11.3.1
+  shared_preferences: 
 
 dev_dependencies:
   flutter_test:

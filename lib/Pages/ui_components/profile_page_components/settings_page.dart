@@ -3,6 +3,7 @@ import 'package:demo/Pages/ui_components/friend_components/friend_lists_page.dar
 import 'package:demo/Pages/ui_components/profile_page_components/about_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/change_password_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/edit_username_page.dart';
+import 'package:demo/Pages/ui_components/profile_page_components/notification_preferences_page.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/theme_selection_page.dart';
 import 'package:demo/component/achievements.dart';
 import 'package:demo/component/custom_toast.dart';
@@ -25,7 +26,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _launchURL(String urlString, String errorMessage) async {
     try {
       final url = Uri.parse(urlString);
-      
+
       // Try to launch with external application mode
       final bool launched = await launchUrl(
         url,
@@ -191,6 +192,22 @@ class _SettingsPageState extends State<SettingsPage> {
                       );
                     },
                   ),
+                  _buildListTile(
+                    context,
+                    tierProvider,
+                    icon: Icons.notifications_outlined,
+                    title: 'Notifications',
+                    subtitle: 'Customize notification style',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const NotificationPreferencesPage(),
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 24),
                   _buildSectionTitle('App Features'),
                   _buildListTile(
@@ -325,9 +342,7 @@ class _SettingsPageState extends State<SettingsPage> {
           color: tierProvider.primaryColor,
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

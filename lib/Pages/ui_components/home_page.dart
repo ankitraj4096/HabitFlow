@@ -76,33 +76,20 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _updateTimerNotification() async {
-    print('═══════════════════════════════════════');
-    print('🔔 _updateTimerNotification CALLED');
-
     try {
       final runningTask = tasklist.firstWhere(
         (task) => task['isRunning'] == true,
         orElse: () => {},
       );
 
-      print(
-        '📊 Running task: ${runningTask.isNotEmpty ? runningTask['taskName'] : 'None'}',
-      );
-
       if (runningTask.isEmpty) {
-        print('⚠️ No running task - canceling notification');
         await _notificationService.cancelTimerNotification();
-        print('═══════════════════════════════════════\n');
         return;
       }
 
       final taskName = runningTask['taskName'] ?? 'Task';
       final elapsedSeconds = runningTask['elapsedSeconds'] ?? 0;
       final totalDuration = runningTask['totalDuration'];
-
-      print('📝 Task: $taskName');
-      print('⏱️ Elapsed: $elapsedSeconds seconds');
-      print('⏱️ Total: $totalDuration seconds');
 
       String timerText;
       String subText;
@@ -112,28 +99,21 @@ class _HomepageState extends State<Homepage> {
 
       if (totalDuration != null) {
         final remainingSeconds = totalDuration - elapsedSeconds;
-        timerText = '$remainingSeconds seconds remaining'; // ✅ Simple format
-        subText = '$elapsedSeconds seconds elapsed'; // ✅ Simple format
+        timerText = '$remainingSeconds seconds remaining';
+        subText = '$elapsedSeconds seconds elapsed';
         progress = elapsedSeconds;
         maxProgress = totalDuration;
         percentComplete = ((elapsedSeconds / totalDuration) * 100).clamp(
           0,
           100,
         );
-
-        print('⏳ Timer text: $timerText');
-        print('📈 Progress: $progress / $maxProgress ($percentComplete%)');
       } else {
-        timerText = '$elapsedSeconds seconds'; // ✅ Simple format
+        timerText = '$elapsedSeconds seconds';
         subText = 'Timer running';
         progress = null;
         maxProgress = null;
         percentComplete = null;
-
-        print('⏱️ Stopwatch mode: $timerText');
       }
-
-      print('📤 Calling updateTimerNotification...');
 
       await _notificationService.updateTimerNotification(
         taskName: taskName,
@@ -143,25 +123,8 @@ class _HomepageState extends State<Homepage> {
         maxProgress: maxProgress,
         percentComplete: percentComplete,
       );
-
-      print('✅ Notification updated successfully');
-    } catch (e, stackTrace) {
-      print('❌ ERROR in _updateTimerNotification: $e');
-      print('Stack trace: $stackTrace');
-    }
-
-    print('═══════════════════════════════════════\n');
-  }
-
-  String _formatTimeEnhanced(int seconds) {
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-    final secs = seconds % 60;
-
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-    } else {
-      return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    } catch (e) {
+      debugPrint('Error updating notification: $e');
     }
   }
 
@@ -1187,53 +1150,29 @@ class _HomepageState extends State<Homepage> {
   }
 
   void _startTimer(int index) async {
-    print('\n🚀🚀🚀 _startTimer CALLED - Index: $index 🚀🚀🚀');
-
     final task = _filteredTaskList[index];
     final actualIndex = tasklist.indexWhere(
       (t) => t['firebaseId'] == task['firebaseId'],
     );
 
-    print('Task: ${task['taskName']}');
-    print('Actual index: $actualIndex');
-
-    if (actualIndex == -1) {
-      print('❌ Task not found');
-      return;
-    }
+    if (actualIndex == -1) return;
 
     final firebaseId = task['firebaseId'];
-    if (firebaseId == null) {
-      print('❌ Firebase ID is null');
-      return;
-    }
+    if (firebaseId == null) return;
 
-    // ✅ CRITICAL: Update Firebase FIRST, then let listener update local state
     try {
-      print('📤 Calling firestoreService.startTimer...');
       await firestoreService.startTimer(firebaseId);
-      print('✅ Firebase timer started');
 
-      // ✅ Wait a moment for Firebase listener to update
-      await Future.delayed(Duration(milliseconds: 200));
+      // Wait for Firebase listener to update
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      // ✅ Manually set isRunning to ensure notification works immediately
+      // Ensure local state is updated
       setState(() {
         tasklist[actualIndex]['isRunning'] = true;
       });
 
-      print('✅ Local state updated');
-      print('Current tasklist running status:');
-      for (int i = 0; i < tasklist.length; i++) {
-        print(
-          '  Task $i: ${tasklist[i]['taskName']} - isRunning: ${tasklist[i]['isRunning']}',
-        );
-      }
-
-      // ✅ Now update notification
-      print('📤 Calling _updateTimerNotification...');
+      // Update notification
       await _updateTimerNotification();
-      print('✅ Notification updated');
 
       if (mounted) {
         CustomToast.showSuccess(
@@ -1242,9 +1181,8 @@ class _HomepageState extends State<Homepage> {
           duration: const Duration(seconds: 1),
         );
       }
-    } catch (e, stackTrace) {
-      print('❌ Error starting timer: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
+      debugPrint('Error starting timer: $e');
 
       setState(() {
         tasklist[actualIndex]['isRunning'] = false;
@@ -1254,8 +1192,6 @@ class _HomepageState extends State<Homepage> {
         CustomToast.showError(context, 'Failed to start timer');
       }
     }
-
-    print('🚀🚀🚀 _startTimer COMPLETED 🚀🚀🚀\n');
   }
 
   void _pauseTimer(int index) async {

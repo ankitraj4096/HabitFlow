@@ -1,10 +1,7 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
     id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -32,32 +29,25 @@ android {
         multiDexEnabled = true
     }
 
-    // Build features
     buildFeatures {
         buildConfig = true
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // ✅ Disabled for notification icon support
+            isMinifyEnabled = false
+            isShrinkResources = false
             
-            // ✅ Use standard proguard instead of optimize version
-            proguardFiles(
-                getDefaultProguardFile("proguard-android.txt"),
-                "proguard-rules.pro"
-            )
-            
+            // Keep signing config
             signingConfig = signingConfigs.getByName("debug")
             
-            // ✅ Keep some symbols for debugging
             ndk {
                 debugSymbolLevel = "SYMBOL_TABLE"
             }
         }
     }
 
-    // Package options to handle duplicate classes
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -71,13 +61,8 @@ flutter {
 }
 
 dependencies {
-    // Core library desugaring
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    
-    // Multidex support
     implementation("androidx.multidex:multidex:2.0.1")
-    
-    // Google Play Core (no conflicts)
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
 }
