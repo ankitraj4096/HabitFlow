@@ -1316,14 +1316,7 @@ class _HomepageState extends State<Homepage> {
 
       // Update notification
       await _updateTimerNotification();
-
-      if (mounted) {
-        CustomToast.showSuccess(
-          context,
-          'Timer started',
-          duration: const Duration(seconds: 1),
-        );
-      }
+      
     } catch (e) {
       debugPrint('Error starting timer: $e');
 
