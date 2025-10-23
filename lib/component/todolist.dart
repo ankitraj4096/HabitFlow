@@ -7,11 +7,11 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 
 class Todolist extends StatefulWidget {
-  final String TaskName;
-  final bool IsChecked;
+  final String taskName;
+  final bool isChecked;
   final Function(bool?)? onChanged;
-  final Function(BuildContext)? Delete_Fun;
-  final Function(BuildContext)? Update_Fun;
+  final Function(BuildContext)? deleteFun;
+  final Function(BuildContext)? updateFun;
 
   // Timer properties
   final bool hasTimer;
@@ -32,11 +32,11 @@ class Todolist extends StatefulWidget {
 
   const Todolist({
     super.key,
-    required this.TaskName,
-    required this.IsChecked,
+    required this.taskName,
+    required this.isChecked,
     required this.onChanged,
-    required this.Delete_Fun,
-    required this.Update_Fun,
+    required this.deleteFun,
+    required this.updateFun,
     this.hasTimer = false,
     this.totalDuration,
     this.elapsedSeconds = 0,
@@ -108,7 +108,7 @@ class _TodolistState extends State<Todolist> {
         _stopLocalTimer();
         widget.onTimerPause?.call();
         _showTimerCompleteToast();
-        if (widget.onTimerComplete != null && !widget.IsChecked) {
+        if (widget.onTimerComplete != null && !widget.isChecked) {
           widget.onTimerComplete!();
         }
         return;
@@ -129,7 +129,7 @@ class _TodolistState extends State<Todolist> {
       final tierProvider = context.read<TierThemeProvider>();
       CustomToast.showCustom(
         context,
-        'Timer completed for "${widget.TaskName}"!',
+        'Timer completed for "${widget.taskName}"!',
         icon: Icons.alarm,
         gradientColors: tierProvider.gradientColors,
         duration: const Duration(seconds: 3),
@@ -154,7 +154,7 @@ class _TodolistState extends State<Todolist> {
     }
 
     // If task is completed, show full progress
-    if (widget.IsChecked) {
+    if (widget.isChecked) {
       return 1.0;
     }
 
@@ -362,7 +362,7 @@ class _TodolistState extends State<Todolist> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 4, right: 2),
                 child: GestureDetector(
-                  onTap: () => widget.Update_Fun?.call(context),
+                  onTap: () => widget.updateFun?.call(context),
                   child: Container(
                     constraints: const BoxConstraints(
                       minHeight: 80, // Minimum height to prevent overflow
@@ -418,7 +418,7 @@ class _TodolistState extends State<Todolist> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 2, right: 4),
                 child: GestureDetector(
-                  onTap: () => widget.Delete_Fun?.call(context),
+                  onTap: () => widget.deleteFun?.call(context),
                   child: Container(
                     constraints: const BoxConstraints(
                       minHeight: 80, // Minimum height to prevent overflow
@@ -477,7 +477,7 @@ class _TodolistState extends State<Todolist> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: widget.IsChecked
+              color: widget.isChecked
                   ? tierProvider.primaryColor.withValues(alpha:0.3)
                   : widget.isSynced
                   ? Colors.grey.withValues(alpha:0.2)
@@ -486,7 +486,7 @@ class _TodolistState extends State<Todolist> {
             ),
             boxShadow: [
               BoxShadow(
-                color: widget.IsChecked
+                color: widget.isChecked
                     ? tierProvider.glowColor.withValues(alpha:0.15)
                     : Colors.black.withValues(alpha:0.08),
                 offset: const Offset(0, 4),
@@ -516,7 +516,7 @@ class _TodolistState extends State<Todolist> {
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: widget.IsChecked
+                          colors: widget.isChecked
                               ? [
                                   tierProvider.primaryColor.withValues(alpha:0.15),
                                   tierProvider.glowColor.withValues(alpha:0.1),
@@ -542,7 +542,7 @@ class _TodolistState extends State<Todolist> {
                         );
                         return;
                       }
-                      widget.onChanged?.call(!widget.IsChecked);
+                      widget.onChanged?.call(!widget.isChecked);
                     },
                     borderRadius: BorderRadius.circular(16),
                     child: Padding(
@@ -562,7 +562,7 @@ class _TodolistState extends State<Todolist> {
                                 width: 26,
                                 height: 26,
                                 decoration: BoxDecoration(
-                                  gradient: widget.IsChecked
+                                  gradient: widget.isChecked
                                       ? LinearGradient(
                                           colors: tierProvider.gradientColors,
                                           begin: Alignment.topLeft,
@@ -572,14 +572,14 @@ class _TodolistState extends State<Todolist> {
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(7),
                                   border: Border.all(
-                                    color: widget.IsChecked
+                                    color: widget.isChecked
                                         ? Colors.transparent
                                         : Colors.grey.shade400,
                                     width: 2,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: widget.IsChecked
+                                      color: widget.isChecked
                                           ? tierProvider.glowColor.withValues(alpha:
                                               0.3,
                                             )
@@ -589,7 +589,7 @@ class _TodolistState extends State<Todolist> {
                                     ),
                                   ],
                                 ),
-                                child: widget.IsChecked
+                                child: widget.isChecked
                                     ? const Icon(
                                         Icons.check_rounded,
                                         color: Colors.white,
@@ -631,14 +631,14 @@ class _TodolistState extends State<Todolist> {
                                             ],
                                           ),
                                           child: Text(
-                                            widget.TaskName,
+                                            widget.taskName,
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
-                                              color: widget.IsChecked
+                                              color: widget.isChecked
                                                   ? Colors.grey.shade600
                                                   : const Color(0xFF2C3E50),
-                                              decoration: widget.IsChecked
+                                              decoration: widget.isChecked
                                                   ? TextDecoration.lineThrough
                                                   : TextDecoration.none,
                                               decorationColor:
@@ -704,7 +704,7 @@ class _TodolistState extends State<Todolist> {
                                     ],
 
                                     // Completed badge
-                                    if (widget.IsChecked) ...[
+                                    if (widget.isChecked) ...[
                                       const SizedBox(height: 3),
                                       Wrap(
                                         children: [
@@ -890,7 +890,7 @@ class _TodolistState extends State<Todolist> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        widget.IsChecked
+                                        widget.isChecked
                                             ? _formatTime(widget.totalDuration!)
                                             : _formatTime(_currentElapsed),
                                         style: TextStyle(
@@ -923,7 +923,7 @@ class _TodolistState extends State<Todolist> {
                                       color: widget.isRunning
                                           ? const Color(0xFFFFA726)
                                           : const Color(0xFF4CAF50),
-                                      onTap: widget.IsChecked
+                                      onTap: widget.isChecked
                                           ? () {
                                               CustomToast.warning(
                                                 context,
@@ -937,13 +937,13 @@ class _TodolistState extends State<Todolist> {
                                                 widget.onTimerStart?.call();
                                               }
                                             },
-                                      isDisabled: widget.IsChecked,
+                                      isDisabled: widget.isChecked,
                                     ),
                                     const SizedBox(width: 5),
                                     _buildMicroButton(
                                       icon: Icons.refresh_rounded,
                                       color: const Color(0xFFEF5350),
-                                      onTap: widget.IsChecked
+                                      onTap: widget.isChecked
                                           ? () {
                                               CustomToast.warning(
                                                 context,
@@ -951,7 +951,7 @@ class _TodolistState extends State<Todolist> {
                                               );
                                             }
                                           : _showResetDialog,
-                                      isDisabled: widget.IsChecked,
+                                      isDisabled: widget.isChecked,
                                     ),
                                   ],
                                 ),

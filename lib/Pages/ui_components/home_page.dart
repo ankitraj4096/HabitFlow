@@ -1087,7 +1087,7 @@ class _HomepageState extends State<Homepage> {
                           final timerMinutes = timerController.text.isNotEmpty
                               ? int.tryParse(timerController.text)
                               : null;
-                          final updatedTaskName = control.text;
+                          final updatedtaskName = control.text;
 
                           Navigator.of(context).pop();
                           control.clear();
@@ -1097,7 +1097,7 @@ class _HomepageState extends State<Homepage> {
                             await firestoreService.updateTask(
                               firebaseId,
                               tasklist[actualIndex]['isCompleted'],
-                              updatedTaskName,
+                              updatedtaskName,
                               timerMinutes,
                             );
                           } catch (e) {
@@ -1517,11 +1517,11 @@ class _HomepageState extends State<Homepage> {
                         itemBuilder: (context, index) {
                           final task = _filteredTaskList[index];
                           return Todolist(
-                            IsChecked: task['isCompleted'] ?? false,
-                            TaskName: task['taskName'] ?? '',
+                            isChecked: task['isCompleted'] ?? false,
+                            taskName: task['taskName'] ?? '',
                             onChanged: (value) => checkBoxChanged(value, index),
-                            Delete_Fun: (context) => deleteTask(index),
-                            Update_Fun: (context) => updateTask(index),
+                            deleteFun: (context) => deleteTask(index),
+                            updateFun: (context) => updateTask(index),
                             hasTimer: task['hasTimer'] ?? false,
                             totalDuration: task['totalDuration'],
                             elapsedSeconds: task['elapsedSeconds'] ?? 0,
