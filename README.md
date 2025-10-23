@@ -4,7 +4,7 @@
   
   [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
   [![Firebase](https://img.shields.io/badge/Firebase-Enabled-FFCA28?logo=firebase)](https://firebase.google.com)
-  [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+  [![License](https://img.shields.io/badge/License-Source%20Available-orange.svg)](LICENSE)
   [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/ankitraj4096/HabitFlow/releases)
 </div>
 
@@ -15,42 +15,58 @@
 **HabitFlow** is a productivity and task management app designed to help you build better habits through a **competitive and friendly environment**. The app combines task management with gamification to make productivity fun and rewarding!
 
 ### Key Highlights
-- ⏱️ **Timed task tracking** with pause/resume functionality and beautiful animations
+- ⏱️ **Timed task tracking** with pause/resume functionality and beautiful water droplet animations
+- 🔄 **Daily recurring tasks** with calendar heatmap and history tracking
 - 🎯 **17-tier progression system** from The Starter to The Ascended (100,000 tasks)
-- 👥 **Social accountability** features to connect with friends
+- 👥 **Social accountability** features to connect with friends and assign tasks
 - 🏆 **Achievements & badges** with animated icons for top tiers
 - 🎨 **Custom themes** that unlock as you progress through tiers
-- 📝 **Note-taking system** for detailed task planning
-- 🧹 **Automatic cleanup** every 24 hours for optimal performance
+- 📝 **Note-taking system** for detailed task planning with cloud sync
+- 🗓️ **Activity heatmap** showing your daily completion history
+- 🧹 **Automatic cleanup** of old data (3+ months) for optimal performance
+- 🔔 **Background timer notifications** to track tasks from anywhere
 
 ---
 
 ## ✨ Features 
 
-
 ### 🎯 Core Functionality
 - **Task Management** - Create, edit, and delete tasks with ease
 - **Timer System** - Track time spent on each task with pause/resume and visual progress indicators
-- **Note-Taking** - Add detailed notes and descriptions to any task with cloud sync
+- **Recurring Tasks** - Create daily habits that automatically reset each day
+- **Note-Taking** - Add detailed notes and descriptions to any task with real-time cloud sync
 - **Auto-completion** - Tasks automatically mark complete when timers finish
-- **Smart Cleanup** - Automatic daily cleanup of old data and cache
+- **Smart Cleanup** - Automatic daily cleanup of tasks and recurring history older than 3 months
 - **Offline Support** - View cached data offline, syncs when reconnected
+- **Background Timers** - Timers run in background with persistent notifications
 
 ### 🏆 Progression & Rewards
 - **17 Unique Tiers** - Progress from "The Starter" (0 tasks) to "The Ascended" (100,000 tasks)
 - **Dynamic Themes** - Each tier unlocks unique gradient color schemes
 - **Animated Tiers** - Top 2 tiers (Luminary & Ascended) feature special pulsating animations
 - **Achievement System** - Earn badges for milestones and daily streaks
+- **Activity Heatmap** - View your daily completion activity in a beautiful calendar heatmap
 - **Statistics Dashboard** - View detailed analytics, completion history, and progress tracking
 - **Progress Tracking** - Real-time progress bars showing tasks remaining to next tier
+- **Lifetime Stats** - Track total tasks completed across all time
 
 ### 👥 Social Features
 - **Friend System** - Add friends by username and build accountability
-- **Task Assignment** - Assign tasks to friends and accept/decline requests
-- **Friend Profiles** - View friends' tiers, stats, and completed tasks
+- **Task Assignment** - Assign both regular and recurring tasks to friends
+- **Friend Profiles** - View friends' tiers, stats, heatmaps, and tier colors
+- **View Friend Activity** - Tap any date on a friend's heatmap to see their completed tasks for that day
+- **Friend Tier Themes** - Friend profiles display their unique tier colors
 - **Activity Feed** - See friends' achievements and progress
-- **Inbox System** - Manage pending task requests with accept/reject options
-- **Privacy Controls** - Friends only see limited information (username, tier, assigned tasks)
+- **Inbox System** - Manage pending task requests with accept/reject/modify options
+- **Privacy Controls** - Friends only see limited information (username, tier, heatmap)
+
+### 📊 Tracking & History
+- **Heatmap Calendar** - Visual representation of your daily activity
+- **Daily Task View** - Tap any date to see all tasks completed that day
+- **Recurring Task History** - Track your daily habit streaks with calendar view
+- **Task Filtering** - View all tasks, active tasks, or completed tasks
+- **Search Functionality** - Find tasks quickly by name
+- **Completion Statistics** - Track your progress over time
 
 ### 🎨 Customization
 - **Theme Selection** - Choose from any unlocked tier theme
@@ -58,6 +74,7 @@
 - **Manual Theme Lock** - Select your favorite theme manually
 - **Profile Customization** - Edit username and track personal statistics
 - **Gradient Themes** - Multi-color gradients for higher tiers
+- **Custom Toasts** - Beautiful animated toast notifications
 
 ---
 
@@ -66,12 +83,12 @@
 | Category | Technology |
 |----------|-----------|
 | **Frontend** | Flutter & Dart |
-| **Backend** | Firebase (Authentication, Firestore, Crashlytics) |
+| **Backend** | Firebase (Authentication, Firestore, Cloud Messaging) |
 | **State Management** | Provider (TierThemeProvider, UserStatsProvider) |
 | **UI/UX** | Material Design, Custom Animations, Water Droplet Timer |
 | **Database** | Firebase Firestore (Cloud + Local Caching) |
-| **Additional Packages** | url_launcher, flutter_slidable, intl, flutter_lucide, fluttertoast |
-
+| **Notifications** | flutter_local_notifications, Background Services |
+| **Additional Packages** | url_launcher, flutter_slidable, intl, flutter_lucide, flutter_heatmap_calendar |
 
 ---
 
@@ -86,37 +103,118 @@ Ensure you have the following installed:
 - [Git](https://git-scm.com/downloads)
 - Android device or emulator (Android 5.0+ / API 21+)
 
-### Installation Steps
+## 🛠️ Installation Steps
 
-1. **Clone the repository**
+### 1. Clone the repository
+```bash
 git clone https://github.com/ankitraj4096/HabitFlow.git
 cd HabitFlow
+```
 
-
-
-2. **Install dependencies**
+### 2. Install dependencies
+```bash
 flutter pub get
+```
 
+---
 
+## 🔥 Firebase Setup
 
-3. **Firebase Setup**
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com)
-   - Enable **Authentication** (Email/Password)
-   - Create a **Firestore Database**
-   - Enable **Firebase Crashlytics** for crash reporting
-   - Download configuration files:
-     - `google-services.json` → Place in `android/app/`
-     - `GoogleService-Info.plist` → Place in `ios/Runner/` (for iOS support)
-   - Update Firestore security rules for proper access control
+### 1. Create a Firebase project
+- Go to [Firebase Console](https://console.firebase.google.com/)
+- Enable **Authentication (Email/Password)**
+- Create a **Firestore Database**
 
-4. **Run the app**
+### 2. Download configuration files
+- `google-services.json` → Place in `android/app/`
+- `GoogleService-Info.plist` → Place in `ios/Runner/` *(for iOS support)*
+
+---
+
+## 📘 Configure Firestore Database
+
+### Collections structure:
+
+#### `users` collection:
+```json
+{
+  "username": "string",
+  "email": "string",
+  "lifetimeCompletedTasks": 0,
+  "createdAt": "timestamp"
+}
+```
+
+#### `user_notes` subcollection (under userID):
+```json
+{
+  "taskName": "string",
+  "hasTimer": "boolean",
+  "elapsedSeconds": "number",
+  "isCompleted": "boolean",
+  "completedAt": "timestamp",
+  "isRecurring": "boolean",
+  "status": "accepted | pending | rejected",
+  "assignedBy": "string (optional)",
+  "assignedByUsername": "string (optional)"
+}
+```
+
+#### `recurringHistory` collection:
+Path: `recurringHistory/{userId}/{taskId}/completions/dates/{YYYY-MM-DD}`
+```json
+{
+  "completedAt": "timestamp",
+  "taskName": "string",
+  "duration": "number"
+}
+```
+
+---
+
+## 🔒 Firestore Security Rules
+
+```js
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+
+    match /user_notes/{userId}/notes/{noteId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    match /recurringHistory/{userId}/{document=**} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    match /chat_rooms/{roomId}/messages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+---
+
+## ▶️ Run the App
+```bash
 flutter run
+```
 
-
-5. **Build APK (for Android)**
+## 📦 Build APK (Android)
+```bash
 flutter build apk --release
+```
 
-   - APK will be in `build/app/outputs/flutter-apk/app-release.apk`
+The APK will be located at:
+```
+build/app/outputs/flutter-apk/app-release.apk
+```
 
 ---
 
@@ -125,35 +223,48 @@ flutter build apk --release
 ```
 lib/
 ├── Pages/
-│   ├── login_components/              # Login & signup screens
+│   ├── login_components/          # Login & signup screens
 │   │   ├── login.dart
 │   │   ├── register.dart
 │   │   └── main_page.dart
-│   └── ui_components/                 # Main app UI
-│       ├── friend_components/         # Friend management
+│   └── ui_components/             # Main app UI
+│       ├── home_page.dart         # Main dashboard with tasks
+│       ├── friend_components/     # Friend management
 │       │   ├── friend_list.dart
 │       │   ├── friend_profile.dart
-│       │   └── add_friend.dart
-│       └── profile_page_components/   # Profile & settings
+│       │   ├── add_friend.dart
+│       │   └── friend_tasks_manager.dart
+│       └── profile_page_components/ # Profile & settings
 │           ├── achievements.dart
 │           ├── settings.dart
-│           └── user_stats.dart
-├── component/                         # Reusable widgets
-│   ├── achievements.dart              # Achievement badges
-│   ├── customToast.dart               # Toast notifications
-│   ├── water_droplet.dart             # Timer animation
-│   ├── textfield.dart                 # Custom text fields
-│   └── error_dialog.dart              # Error handling
+│           ├── user_stats.dart
+│           └── profile_page.dart
+│
+├── component/                     # Reusable widgets
+│   ├── achievements.dart           # Achievement badges
+│   ├── custom_toast.dart           # Custom toast notifications
+│   ├── water_droplet.dart          # Timer animation widget
+│   ├── textfield.dart              # Custom fields
+│   ├── todolist.dart               # Task card widget
+│   ├── heat_map.dart               # Activity heatmap
+│   ├── daily_task_show.dart        # Daily completed tasks view
+│   └── recurring_history_page.dart # Recurring task history
+│
 ├── services/
-│   ├── auth/                          # Firebase authentication
+│   ├── auth/                       # Firebase authentication
 │   │   └── auth_service.dart
-│   ├── notes/                         # Firestore services
-│   │   ├── firestore.dart
-│   │   └── user_stats_provider.dart
-│   └── clean_up_service.dart          # Automatic data cleanup
+│   ├── notes/                      # Firestore services
+│   │   ├── firestore.dart          # Main database service
+│   │   └── user_stats_provider.dart# User statistics provider
+│   └── clean_up_service.dart       # Automatic data cleanup
+│
 ├── themes/
-│   └── tier_theme_provider.dart       # Theme management & tier colors
-└── main.dart                          # App entry point with splash screen
+│   └── tier_theme_provider.dart    # Theme management & tier colors
+│
+├── helper/
+│   └── helper_function.dart        # Utility functions
+│
+└── main.dart                       # App entry point with splash screen
 ```
 
 
@@ -189,9 +300,57 @@ HabitFlow features **17 progression tiers**, each unlocked by completing tasks:
 
 ---
 
+## 🔄 Recurring Tasks Feature
+
+### What Are Recurring Tasks?
+Recurring tasks are daily habits that automatically reset every day at midnight. Perfect for tracking:
+- 🏋️ Daily exercise
+- 📚 Reading sessions
+- 🧘 Meditation practice
+- ✍️ Journaling
+- 💻 Coding practice
+- 🎯 Any daily habit you want to build!
+
+### How It Works
+1. **Create Task** - Enable "Daily Recurring" when creating a task
+2. **Complete Daily** - Mark the task done each day
+3. **Auto Reset** - Task resets at midnight, ready for the next day
+4. **Track History** - View your completion history in a calendar heatmap
+5. **Build Streaks** - See how many consecutive days you've completed the task
+
+### Recurring Task Features
+- ✅ Automatically resets at midnight (local time)
+- 📅 Visual calendar heatmap showing all completions
+- 📊 Track completion streaks and patterns
+- ⏱️ Supports timers for timed habits
+- 👥 Can be assigned to friends
+- 🗑️ History older than 3 months is auto-archived
+
+---
+
 ## 🤝 Contributing
 
-We welcome contributions from the community! Here's how you can help:
+We welcome contributions from the community! However, please note our distribution restrictions.
+
+### ⚠️ Important: Distribution Restrictions
+
+This project is **source-available** but NOT freely distributable.
+
+**You MAY:**
+- ✅ View and study the code
+- ✅ Fork for personal or educational use
+- ✅ Contribute improvements via pull requests
+- ✅ Report bugs and suggest features
+
+**You MAY NOT:**
+- ❌ Distribute modified or unmodified versions
+- ❌ Publish to app stores without permission
+- ❌ Use for commercial purposes
+- ❌ Rebrand and redistribute
+
+For distribution or commercial licensing, contact us at the emails below.
+
+### How to Contribute
 
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
@@ -199,14 +358,7 @@ We welcome contributions from the community! Here's how you can help:
 4. **Push** to the branch (`git push origin feature/amazing-feature`)
 5. **Open** a Pull Request
 
-### Contribution Guidelines
-- Follow Flutter/Dart best practices and conventions
-- Write clear, meaningful commit messages
-- Update documentation for new features
-- Test thoroughly before submitting PR
-- Keep PRs focused on a single feature or fix
-- Add comments for complex logic
-- Ensure code passes `flutter analyze`
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ### Areas for Contribution
 - 🐛 Bug fixes
@@ -221,18 +373,20 @@ We welcome contributions from the community! Here's how you can help:
 
 ## 🐛 Known Issues & Roadmap
 
-### Current Issues
-- Timer may pause when app goes to deep background (investigating WorkManager integration)
+### Current Limitations
+- Background timer accuracy depends on device battery optimization settings
+- Friend search is case-sensitive
 - Animation performance on devices with <2GB RAM needs optimization
-- Friend search is case-sensitive (will be fixed in v1.1)
+- Data older than 3 months is automatically cleaned up
 
 ### Version 1.1 Roadmap
 - [ ] Push notifications for task reminders
 - [ ] Dark mode theme option
-- [ ] Weekly/monthly challenge system
-- [ ] Recurring tasks
+- [ ] Weekly/monthly recurring tasks
 - [ ] Task categories/tags
 - [ ] Export task data as CSV/JSON
+- [ ] Advanced search and filtering
+- [ ] Case-insensitive friend search
 
 ### Version 2.0 Roadmap
 - [ ] iOS support
@@ -243,6 +397,7 @@ We welcome contributions from the community! Here's how you can help:
 - [ ] Advanced analytics dashboard
 - [ ] Custom tier icons
 - [ ] Widget support
+- [ ] Pomodoro timer technique
 
 Report bugs via [GitHub Issues](https://github.com/ankitraj4096/HabitFlow/issues)
 
@@ -251,34 +406,41 @@ Report bugs via [GitHub Issues](https://github.com/ankitraj4096/HabitFlow/issues
 ## 📄 Documentation
 
 - [Privacy Policy](./PRIVACY_POLICY.md) - How we handle your data
-- [Help & Support](./HELP_SUPPORT.md) - FAQs and troubleshooting guide
-- [Contributing Guide](./CONTRIBUTING.md) - Guidelines for contributors (coming soon)
+- [Help & Support](./HELP.md) - FAQs and troubleshooting guide
+- [Contributing Guide](./CONTRIBUTING.md) - Guidelines for contributors
 - [Changelog](./CHANGELOG.md) - Version history and updates (coming soon)
 
 ---
 
 ## 🏗️ Build Instructions
 
-### Debug Build
+### ⚙️ Debug Build
+```bash
 flutter run
+```
 
-### Release APK
+### 🚀 Release APK
+```bash
 flutter build apk --release
+```
 
-
-
-### Split APKs (Smaller size)
+### 📦 Split APKs (Smaller Size)
+```bash
 flutter build apk --split-per-abi
+```
 
-
-### App Bundle (for Play Store)
+### 🏬 App Bundle (for Play Store)
+```bash
 flutter build appbundle --release
+```
 
-
-### With Obfuscation
+### 🔐 With Obfuscation
+```bash
 flutter build apk --release --obfuscate --split-debug-info=build/debug-info
+```
 
 ---
+
 
 ## 👥 Developers
 
@@ -331,30 +493,23 @@ flutter build apk --release --obfuscate --split-debug-info=build/debug-info
 
 ## 📝 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is **source-available** but not freely distributable.
 
-MIT License
+**You may:**
+- ✅ View and study the source code
+- ✅ Modify for personal or educational purposes
+- ✅ Contribute improvements via pull requests
 
-Copyright (c) 2025 Ankit Raj & Ansh Aryan
+**You may NOT:**
+- ❌ Distribute modified or unmodified versions
+- ❌ Publish to app stores without permission
+- ❌ Use for commercial purposes without permission
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+For distribution or commercial use, contact:
+- **Ankit Raj:** [abhinavanand4096@gmail.com](mailto:abhinavanand4096@gmail.com)
+- **Ansh Aryan:** [Ansharyan57@gmail.com](mailto:Ansharyan57@gmail.com)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
+See [LICENSE](LICENSE) for full terms.
 
 ---
 
@@ -367,7 +522,6 @@ If you find HabitFlow useful, please consider:
 - 🔀 **Contributing** via pull requests
 - 📢 **Sharing** with friends who need productivity tools
 - 📝 **Writing a review** on your blog or social media
-- ☕ **Buying us a coffee** (coming soon)
 
 ---
 
@@ -380,10 +534,6 @@ If you find HabitFlow useful, please consider:
 **Developer Contact:**
 - **Ankit Raj** - [abhinavanand4096@gmail.com](mailto:abhinavanand4096@gmail.com)
 - **Ansh Aryan** - [Ansharyan57@gmail.com](mailto:Ansharyan57@gmail.com)
-
-**Community:**
-- Discord server (coming soon)
-- Reddit community (coming soon)
 
 ---
 
@@ -399,6 +549,7 @@ If you find HabitFlow useful, please consider:
 - Material Design for beautiful UI components
 - Lucide Icons for the icon set
 - Provider package for state management
+- flutter_heatmap_calendar for activity tracking
 - All users who trust HabitFlow with their productivity journey
 
 ---
@@ -416,6 +567,7 @@ HabitFlow was inspired by the need for a **fun, competitive, and social approach
 - **Minimum RAM:** 2GB (4GB recommended)
 - **Minimum Android:** 5.0 (Lollipop, API 21)
 - **Target Android:** 13+ for best experience
+- **Background Services:** Optimized for battery efficiency
 
 ---
 
@@ -428,5 +580,5 @@ HabitFlow was inspired by the need for a **fun, competitive, and social approach
   
   <img src="https://img.shields.io/badge/Made%20with-Flutter-02569B?logo=flutter&logoColor=white" />
   <img src="https://img.shields.io/badge/Powered%20by-Firebase-FFCA28?logo=firebase&logoColor=white" />
-  <img src="https://img.shields.io/badge/Open%20Source-❤-red" />
+  <img src="https://img.shields.io/badge/Source%20Available-❤-orange" />
 </div>
