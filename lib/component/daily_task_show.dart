@@ -61,7 +61,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.glowColor.withOpacity(0.3),
+            color: tierProvider.glowColor.withValues(alpha: 0.3), // ✅ FIXED
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -85,7 +85,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
                       Text(
                         isOwnProfile
                             ? 'Your Completed Tasks'
-                            : '${viewingUsername}\'s Tasks',
+                            : '$viewingUsername\'s Tasks', // ✅ FIXED - removed braces
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -211,12 +211,12 @@ class DailyCompletedTasksPage extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF4CAF50).withOpacity(0.3),
+          color: const Color(0xFF4CAF50).withValues(alpha: 0.3), // ✅ FIXED
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4CAF50).withOpacity(0.15),
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.15), // ✅ FIXED
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -262,7 +262,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7), // ✅ FIXED
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -343,7 +343,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: tierProvider.gradientColors
-                    .map((c) => c.withOpacity(0.2))
+                    .map((c) => c.withValues(alpha: 0.2)) // ✅ FIXED
                     .toList(),
               ),
               shape: BoxShape.circle,
