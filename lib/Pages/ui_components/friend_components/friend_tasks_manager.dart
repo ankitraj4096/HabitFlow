@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:demo/component/recurring_history_page.dart';
 import 'package:demo/services/notes/firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -75,10 +76,10 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
   }
 
   // Group tasks by date
-  Map<String, List<Map<String, dynamic>>> _groupTasksByDate(
+  Map<String, List<QueryDocumentSnapshot>> groupTasksByDate(
     List<QueryDocumentSnapshot> docs,
   ) {
-    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    final Map<String, List<QueryDocumentSnapshot>> grouped = {};
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -106,7 +107,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       if (!grouped.containsKey(dateKey)) {
         grouped[dateKey] = [];
       }
-      grouped[dateKey]!.add(data);
+      grouped[dateKey]!.add(doc); // ✅ Add the doc itself, not just data
     }
 
     return grouped;
@@ -688,18 +689,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           .collection('user_notes')
           .doc(widget.friendUserID)
           .collection('notes')
-          .orderBy('timestamp', descending: true) // Most recent first
+          .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _buildErrorState('Error loading tasks: ${snapshot.error}');
         }
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingState();
         }
 
-        final allTasks =
+        final allDocs =
             snapshot.data?.docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final status = data['status'];
@@ -707,12 +707,12 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             }).toList() ??
             [];
 
-        if (allTasks.isEmpty) {
+        if (allDocs.isEmpty) {
           return _buildEmptyState('No tasks yet', Icons.task_alt);
         }
 
         // Group tasks by date
-        final groupedTasks = _groupTasksByDate(allTasks);
+        final groupedTasks = groupTasksByDate(allDocs);
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -724,11 +724,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date header
                 _buildDateHeader(dateKey, tasks.length),
                 const SizedBox(height: 8),
-                // Tasks for this date
-                ...tasks.map((taskData) => _buildTaskCard(taskData)),
+                // ✅ FIXED: Explicitly iterate and extract data
+                ...tasks.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return _buildTaskCard({
+                    ...data,
+                    'firebaseId':
+                        doc.id, // ✅ doc.id works on QueryDocumentSnapshot
+                  });
+                }).toList(),
                 const SizedBox(height: 16),
               ],
             );
@@ -755,11 +761,9 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             'Error loading your assigned tasks: ${snapshot.error}',
           );
         }
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingState();
         }
-
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyState(
             'You haven\'t assigned any tasks yet',
@@ -767,8 +771,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           );
         }
 
-        // Group tasks by date
-        final groupedTasks = _groupTasksByDate(snapshot.data!.docs);
+        final groupedTasks = groupTasksByDate(snapshot.data!.docs);
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -780,13 +783,17 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date header
                 _buildDateHeader(dateKey, tasks.length),
                 const SizedBox(height: 8),
-                // Tasks for this date
-                ...tasks.map(
-                  (taskData) => _buildTaskCard(taskData, highlightMyTask: true),
-                ),
+                // ✅ FIXED: Explicitly iterate and extract data
+                ...tasks.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return _buildTaskCard({
+                    ...data,
+                    'firebaseId':
+                        doc.id, // ✅ doc.id works on QueryDocumentSnapshot
+                  }, highlightMyTask: true);
+                }).toList(),
                 const SizedBox(height: 16),
               ],
             );
@@ -864,271 +871,294 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       timerProgress = (elapsedSeconds / totalDuration).clamp(0.0, 1.0);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isCompleted
-              ? [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)]
-              : (highlightMyTask || isMyTask)
-              ? friendGradientColors
-                    .map((c) => c.withValues(alpha: 0.1))
-                    .toList()
-              : [Colors.white, const Color(0xFFFAFAFA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isCompleted
-              ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
-              : (highlightMyTask || isMyTask)
-              ? friendPrimaryColor.withValues(alpha: 0.4)
-              : Colors.grey.withValues(alpha: 0.2),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isCompleted
-                ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (data['isRecurring'] == true && data['firebaseId'] != null) {
+          debugPrint('✅ Navigating to history page...');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RecurringTaskHistoryPage(
+                taskId: data['firebaseId'],
+                taskName: taskName,
+                friendUserID: widget.friendUserID,
+                friendUsername: widget.friendUsername,
+              ),
+            ),
+          );
+        } else {
+          debugPrint('❌ Not recurring or no firebaseId');
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isCompleted
+                ? [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)]
                 : (highlightMyTask || isMyTask)
-                ? friendGlowColor.withValues(alpha: 0.15)
-                : Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+                ? friendGradientColors
+                      .map((c) => c.withValues(alpha: 0.1))
+                      .toList()
+                : [Colors.white, const Color(0xFFFAFAFA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            if (isMyTask)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 5,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: friendGradientColors,
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isCompleted
+                ? const Color(0xFF4CAF50).withValues(alpha: 0.3)
+                : (highlightMyTask || isMyTask)
+                ? friendPrimaryColor.withValues(alpha: 0.4)
+                : Colors.grey.withValues(alpha: 0.2),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isCompleted
+                  ? const Color(0xFF4CAF50).withValues(alpha: 0.1)
+                  : (highlightMyTask || isMyTask)
+                  ? friendGlowColor.withValues(alpha: 0.15)
+                  : Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              if (isMyTask)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 5,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: friendGradientColors,
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          gradient: isCompleted
-                              ? const LinearGradient(
-                                  colors: [
-                                    Color(0xFF4CAF50),
-                                    Color(0xFF66BB6A),
-                                  ],
-                                )
-                              : null,
-                          color: isCompleted ? null : Colors.grey.shade200,
-                          shape: BoxShape.circle,
-                          boxShadow: isCompleted
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF4CAF50,
-                                    ).withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: isCompleted
-                            ? const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                                size: 20,
-                              )
-                            : Icon(
-                                Icons.radio_button_unchecked,
-                                color: Colors.grey.shade400,
-                                size: 20,
-                              ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              taskName,
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: isCompleted
-                                    ? Colors.grey.shade600
-                                    : const Color(0xFF2C3E50),
-                                decoration: isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                height: 1.3,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              children: [
-                                if (assignedBy != null)
-                                  _buildInfoChip(
-                                    icon: isMyTask
-                                        ? Icons.send_rounded
-                                        : Icons.person_rounded,
-                                    label: isMyTask
-                                        ? 'By You'
-                                        : 'By $assignedBy',
-                                    color: friendPrimaryColor,
-                                    backgroundColor: friendPrimaryColor
-                                        .withValues(alpha: 0.12),
-                                  )
-                                else
-                                  _buildInfoChip(
-                                    icon: Icons.person_outline_rounded,
-                                    label: 'Self-Created',
-                                    color: friendGradientColors.length > 1
-                                        ? friendGradientColors[1]
-                                        : friendPrimaryColor,
-                                    backgroundColor:
-                                        (friendGradientColors.length > 1
-                                                ? friendGradientColors[1]
-                                                : friendPrimaryColor)
-                                            .withValues(alpha: 0.12),
-                                  ),
-                                // ✅ NEW: Recurring badge (show BEFORE timer badge)
-                                if (data['isRecurring'] == true)
-                                  _buildInfoChip(
-                                    icon: Icons.repeat_rounded,
-                                    label: 'Daily',
-                                    color: const Color(0xFF9C27B0),
-                                    backgroundColor: const Color(
-                                      0xFF9C27B0,
-                                    ).withValues(alpha: 0.12),
-                                  ),
-                                if (hasTimer && totalDuration != null)
-                                  _buildInfoChip(
-                                    icon: Icons.timer_outlined,
-                                    label:
-                                        '${(totalDuration / 60).round()} min',
-                                    color: const Color(0xFFFF9800),
-                                    backgroundColor: const Color(
-                                      0xFFFF9800,
-                                    ).withValues(alpha: 0.12),
-                                  ),
-                                if (status == 'pending')
-                                  _buildInfoChip(
-                                    icon: Icons.pending_outlined,
-                                    label: 'Awaiting Accept',
-                                    color: const Color(0xFFFF6F00),
-                                    backgroundColor: const Color(
-                                      0xFFFF6F00,
-                                    ).withValues(alpha: 0.12),
-                                  ),
-                                if (isCompleted)
-                                  _buildInfoChip(
-                                    icon: Icons.check_circle_outline,
-                                    label: 'Done',
-                                    color: const Color(0xFF4CAF50),
-                                    backgroundColor: const Color(
-                                      0xFF4CAF50,
-                                    ).withValues(alpha: 0.12),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (hasTimer &&
-                      totalDuration != null &&
-                      timerProgress != null &&
-                      !isCompleted) ...[
-                    const SizedBox(height: 14),
-                    Column(
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Progress',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            Text(
-                              '${(timerProgress * 100).toInt()}%',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: _getProgressColor(timerProgress),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: timerProgress,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: _getProgressGradient(timerProgress),
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            gradient: isCompleted
+                                ? const LinearGradient(
+                                    colors: [
+                                      Color(0xFF4CAF50),
+                                      Color(0xFF66BB6A),
+                                    ],
+                                  )
+                                : null,
+                            color: isCompleted ? null : Colors.grey.shade200,
+                            shape: BoxShape.circle,
+                            boxShadow: isCompleted
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF4CAF50,
+                                      ).withValues(alpha: 0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : [],
                           ),
+                          child: isCompleted
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 20,
+                                )
+                              : Icon(
+                                  Icons.radio_button_unchecked,
+                                  color: Colors.grey.shade400,
+                                  size: 20,
+                                ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${_formatDuration(elapsedSeconds)} / ${_formatDuration(totalDuration)}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                taskName,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: isCompleted
+                                      ? Colors.grey.shade600
+                                      : const Color(0xFF2C3E50),
+                                  decoration: isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  if (assignedBy != null)
+                                    _buildInfoChip(
+                                      icon: isMyTask
+                                          ? Icons.send_rounded
+                                          : Icons.person_rounded,
+                                      label: isMyTask
+                                          ? 'By You'
+                                          : 'By $assignedBy',
+                                      color: friendPrimaryColor,
+                                      backgroundColor: friendPrimaryColor
+                                          .withValues(alpha: 0.12),
+                                    )
+                                  else
+                                    _buildInfoChip(
+                                      icon: Icons.person_outline_rounded,
+                                      label: 'Self-Created',
+                                      color: friendGradientColors.length > 1
+                                          ? friendGradientColors[1]
+                                          : friendPrimaryColor,
+                                      backgroundColor:
+                                          (friendGradientColors.length > 1
+                                                  ? friendGradientColors[1]
+                                                  : friendPrimaryColor)
+                                              .withValues(alpha: 0.12),
+                                    ),
+                                  // ✅ NEW: Recurring badge (show BEFORE timer badge)
+                                  if (data['isRecurring'] == true)
+                                    _buildInfoChip(
+                                      icon: Icons.repeat_rounded,
+                                      label: 'Daily',
+                                      color: const Color(0xFF9C27B0),
+                                      backgroundColor: const Color(
+                                        0xFF9C27B0,
+                                      ).withValues(alpha: 0.12),
+                                    ),
+                                  if (hasTimer && totalDuration != null)
+                                    _buildInfoChip(
+                                      icon: Icons.timer_outlined,
+                                      label:
+                                          '${(totalDuration / 60).round()} min',
+                                      color: const Color(0xFFFF9800),
+                                      backgroundColor: const Color(
+                                        0xFFFF9800,
+                                      ).withValues(alpha: 0.12),
+                                    ),
+                                  if (status == 'pending')
+                                    _buildInfoChip(
+                                      icon: Icons.pending_outlined,
+                                      label: 'Awaiting Accept',
+                                      color: const Color(0xFFFF6F00),
+                                      backgroundColor: const Color(
+                                        0xFFFF6F00,
+                                      ).withValues(alpha: 0.12),
+                                    ),
+                                  if (isCompleted)
+                                    _buildInfoChip(
+                                      icon: Icons.check_circle_outline,
+                                      label: 'Done',
+                                      color: const Color(0xFF4CAF50),
+                                      backgroundColor: const Color(
+                                        0xFF4CAF50,
+                                      ).withValues(alpha: 0.12),
+                                    ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
+                    if (hasTimer &&
+                        totalDuration != null &&
+                        timerProgress != null &&
+                        !isCompleted) ...[
+                      const SizedBox(height: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Progress',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                '${(timerProgress * 100).toInt()}%',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _getProgressColor(timerProgress),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: timerProgress,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: _getProgressGradient(
+                                        timerProgress,
+                                      ),
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_formatDuration(elapsedSeconds)} / ${_formatDuration(totalDuration)}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

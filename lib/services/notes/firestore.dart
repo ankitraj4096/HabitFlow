@@ -332,7 +332,6 @@ class FireStoreService {
   }
 
   /// Toggle task completion status
-  /// Toggle task completion status
   Future<void> toggleCompletion(String docID, bool currentStatus) async {
     try {
       final now = DateTime.now();
@@ -350,7 +349,7 @@ class FireStoreService {
       };
 
       if (!currentStatus) {
-        // Marking as complete
+        // ✅ MARKING AS COMPLETE
         updateData['completedAt'] = Timestamp.now();
         updateData['completedToday'] = todayDate;
 
@@ -367,7 +366,7 @@ class FireStoreService {
           await _saveCompletionToHistory(docID, taskData);
         }
       } else {
-        // Marking as incomplete
+        // ✅ MARKING AS INCOMPLETE
         updateData['completedAt'] = FieldValue.delete();
         updateData['completedToday'] = null;
 
@@ -386,6 +385,11 @@ class FireStoreService {
                 .update({'lifetimeCompletedTasks': FieldValue.increment(-1)});
           }
         }
+
+        // ✅ NEW: Delete today's completion from history if recurring
+        if (isRecurringTask) {
+          await _deleteCompletionFromHistory(docID, todayDate);
+        }
       }
 
       await _userNotes.doc(docID).update(updateData);
@@ -395,6 +399,19 @@ class FireStoreService {
     } catch (e) {
       debugPrint('Error toggling completion in Firebase: $e');
       rethrow;
+    }
+  }
+
+  /// ✅ NEW: Delete a specific date's completion from history
+  Future<void> _deleteCompletionFromHistory(
+    String taskId,
+    String dateKey,
+  ) async {
+    try {
+      await _getTaskHistoryRef(taskId).doc(dateKey).delete();
+      debugPrint('🗑️ Deleted completion from history: $taskId on $dateKey');
+    } catch (e) {
+      debugPrint('❌ Error deleting from history: $e');
     }
   }
 
@@ -937,6 +954,53 @@ class FireStoreService {
       return history.length;
     } catch (e) {
       debugPrint('Error getting completion count: $e');
+      return 0;
+    }
+  }
+
+  /// ✅ Get completion history for a FRIEND's specific recurring task
+  Future<Map<String, int>> getRecurringTaskHistoryForUser(
+    String taskId,
+    String userId,
+  ) async {
+    try {
+      debugPrint('🔍 Fetching history for user: $userId, task: $taskId');
+
+      final historySnapshot = await FirebaseFirestore.instance
+          .collection('recurringHistory')
+          .doc(userId) // ✅ Use the friend's user ID
+          .collection(taskId)
+          .doc('completions')
+          .collection('dates')
+          .get();
+
+      final Map<String, int> history = {};
+      for (var doc in historySnapshot.docs) {
+        // doc.id is the date string (e.g., "2025-10-23")
+        history[doc.id] = 1; // Each date counts as 1 completion
+      }
+
+      debugPrint(
+        '📊 Loaded history for friend\'s task $taskId: ${history.length} days',
+      );
+      debugPrint('📅 Dates: ${history.keys.join(", ")}');
+      return history;
+    } catch (e) {
+      debugPrint('❌ Error fetching friend recurring task history: $e');
+      return {};
+    }
+  }
+
+  /// Get total completion count for a FRIEND's recurring task
+  Future<int> getRecurringTaskCompletionCountForUser(
+    String taskId,
+    String userId,
+  ) async {
+    try {
+      final history = await getRecurringTaskHistoryForUser(taskId, userId);
+      return history.length;
+    } catch (e) {
+      debugPrint('Error getting friend completion count: $e');
       return 0;
     }
   }

@@ -7,11 +7,15 @@ import 'package:provider/provider.dart';
 class RecurringTaskHistoryPage extends StatefulWidget {
   final String taskId;
   final String taskName;
+  final String? friendUserID; // ✅ Optional: friend's user ID
+  final String? friendUsername; // ✅ Optional: friend's username
 
   const RecurringTaskHistoryPage({
     super.key,
     required this.taskId,
     required this.taskName,
+    this.friendUserID,
+    this.friendUsername,
   });
 
   @override
@@ -35,8 +39,22 @@ class _RecurringTaskHistoryPageState extends State<RecurringTaskHistoryPage> {
 
   Future<void> _loadHistory() async {
     try {
-      final history =
-          await _firestoreService.getRecurringTaskHistory(widget.taskId);
+      final Map<String, int> history;
+
+      if (widget.friendUserID != null) {
+        // ✅ Fetch friend's history
+        debugPrint('📊 Fetching history for friend: ${widget.friendUsername}');
+        history = await _firestoreService.getRecurringTaskHistoryForUser(
+          widget.taskId,
+          widget.friendUserID!,
+        );
+        debugPrint('✅ Loaded ${history.length} completion dates for friend');
+      } else {
+        // ✅ Fetch own history
+        debugPrint('📊 Fetching your own history');
+        history = await _firestoreService.getRecurringTaskHistory(widget.taskId);
+        debugPrint('✅ Loaded ${history.length} completion dates');
+      }
 
       setState(() {
         _completionData = history;
@@ -45,8 +63,6 @@ class _RecurringTaskHistoryPageState extends State<RecurringTaskHistoryPage> {
         _longestStreak = _calculateLongestStreak(history);
         _isLoading = false;
       });
-
-      debugPrint('✅ Loaded ${history.length} completion dates');
     } catch (e) {
       debugPrint('❌ Error loading history: $e');
       setState(() {
@@ -128,7 +144,11 @@ class _RecurringTaskHistoryPageState extends State<RecurringTaskHistoryPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text('Loading history...'),
+                        Text(
+                          widget.friendUsername != null
+                              ? 'Loading ${widget.friendUsername}\'s history...'
+                              : 'Loading history...',
+                        ),
                       ],
                     ),
                   ),
@@ -212,17 +232,19 @@ class _RecurringTaskHistoryPageState extends State<RecurringTaskHistoryPage> {
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.repeat_rounded,
                               color: Colors.white,
                               size: 14,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              'Daily Recurring',
-                              style: TextStyle(
+                              widget.friendUsername != null
+                                  ? '${widget.friendUsername}\'s Progress'
+                                  : 'Daily Recurring',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -513,7 +535,9 @@ class _RecurringTaskHistoryPageState extends State<RecurringTaskHistoryPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Complete this task daily to build your streak!',
+                widget.friendUsername != null
+                    ? '${widget.friendUsername} hasn\'t completed this task yet!'
+                    : 'Complete this task daily to build your streak!',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[500],
