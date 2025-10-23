@@ -68,7 +68,7 @@ class AboutPage extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: tierProvider.gradientColors
-                                  .map((c) => c.withOpacity(0.3))
+                                  .map((c) => c.withValues(alpha: 0.3))
                                   .toList(),
                             ),
                           ),
@@ -89,12 +89,12 @@ class AboutPage extends StatelessWidget {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
+                                color: Colors.black.withValues(alpha: 0.15),
                                 blurRadius: 25,
                                 offset: const Offset(0, 10),
                               ),
                               BoxShadow(
-                                color: tierProvider.glowColor.withOpacity(0.4),
+                                color: tierProvider.glowColor.withValues(alpha: 0.4),
                                 blurRadius: 40,
                                 offset: const Offset(0, 15),
                               ),
@@ -133,8 +133,8 @@ class AboutPage extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Colors.white.withOpacity(0.8),
-                                  Colors.white.withOpacity(0.0),
+                                  Colors.white.withValues(alpha: 0.8),
+                                  Colors.white.withValues(alpha: 0.0),
                                 ],
                               ),
                             ),
@@ -272,7 +272,7 @@ class AboutPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -411,7 +411,7 @@ class AboutPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -422,7 +422,7 @@ class AboutPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: tierProvider.primaryColor.withOpacity(0.1),
+              color: tierProvider.primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: tierProvider.primaryColor, size: 20),
@@ -468,7 +468,7 @@ class AboutPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -526,7 +526,7 @@ class AboutPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

@@ -67,7 +67,7 @@ class _EditUsernamePageState extends State<EditUsernamePage> {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -138,7 +138,7 @@ class _EditUsernamePageState extends State<EditUsernamePage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: tierProvider.glowColor.withOpacity(0.3),
+                      color: tierProvider.glowColor.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -172,7 +172,7 @@ class _EditUsernamePageState extends State<EditUsernamePage> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Icon(
@@ -216,11 +216,11 @@ class _EditUsernamePageState extends State<EditUsernamePage> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: tierProvider.primaryColor
-                                    .withOpacity(0.1),
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: tierProvider.primaryColor
-                                      .withOpacity(0.3),
+                                      .withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -332,7 +332,7 @@ class _EditUsernamePageState extends State<EditUsernamePage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: tierProvider.glowColor.withOpacity(0.3),
+                        color: tierProvider.glowColor.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
