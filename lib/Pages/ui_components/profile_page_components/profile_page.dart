@@ -1,5 +1,5 @@
-import 'package:demo/Pages/ui_components/friend_components/friendListsPage.dart';
-import 'package:demo/Pages/ui_components/friend_components/friendTasksManager.dart';
+import 'package:demo/Pages/ui_components/friend_components/friend_lists_page.dart';
+import 'package:demo/Pages/ui_components/friend_components/friend_tasks_manager.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/settings_page.dart';
 import 'package:demo/component/heatmap.dart';
 import 'package:demo/services/auth/auth_service.dart';

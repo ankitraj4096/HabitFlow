@@ -57,7 +57,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         isLoadingFriendTier = false;
       });
     } catch (e) {
-      print('Error loading friend tier: $e');
+      debugPrint('Error loading friend tier: $e');
       setState(() => isLoadingFriendTier = false);
     }
   }
@@ -135,7 +135,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: friendGlowColor.withOpacity(0.3),
+                          color: friendGlowColor.withValues(alpha:0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -233,7 +233,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: friendGlowColor.withOpacity(0.3),
+                          color: friendGlowColor.withValues(alpha:0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -367,7 +367,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         ),
         boxShadow: [
           BoxShadow(
-            color: friendGlowColor.withOpacity(0.3),
+            color: friendGlowColor.withValues(alpha:0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -422,7 +422,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha:0.08),
             blurRadius: 15,
             offset: const Offset(0, 3),
           ),
@@ -435,7 +435,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: friendGlowColor.withOpacity(0.3),
+              color: friendGlowColor.withValues(alpha:0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -604,11 +604,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: friendGradientColors.map((c) => c.withOpacity(0.1)).toList(),
+          colors: friendGradientColors.map((c) => c.withValues(alpha:0.1)).toList(),
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: friendPrimaryColor.withOpacity(0.2),
+          color: friendPrimaryColor.withValues(alpha:0.2),
           width: 1,
         ),
       ),
@@ -633,7 +633,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: friendPrimaryColor.withOpacity(0.15),
+              color: friendPrimaryColor.withValues(alpha:0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -676,7 +676,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           colors: isCompleted
               ? [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)]
               : (highlightMyTask || isMyTask)
-                  ? friendGradientColors.map((c) => c.withOpacity(0.1)).toList()
+                  ? friendGradientColors.map((c) => c.withValues(alpha:0.1)).toList()
                   : [Colors.white, const Color(0xFFFAFAFA)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -684,19 +684,19 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isCompleted
-              ? const Color(0xFF4CAF50).withOpacity(0.3)
+              ? const Color(0xFF4CAF50).withValues(alpha:0.3)
               : (highlightMyTask || isMyTask)
-                  ? friendPrimaryColor.withOpacity(0.4)
-                  : Colors.grey.withOpacity(0.2),
+                  ? friendPrimaryColor.withValues(alpha:0.4)
+                  : Colors.grey.withValues(alpha:0.2),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
             color: isCompleted
-                ? const Color(0xFF4CAF50).withOpacity(0.1)
+                ? const Color(0xFF4CAF50).withValues(alpha:0.1)
                 : (highlightMyTask || isMyTask)
-                    ? friendGlowColor.withOpacity(0.15)
-                    : Colors.black.withOpacity(0.06),
+                    ? friendGlowColor.withValues(alpha:0.15)
+                    : Colors.black.withValues(alpha:0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -748,7 +748,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                               ? [
                                   BoxShadow(
                                     color: const Color(0xFF4CAF50)
-                                        .withOpacity(0.3),
+                                        .withValues(alpha:0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -801,7 +801,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                     label: isMyTask ? 'By You' : 'By $assignedBy',
                                     color: friendPrimaryColor,
                                     backgroundColor:
-                                        friendPrimaryColor.withOpacity(0.12),
+                                        friendPrimaryColor.withValues(alpha:0.12),
                                   )
                                 else
                                   _buildInfoChip(
@@ -814,7 +814,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                         (friendGradientColors.length > 1
                                                 ? friendGradientColors[1]
                                                 : friendPrimaryColor)
-                                            .withOpacity(0.12),
+                                            .withValues(alpha:0.12),
                                   ),
                                 if (hasTimer && totalDuration != null)
                                   _buildInfoChip(
@@ -822,7 +822,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                     label: '${(totalDuration / 60).round()} min',
                                     color: const Color(0xFFFF9800),
                                     backgroundColor:
-                                        const Color(0xFFFF9800).withOpacity(0.12),
+                                        const Color(0xFFFF9800).withValues(alpha:0.12),
                                   ),
                                 if (status == 'pending')
                                   _buildInfoChip(
@@ -830,7 +830,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                     label: 'Awaiting Accept',
                                     color: const Color(0xFFFF6F00),
                                     backgroundColor:
-                                        const Color(0xFFFF6F00).withOpacity(0.12),
+                                        const Color(0xFFFF6F00).withValues(alpha:0.12),
                                   ),
                                 if (isCompleted)
                                   _buildInfoChip(
@@ -838,7 +838,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                                     label: 'Done',
                                     color: const Color(0xFF4CAF50),
                                     backgroundColor:
-                                        const Color(0xFF4CAF50).withOpacity(0.12),
+                                        const Color(0xFF4CAF50).withValues(alpha:0.12),
                                   ),
                               ],
                             ),
@@ -931,7 +931,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha:0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1025,7 +1025,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors:
-                    friendGradientColors.map((c) => c.withOpacity(0.2)).toList(),
+                    friendGradientColors.map((c) => c.withValues(alpha:0.2)).toList(),
               ),
               shape: BoxShape.circle,
             ),

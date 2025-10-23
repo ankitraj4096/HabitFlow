@@ -62,7 +62,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         isLoadingFriendTier = false;
       });
     } catch (e) {
-      print('Error loading friend tier: $e');
+      debugPrint('Error loading friend tier: $e');
       setState(() => isLoadingFriendTier = false);
     }
   }
@@ -147,7 +147,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.3),
+            color: glowColor.withValues(alpha:0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -217,7 +217,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                       Container(
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha:0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
@@ -274,7 +274,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   // Search Users Icon
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha:0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -348,7 +348,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors:
-                          gradientColors.map((c) => c.withOpacity(0.2)).toList(),
+                          gradientColors.map((c) => c.withValues(alpha:0.2)).toList(),
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -419,12 +419,12 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: primaryColor.withOpacity(0.1),
+          color: primaryColor.withValues(alpha:0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: primaryColor.withOpacity(0.08),
+            color: primaryColor.withValues(alpha:0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -434,7 +434,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: primaryColor.withOpacity(0.1),
+          splashColor: primaryColor.withValues(alpha:0.1),
           onTap: () {
             // Navigate to friend's profile
             Navigator.push(
@@ -464,7 +464,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: glowColor.withOpacity(0.2),
+                        color: glowColor.withValues(alpha:0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -510,7 +510,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                 if (isOwnProfile)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -530,7 +530,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: primaryColor.withOpacity(0.5),
+                    color: primaryColor.withValues(alpha:0.5),
                   ),
               ],
             ),
@@ -590,7 +590,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha:0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(

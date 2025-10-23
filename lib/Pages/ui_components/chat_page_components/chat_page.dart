@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo/Pages/ui_components/friend_components/friendTasksManager.dart';
+import 'package:demo/Pages/ui_components/friend_components/friend_tasks_manager.dart';
 import 'package:demo/Pages/ui_components/profile_page_components/profile_page.dart';
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/component/chat_bubble.dart';
@@ -14,11 +14,11 @@ class ChatPage extends StatefulWidget {
   final String receiverID;
   final String receiverUsername;
 
-  ChatPage({
-    super.key,
-    required this.receiverID,
-    required this.receiverUsername,
-  });
+  const ChatPage({
+  super.key,
+  required this.receiverID,
+  required this.receiverUsername,
+});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -31,24 +31,20 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController = ScrollController();
 
   int _previousMessageCount = 0;
-  bool _isUserScrolling = false; // ✅ Track if user is manually scrolling
+  bool _isUserScrolling = false;
 
   @override
   void initState() {
     super.initState();
     _markMessagesAsRead();
-
-    // ✅ Better scroll listener - doesn't call setState unnecessarily
     _scrollController.addListener(_onScroll);
   }
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     
-    // User is at bottom if scroll position is near 0 (because reverse: true)
     final isAtBottom = _scrollController.position.pixels <= 100;
     
-    // Only update state if the value actually changed
     if (_isUserScrolling == isAtBottom) {
       _isUserScrolling = !isAtBottom;
     }
@@ -66,16 +62,16 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final currentUserID = _authService.getCurrentUser()!.uid;
       await _chatService.markMessagesAsRead(currentUserID, widget.receiverID);
-      print('✅ Messages marked as read for ${widget.receiverUsername}');
+      debugPrint('✅ Messages marked as read for ${widget.receiverUsername}'); // ✅ FIXED Line 69
     } catch (e) {
-      print('❌ Error marking messages as read: $e');
+      debugPrint('❌ Error marking messages as read: $e'); // ✅ FIXED Line 71
     }
   }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        0, // Because reverse: true, 0 is bottom
+        0,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -90,7 +86,6 @@ class _ChatPageState extends State<ChatPage> {
       );
       _messageController.clear();
 
-      // Always scroll to bottom when sending
       Future.delayed(const Duration(milliseconds: 100), () {
         _scrollToBottom();
       });
@@ -138,7 +133,7 @@ class _ChatPageState extends State<ChatPage> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: tierProvider.glowColor.withValues(alpha:0.3),
+                      color: tierProvider.glowColor.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -187,7 +182,7 @@ class _ChatPageState extends State<ChatPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: tierProvider.gradientColors
-                    .map((c) => c.withValues(alpha:0.1))
+                    .map((c) => c.withValues(alpha: 0.1))
                     .toList(),
               ),
               borderRadius: BorderRadius.circular(12),
@@ -214,7 +209,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Column(
         children: [
-          Divider(height: 1, color: tierProvider.primaryColor.withValues(alpha:0.1)),
+          Divider(height: 1, color: tierProvider.primaryColor.withValues(alpha: 0.1)),
           Expanded(child: _buildMessageList(tierProvider)),
           _buildUserInput(tierProvider),
         ],
@@ -257,7 +252,7 @@ class _ChatPageState extends State<ChatPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: tierProvider.gradientColors
-                          .map((c) => c.withValues(alpha:0.2))
+                          .map((c) => c.withValues(alpha: 0.2))
                           .toList(),
                     ),
                     shape: BoxShape.circle,
@@ -290,9 +285,6 @@ class _ChatPageState extends State<ChatPage> {
         final docs = snapshot.data!.docs;
         final currentMessageCount = docs.length;
 
-        // ✅ Only auto-scroll if:
-        // 1. New message arrived AND
-        // 2. User is NOT manually scrolling up
         if (currentMessageCount > _previousMessageCount && !_isUserScrolling) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _scrollToBottom();
@@ -302,9 +294,9 @@ class _ChatPageState extends State<ChatPage> {
 
         return ListView.builder(
           controller: _scrollController,
-          reverse: true, // Newest at bottom
+          reverse: true,
           padding: const EdgeInsets.symmetric(vertical: 10),
-          physics: const AlwaysScrollableScrollPhysics(), // ✅ Allow manual scroll
+          physics: const AlwaysScrollableScrollPhysics(),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final reverseIndex = docs.length - 1 - index;
@@ -370,7 +362,7 @@ class _ChatPageState extends State<ChatPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: tierProvider.primaryColor.withValues(alpha:0.1),
+                color: tierProvider.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -412,7 +404,7 @@ class _ChatPageState extends State<ChatPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: tierProvider.primaryColor.withValues(alpha:0.05),
+            color: tierProvider.primaryColor.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -428,7 +420,7 @@ class _ChatPageState extends State<ChatPage> {
                   color: const Color(0xFFF5F7FA),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: tierProvider.primaryColor.withValues(alpha:0.1),
+                    color: tierProvider.primaryColor.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -458,7 +450,7 @@ class _ChatPageState extends State<ChatPage> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: tierProvider.glowColor.withValues(alpha:0.3),
+                    color: tierProvider.glowColor.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),

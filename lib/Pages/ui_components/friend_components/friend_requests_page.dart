@@ -64,7 +64,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: tierProvider.gradientColors
-                            .map((c) => c.withOpacity(0.2))
+                            .map((c) => c.withValues(alpha:0.2))
                             .toList(),
                       ),
                       shape: BoxShape.circle,
@@ -132,12 +132,12 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tierProvider.primaryColor.withOpacity(0.1),
+          color: tierProvider.primaryColor.withValues(alpha:0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.primaryColor.withOpacity(0.08),
+            color: tierProvider.primaryColor.withValues(alpha:0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -163,7 +163,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: tierProvider.glowColor.withOpacity(0.2),
+                        color: tierProvider.glowColor.withValues(alpha:0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -224,7 +224,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: tierProvider.glowColor.withOpacity(0.3),
+                          color: tierProvider.glowColor.withValues(alpha:0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -264,7 +264,7 @@ class _FriendRequestsPageState extends State<FriendRequestsPage> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.grey.shade700,
                       side: BorderSide(
-                        color: tierProvider.primaryColor.withOpacity(0.2),
+                        color: tierProvider.primaryColor.withValues(alpha:0.2),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
