@@ -26,7 +26,7 @@ class NotificationService {
     try {
       // ✅ USE MIPMAP INSTEAD OF DRAWABLE
       const AndroidInitializationSettings androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher'); // Add @mipmap/
+          AndroidInitializationSettings('ic_notification');
 
       const DarwinInitializationSettings iosSettings =
           DarwinInitializationSettings(
