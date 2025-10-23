@@ -113,76 +113,117 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
   }
 
   void _showAssignTaskDialog() {
-    setState(() {
-      isRecurringTask = false; // Reset toggle
-    });
+  setState(() {
+    isRecurringTask = false; // Reset toggle
+  });
 
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.75,
-          ),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFF3E5F5), Colors.white],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: friendGlowColor.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: friendGradientColors),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: friendGlowColor.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: friendGradientColors,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: friendGlowColor.withValues(
+                            alpha: 0.4,
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.person_add_alt,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Assign Task to ${widget.friendUsername}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: friendPrimaryColor,
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
-                        maxLines: 2,
-                      ),
+                      ],
                     ),
-                  ],
+                    child: const Icon(
+                      Icons.person_add_alt,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assign Task',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: friendPrimaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'To ${widget.friendUsername}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!, width: 1),
                 ),
-                const SizedBox(height: 20),
-                TextField(
+                child: TextField(
                   controller: _taskController,
                   decoration: InputDecoration(
                     labelText: 'Task Name',
-                    hintText: 'What should they do?',
-                    prefixIcon: Icon(Icons.task, color: friendPrimaryColor),
+                    labelStyle: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 13,
+                    ),
+                    hintText: 'Enter your task...',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(
+                      Icons.edit_rounded,
+                      color: friendPrimaryColor,
+                      size: 20,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -191,143 +232,186 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                         width: 2,
                       ),
                     ),
-                    labelStyle: TextStyle(color: friendPrimaryColor),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
                   ),
-                  maxLines: 2,
                 ),
-                const SizedBox(height: 16),
-                TextField(
+              ),
+              const SizedBox(height: 14),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!, width: 1),
+                ),
+                child: TextField(
                   controller: _timerController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Timer (minutes) - Optional',
-                    hintText: 'e.g., 30 minutes',
-                    prefixIcon: Icon(
-                      Icons.timer,
-                      color: friendGradientColors.length > 1
-                          ? friendGradientColors[1]
-                          : friendPrimaryColor,
+                    labelText: 'Timer (minutes)',
+                    labelStyle: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 13,
                     ),
+                    hintText: 'Optional, e.g., 25',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(
+                      Icons.timer_outlined,
+                      color: friendPrimaryColor,
+                      size: 20,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: friendGradientColors.length > 1
-                            ? friendGradientColors[1]
-                            : friendPrimaryColor,
+                        color: friendPrimaryColor,
                         width: 2,
                       ),
                     ),
-                    labelStyle: TextStyle(
-                      color: friendGradientColors.length > 1
-                          ? friendGradientColors[1]
-                          : friendPrimaryColor,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                // ✅ NEW: Recurring toggle
-                StatefulBuilder(
-                  builder: (context, setDialogState) {
-                    return Container(
-                      decoration: BoxDecoration(
+              ),
+              const SizedBox(height: 14),
+              // ✅ Recurring task toggle
+              StatefulBuilder(
+                builder: (context, setDialogState) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: isRecurringTask
+                          ? friendPrimaryColor.withValues(alpha: 0.08)
+                          : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: isRecurringTask
-                            ? friendPrimaryColor.withValues(alpha: 0.08)
-                            : Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isRecurringTask
-                              ? friendPrimaryColor.withValues(alpha: 0.3)
-                              : Colors.grey[300]!,
-                          width: 1,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isRecurringTask
-                                    ? friendPrimaryColor.withValues(alpha: 0.3)
-                                    : Colors.grey[300]!,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.repeat_rounded,
-                              color: isRecurringTask
-                                  ? friendPrimaryColor
-                                  : Colors.grey[600],
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Daily Recurring',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isRecurringTask
-                                    ? friendPrimaryColor
-                                    : Colors.grey[800],
-                              ),
-                            ),
-                          ),
-                          Switch(
-                            value: isRecurringTask,
-                            onChanged: (value) {
-                              setDialogState(() {
-                                setState(() {
-                                  isRecurringTask = value;
-                                });
-                              });
-                            },
-                            activeColor: friendPrimaryColor,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _taskController.clear();
-                        _timerController.clear();
-                        setState(() {
-                          isRecurringTask = false;
-                        });
-                      },
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(color: Colors.grey[600]),
+                            ? friendPrimaryColor.withValues(alpha: 0.3)
+                            : Colors.grey[200]!,
+                        width: 1,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isRecurringTask
+                                  ? friendPrimaryColor.withValues(
+                                      alpha: 0.3,
+                                    )
+                                  : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.repeat_rounded,
+                            color: isRecurringTask
+                                ? friendPrimaryColor
+                                : Colors.grey[600],
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Daily Recurring',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isRecurringTask
+                                  ? friendPrimaryColor
+                                  : Colors.grey[800],
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: isRecurringTask,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              setState(() {
+                                isRecurringTask = value;
+                              });
+                            });
+                          },
+                          activeColor: friendPrimaryColor,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: friendGradientColors),
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _taskController.clear();
+                          _timerController.clear();
+                          setState(() {
+                            isRecurringTask = false;
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: friendGradientColors,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: friendGlowColor.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            color: friendGlowColor.withValues(
+                              alpha: 0.4,
+                            ),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -351,7 +435,7 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                               friendUserID: widget.friendUserID,
                               taskName: _taskController.text,
                               durationMins: timerMins,
-                              isRecurring: isRecurringTask, // ✅ NEW
+                              isRecurring: isRecurringTask,
                             );
 
                             if (context.mounted) {
@@ -388,26 +472,40 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text(
-                          'Assign Task',
-                          style: TextStyle(color: Colors.white),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Save',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -443,6 +541,8 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAssignTaskDialog,
         backgroundColor: friendPrimaryColor,
+        foregroundColor:
+            Colors.white, 
         icon: const Icon(Icons.add),
         label: const Text('Assign Task'),
       ),
