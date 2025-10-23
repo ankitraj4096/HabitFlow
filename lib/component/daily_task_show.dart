@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 class DailyCompletedTasksPage extends StatelessWidget {
   final DateTime selectedDate;
-  final String? viewingUserID; // null if viewing own tasks
+  final String? viewingUserID;
   final String? viewingUsername;
 
   const DailyCompletedTasksPage({
@@ -61,7 +61,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.glowColor.withValues(alpha: 0.3), // ✅ FIXED
+            color: tierProvider.glowColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -85,7 +85,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
                       Text(
                         isOwnProfile
                             ? 'Your Completed Tasks'
-                            : '$viewingUsername\'s Tasks', // ✅ FIXED - removed braces
+                            : '$viewingUsername\'s Tasks',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -129,22 +129,11 @@ class DailyCompletedTasksPage extends StatelessWidget {
       return _buildEmptyState('Unable to load tasks', context);
     }
 
-    // Get start and end of the selected date
-    final startOfDay =
-        DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-    final endOfDay = DateTime(
-        selectedDate.year, selectedDate.month, selectedDate.day, 23, 59, 59);
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('user_notes')
-          .doc(userID)
-          .collection('notes')
-          .where('isCompleted', isEqualTo: true)
-          .where('status', isEqualTo: 'accepted')
-          .snapshots(),
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchAllCompletedTasks(userID),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          debugPrint('❌ Error loading tasks: ${snapshot.error}');
           return _buildEmptyState('Error loading tasks', context);
         }
 
@@ -158,33 +147,96 @@ class DailyCompletedTasksPage extends StatelessWidget {
           );
         }
 
-        // Filter tasks completed on the selected date
-        final completedTasksOnDate = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final completedAt = data['completedAt'] as Timestamp?;
+        final allTasks = snapshot.data ?? [];
 
-          if (completedAt == null) return false;
-
-          final completedDate = completedAt.toDate();
-          return completedDate.isAfter(startOfDay) &&
-              completedDate.isBefore(endOfDay);
-        }).toList();
-
-        if (completedTasksOnDate.isEmpty) {
+        if (allTasks.isEmpty) {
           return _buildEmptyState('No tasks completed on this day', context);
         }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: completedTasksOnDate.length,
+          itemCount: allTasks.length,
           itemBuilder: (context, index) {
-            final doc = completedTasksOnDate[index];
-            final data = doc.data() as Map<String, dynamic>;
-            return _buildTaskCard(data);
+            return _buildTaskCard(allTasks[index]);
           },
         );
       },
     );
+  }
+
+  // ✅ FIXED: Fetch BOTH regular tasks AND recurring tasks
+  Future<List<Map<String, dynamic>>> _fetchAllCompletedTasks(
+      String userID) async {
+    try {
+      final dateKey =
+          '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+
+      final List<Map<String, dynamic>> allTasks = [];
+
+      // 1️⃣ Fetch ALL notes (both recurring and non-recurring)
+      final notesSnapshot = await FirebaseFirestore.instance
+          .collection('user_notes')
+          .doc(userID)
+          .collection('notes')
+          .where('status', isEqualTo: 'accepted')
+          .get();
+
+      final startOfDay =
+          DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+      final endOfDay = DateTime(selectedDate.year, selectedDate.month,
+          selectedDate.day, 23, 59, 59);
+
+      for (var doc in notesSnapshot.docs) {
+        final data = doc.data();
+        final isRecurring = data['isRecurring'] == true;
+        final taskId = doc.id;
+
+        if (isRecurring) {
+          // ✅ Check if this recurring task was completed on the selected date
+          final dateDoc = await FirebaseFirestore.instance
+              .collection('recurringHistory')
+              .doc(userID)
+              .collection(taskId)
+              .doc('completions')
+              .collection('dates')
+              .doc(dateKey)
+              .get();
+
+          if (dateDoc.exists) {
+            final historyData = dateDoc.data()!;
+            allTasks.add({
+              'taskName': historyData['taskName'] ?? data['taskName'],
+              'completedAt': historyData['completedAt'],
+              'hasTimer': data['hasTimer'] ?? false,
+              'elapsedSeconds': historyData['duration'] ?? 0,
+              'assignedByUsername': data['assignedByUsername'],
+              'isRecurringTask': true,
+            });
+          }
+        } else {
+          // ✅ Regular task: check if completed on selected date
+          final completedAt = data['completedAt'] as Timestamp?;
+          final isCompleted = data['isCompleted'] == true;
+
+          if (isCompleted && completedAt != null) {
+            final completedDate = completedAt.toDate();
+            if (completedDate.isAfter(startOfDay) &&
+                completedDate.isBefore(endOfDay)) {
+              allTasks.add({
+                ...data,
+                'isRecurringTask': false,
+              });
+            }
+          }
+        }
+      }
+
+      debugPrint('✅ Loaded ${allTasks.length} tasks for $dateKey');
+      return allTasks;
+    } catch (e) {
+      debugPrint('❌ Error fetching all completed tasks: $e');
+      return [];
+    }
   }
 
   Widget _buildTaskCard(Map<String, dynamic> taskData) {
@@ -193,6 +245,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
     final hasTimer = taskData['hasTimer'] ?? false;
     final elapsedSeconds = taskData['elapsedSeconds'] ?? 0;
     final assignedBy = taskData['assignedByUsername'];
+    final isRecurring = taskData['isRecurringTask'] == true;
 
     String timeStr = 'Unknown time';
     if (completedAt != null) {
@@ -211,12 +264,12 @@ class DailyCompletedTasksPage extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF4CAF50).withValues(alpha: 0.3), // ✅ FIXED
+          color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.15), // ✅ FIXED
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -229,7 +282,6 @@ class DailyCompletedTasksPage extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Checkmark Icon
                 Container(
                   width: 28,
                   height: 28,
@@ -244,7 +296,6 @@ class DailyCompletedTasksPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Task Name
                 Expanded(
                   child: Text(
                     taskName,
@@ -257,12 +308,11 @@ class DailyCompletedTasksPage extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                // Time Badge
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.7), // ✅ FIXED
+                    color: Colors.white.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -289,39 +339,97 @@ class DailyCompletedTasksPage extends StatelessWidget {
             ),
 
             // Additional Info Row
-            if (assignedBy != null || hasTimer) ...[
+            if (assignedBy != null || hasTimer || isRecurring) ...[
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
-                  if (assignedBy != null) ...[
-                    Icon(
-                      Icons.person,
-                      size: 14,
-                      color: Colors.purple.shade700,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'By: $assignedBy',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.purple.shade700,
-                        fontWeight: FontWeight.w500,
+                  // ✅ Show recurring badge
+                  if (isRecurring)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF9C27B0).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.repeat_rounded,
+                            size: 14,
+                            color: Colors.purple.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Daily',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.purple.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    if (hasTimer) const SizedBox(width: 12),
-                  ],
-                  if (hasTimer) ...[
-                    Icon(Icons.timer, size: 14, color: Colors.blue.shade700),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatDuration(elapsedSeconds),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
+                  if (assignedBy != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 14,
+                            color: Colors.blue.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'By: $assignedBy',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  if (hasTimer)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.timer,
+                              size: 14, color: Colors.orange.shade700),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatDuration(elapsedSeconds),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -343,7 +451,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: tierProvider.gradientColors
-                    .map((c) => c.withValues(alpha: 0.2)) // ✅ FIXED
+                    .map((c) => c.withValues(alpha: 0.2))
                     .toList(),
               ),
               shape: BoxShape.circle,
