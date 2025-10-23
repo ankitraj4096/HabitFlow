@@ -34,24 +34,66 @@ class AuthService {
     String username,
   ) async {
     try {
-      // Step 1: Create the user with email and password
+      // Step 1: Validate username format
+      if (username.trim().isEmpty) {
+        throw Exception('Username cannot be empty');
+      }
+
+      if (username.length < 3) {
+        throw Exception('Username must be at least 3 characters');
+      }
+
+      if (username.length > 20) {
+        throw Exception('Username must be less than 20 characters');
+      }
+
+      // Only allow alphanumeric and underscores
+      final usernameRegex = RegExp(r'^[a-zA-Z0-9_]+$');
+      if (!usernameRegex.hasMatch(username)) {
+        throw Exception(
+          'Username can only contain letters, numbers, and underscores',
+        );
+      }
+
+      // Step 2: Check if username already exists (case-insensitive)
+      final usernameQuery = await _firestore
+          .collection('users')
+          .where('username', isEqualTo: username.trim())
+          .get();
+
+      if (usernameQuery.docs.isNotEmpty) {
+        throw Exception('Username already taken. Please choose another one.');
+      }
+
+      // Step 3: Create the user with email and password
       UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      // Step 2: Save the user's information in a 'users' collection in Firestore
+      // Step 4: Save the user's information in a 'users' collection in Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'email': email,
-        'username': username,
+        'username': username.trim(),
         'friends': [], // Initialize empty friends list
-        'lifetimeCompletedTasks': 0, // ✅ NEW: Lifetime completed tasks counter
+        'lifetimeCompletedTasks': 0, // Lifetime completed tasks counter
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      // Catch and re-throw specific Firebase exceptions
-      throw Exception(e.message);
+      // Handle Firebase Auth specific errors
+      if (e.code == 'email-already-in-use') {
+        throw Exception('This email is already registered');
+      } else if (e.code == 'weak-password') {
+        throw Exception('Password should be at least 6 characters');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('Invalid email address');
+      } else {
+        throw Exception(e.message ?? 'Registration failed');
+      }
+    } catch (e) {
+      // Re-throw custom exceptions
+      rethrow;
     }
   }
 
@@ -167,7 +209,7 @@ class AuthService {
 
       // Get current count to prevent negative values
       final doc = await _firestore.collection('users').doc(user.uid).get();
-      final currentCount = doc.data()?['lifetimeCompletedTasks'] ?? 0;
+      final currentCount = doc.data()?['lifegtimeCompletedTasks'] ?? 0;
 
       if (currentCount > 0) {
         await _firestore.collection('users').doc(user.uid).update({
