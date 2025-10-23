@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 class UserStatsProvider extends ChangeNotifier {
   final FireStoreService _firestoreService = FireStoreService();
-  
+
   // User stats
   String username = 'Loading...';
   int currentStreak = 0;
@@ -33,7 +33,7 @@ class UserStatsProvider extends ChangeNotifier {
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
       (User? user) {
         debugPrint('📊 UserStats - Auth state changed: ${user?.uid}');
-        
+
         if (user == null) {
           _handleUserLogout();
         } else if (_currentUserId != user.uid) {
@@ -49,7 +49,7 @@ class UserStatsProvider extends ChangeNotifier {
   /// Handle user login/switch
   void _handleUserLogin(String userId) {
     debugPrint('📊 UserStats - User logged in: $userId');
-    
+
     _cancelSubscriptions();
     _resetToDefaultState();
     _currentUserId = userId;
@@ -59,7 +59,7 @@ class UserStatsProvider extends ChangeNotifier {
   /// Handle user logout
   void _handleUserLogout() {
     debugPrint('📊 UserStats - User logged out');
-    
+
     _cancelSubscriptions();
     _currentUserId = null;
     _resetToDefaultState();
@@ -70,7 +70,7 @@ class UserStatsProvider extends ChangeNotifier {
   void _cancelSubscriptions() {
     _tasksSubscription?.cancel();
     _tasksSubscription = null;
-    
+
     _userSubscription?.cancel();
     _userSubscription = null;
   }
@@ -100,7 +100,7 @@ class UserStatsProvider extends ChangeNotifier {
   /// Listen to user document for lifetime count
   void _listenToUserDoc() {
     _userSubscription?.cancel();
-    
+
     if (_currentUserId == null) return;
 
     _userSubscription = FirebaseFirestore.instance
@@ -108,25 +108,27 @@ class UserStatsProvider extends ChangeNotifier {
         .doc(_currentUserId)
         .snapshots()
         .listen((doc) {
-      if (_currentUserId != doc.id) {
-        debugPrint('⚠️ UserStats - Ignoring update for old user: ${doc.id}');
-        return;
-      }
+          if (_currentUserId != doc.id) {
+            debugPrint(
+              '⚠️ UserStats - Ignoring update for old user: ${doc.id}',
+            );
+            return;
+          }
 
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null) {
-          lifetimeCompletedTasks = data['lifetimeCompletedTasks'] ?? 0;
-          userTier = _firestoreService.getUserTier(lifetimeCompletedTasks);
-          notifyListeners();
-        }
-      }
-    });
+          if (doc.exists) {
+            final data = doc.data();
+            if (data != null) {
+              lifetimeCompletedTasks = data['lifetimeCompletedTasks'] ?? 0;
+              userTier = _firestoreService.getUserTier(lifetimeCompletedTasks);
+              notifyListeners();
+            }
+          }
+        });
   }
 
   void _listenToTasks() {
     _tasksSubscription?.cancel();
-    
+
     if (_currentUserId == null) return;
 
     _tasksSubscription = FirebaseFirestore.instance
@@ -136,15 +138,14 @@ class UserStatsProvider extends ChangeNotifier {
         .where('status', isEqualTo: 'accepted')
         .snapshots()
         .listen((snapshot) {
-      if (_currentUserId != FirebaseAuth.instance.currentUser?.uid) {
-        debugPrint('⚠️ UserStats - Ignoring task update for old user');
-        return;
-      }
-      _calculateStats(snapshot);
-    });
+          if (_currentUserId != FirebaseAuth.instance.currentUser?.uid) {
+            debugPrint('⚠️ UserStats - Ignoring task update for old user');
+            return;
+          }
+          _calculateStats(snapshot);
+        });
   }
 
-  /// ✅ FIXED: Changed to Future<void> so await works
   Future<void> _calculateStats(QuerySnapshot snapshot) async {
     try {
       final name = await _firestoreService.getUsername();
@@ -162,7 +163,7 @@ class UserStatsProvider extends ChangeNotifier {
         // Count completed tasks
         if (data['isCompleted'] == true) {
           completed++;
-          
+
           final completedAt = data['completedAt'] as Timestamp?;
           if (completedAt != null) {
             final dateKey = _formatDate(completedAt.toDate());
@@ -221,7 +222,7 @@ class UserStatsProvider extends ChangeNotifier {
 
       for (var doc in historySnapshot.docs) {
         final dateKey = doc.id; // Date is the document ID (YYYY-MM-DD)
-        
+
         // Add to heatmap and completions (but don't double count today)
         final today = _formatDate(DateTime.now());
         if (dateKey != today) {
@@ -243,11 +244,11 @@ class UserStatsProvider extends ChangeNotifier {
     if (completionsByDate.isEmpty) return 0;
     final today = DateTime.now();
     int streak = 0;
-    
+
     for (int i = 0; i < 365; i++) {
       final checkDate = today.subtract(Duration(days: i));
       final dateKey = _formatDate(checkDate);
-      
+
       if (completionsByDate.containsKey(dateKey)) {
         streak++;
       } else {
@@ -265,7 +266,7 @@ class UserStatsProvider extends ChangeNotifier {
 
     isLoading = true;
     notifyListeners();
-    
+
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('user_notes')
@@ -273,7 +274,7 @@ class UserStatsProvider extends ChangeNotifier {
           .collection('notes')
           .where('status', isEqualTo: 'accepted')
           .get();
-      
+
       await _calculateStats(snapshot);
     } catch (e) {
       debugPrint('Error refreshing stats: $e');

@@ -15,7 +15,7 @@ class FireStoreService {
         .collection('notes');
   }
 
-  /// ✅ NEW: Get reference to recurring history for a specific task
+  /// ✅ Get reference to recurring history for a specific task
   CollectionReference _getTaskHistoryRef(String taskId) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('User not authenticated');
@@ -28,12 +28,12 @@ class FireStoreService {
         .collection('dates');
   }
 
-  /// ✅ UPDATED: Adds a new task to Firebase with recurring support
+  /// ✅ Adds a new task to Firebase with recurring support
   Future<String?> addTask(
     bool isCompleted,
     String taskName, [
     int? durationMins,
-    bool isRecurring = false, // NEW parameter
+    bool isRecurring = false,
   ]) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -56,10 +56,8 @@ class FireStoreService {
         'assignedByUserID': null,
         'assignedByUsername': null,
         'status': 'accepted',
-        'isRecurring': isRecurring, // ✅ NEW
-        'completedToday': isCompleted && isRecurring
-            ? todayDate
-            : null, // ✅ NEW
+        'isRecurring': isRecurring,
+        'completedToday': isCompleted && isRecurring ? todayDate : null,
       };
 
       if (durationMins != null && durationMins > 0) {
@@ -75,7 +73,7 @@ class FireStoreService {
 
       final docRef = await _userNotes.add(taskData);
 
-      // ✅ NEW: If recurring and completed, save to history
+      // ✅ If recurring and completed, save to history
       if (isRecurring && isCompleted) {
         await _saveCompletionToHistory(docRef.id, taskData);
       }
@@ -87,7 +85,7 @@ class FireStoreService {
     }
   }
 
-  /// ✅ NEW: Save task completion to history
+  /// ✅ Save task completion to history
   Future<void> _saveCompletionToHistory(
     String taskId,
     Map<String, dynamic> taskData,
@@ -102,19 +100,20 @@ class FireStoreService {
         'taskName': taskData['taskName'],
         'duration': taskData['elapsedSeconds'] ?? 0,
         'totalDuration': taskData['totalDuration'] ?? 0,
-      });
+      }, SetOptions(merge: true)); // ✅ Use merge to avoid overwriting
+
+      debugPrint('✅ Saved completion to history: $taskId on $todayDate');
     } catch (e) {
-      debugPrint('Error saving to history: $e');
+      debugPrint('❌ Error saving to history: $e');
     }
   }
 
-  /// Assign a task to a friend
   /// Assign a task to a friend
   Future<String?> assignTaskToFriend({
     required String friendUserID,
     required String taskName,
     int? durationMins,
-    bool isRecurring = false, // ✅ NEW parameter
+    bool isRecurring = false,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -127,10 +126,6 @@ class FireStoreService {
           .doc(friendUserID)
           .set({}, SetOptions(merge: true));
 
-      final now = DateTime.now();
-      final todayDate =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-
       final Map<String, dynamic> taskData = {
         'isCompleted': false,
         'taskName': taskName,
@@ -139,8 +134,8 @@ class FireStoreService {
         'assignedByUserID': user.uid,
         'assignedByUsername': currentUsername,
         'status': 'pending',
-        'isRecurring': isRecurring, 
-        'completedToday': null, 
+        'isRecurring': isRecurring,
+        'completedToday': null,
       };
 
       if (durationMins != null && durationMins > 0) {
@@ -239,13 +234,13 @@ class FireStoreService {
     }
   }
 
-  /// ✅ UPDATED: Updates a task in Firebase with recurring support
+  /// ✅ Updates a task in Firebase with recurring support
   Future<void> updateTask(
     String docID,
     bool isCompleted,
     String taskName, [
     int? durationMins,
-    bool? isRecurring, // NEW optional parameter
+    bool? isRecurring,
   ]) async {
     try {
       final now = DateTime.now();
@@ -258,12 +253,12 @@ class FireStoreService {
         'lastUpdated': Timestamp.now(),
       };
 
-      // ✅ NEW: Update recurring status if provided
+      // ✅ Update recurring status if provided
       if (isRecurring != null) {
         updateData['isRecurring'] = isRecurring;
       }
 
-      // ✅ NEW: Track if completed today
+      // ✅ Track if completed today
       if (isCompleted) {
         updateData['completedToday'] = todayDate;
       } else {
@@ -285,7 +280,7 @@ class FireStoreService {
 
       await _userNotes.doc(docID).update(updateData);
 
-      // ✅ NEW: Save to history if recurring and completed
+      // ✅ Save to history if recurring and completed
       final taskDoc = await _userNotes.doc(docID).get();
       final taskData = taskDoc.data() as Map<String, dynamic>?;
 
@@ -308,7 +303,7 @@ class FireStoreService {
     }
   }
 
-  /// ✅ NEW: Delete task with optional history preservation
+  /// ✅ Delete task with optional history preservation
   Future<void> deleteTaskWithHistory(
     String docID, {
     bool deleteHistory = false,
@@ -337,11 +332,17 @@ class FireStoreService {
   }
 
   /// Toggle task completion status
+  /// Toggle task completion status
   Future<void> toggleCompletion(String docID, bool currentStatus) async {
     try {
       final now = DateTime.now();
       final todayDate =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      // ✅ FETCH TASK DATA FIRST (before updating)
+      final taskDoc = await _userNotes.doc(docID).get();
+      final taskData = taskDoc.data() as Map<String, dynamic>?;
+      final isRecurringTask = taskData?['isRecurring'] == true;
 
       final Map<String, dynamic> updateData = {
         'isCompleted': !currentStatus,
@@ -349,8 +350,9 @@ class FireStoreService {
       };
 
       if (!currentStatus) {
+        // Marking as complete
         updateData['completedAt'] = Timestamp.now();
-        updateData['completedToday'] = todayDate; // ✅ NEW
+        updateData['completedToday'] = todayDate;
 
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
@@ -360,15 +362,14 @@ class FireStoreService {
               .update({'lifetimeCompletedTasks': FieldValue.increment(1)});
         }
 
-        // ✅ NEW: Save to history if recurring
-        final taskDoc = await _userNotes.doc(docID).get();
-        final taskData = taskDoc.data() as Map<String, dynamic>?;
-        if (taskData != null && taskData['isRecurring'] == true) {
+        // ✅ Save to history if recurring (using data fetched BEFORE update)
+        if (isRecurringTask && taskData != null) {
           await _saveCompletionToHistory(docID, taskData);
         }
       } else {
+        // Marking as incomplete
         updateData['completedAt'] = FieldValue.delete();
-        updateData['completedToday'] = null; // ✅ NEW
+        updateData['completedToday'] = null;
 
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
@@ -388,13 +389,16 @@ class FireStoreService {
       }
 
       await _userNotes.doc(docID).update(updateData);
+      debugPrint(
+        '✅ Task $docID toggled. Recurring: $isRecurringTask, Complete: ${!currentStatus}',
+      );
     } catch (e) {
       debugPrint('Error toggling completion in Firebase: $e');
       rethrow;
     }
   }
 
-  /// ✅ NEW: Reset recurring tasks for the new day
+  /// ✅ Reset recurring tasks for the new day
   Future<void> resetRecurringTasks() async {
     try {
       final now = DateTime.now();
@@ -432,7 +436,7 @@ class FireStoreService {
     }
   }
 
-  /// ✅ NEW: Check if we need to reset recurring tasks
+  /// ✅ Check if we need to reset recurring tasks
   Future<bool> shouldResetRecurringTasks() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -460,7 +464,7 @@ class FireStoreService {
     }
   }
 
-  /// ✅ NEW: Mark that we've reset recurring tasks today
+  /// ✅ Mark that we've reset recurring tasks today
   Future<void> markRecurringTasksReset() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -471,22 +475,6 @@ class FireStoreService {
       }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Error marking recurring reset: $e');
-    }
-  }
-
-  /// ✅ NEW: Get completion history for a recurring task
-  Future<List<Map<String, dynamic>>> getTaskHistory(String taskId) async {
-    try {
-      final snapshot = await _getTaskHistoryRef(
-        taskId,
-      ).orderBy('completedAt', descending: true).limit(30).get();
-
-      return snapshot.docs
-          .map((doc) => {'date': doc.id, ...doc.data() as Map<String, dynamic>})
-          .toList();
-    } catch (e) {
-      debugPrint('Error getting task history: $e');
-      return [];
     }
   }
 
@@ -908,5 +896,48 @@ class FireStoreService {
           }
           return heatmap;
         });
+  }
+
+  /// ✅ FIXED: Get completion history for a specific recurring task
+  Future<Map<String, int>> getRecurringTaskHistory(String taskId) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint('❌ User not authenticated');
+        return {};
+      }
+
+      final historySnapshot = await FirebaseFirestore.instance
+          .collection('recurringHistory')
+          .doc(user.uid)
+          .collection(taskId)
+          .doc('completions')
+          .collection('dates')
+          .get();
+
+      final Map<String, int> history = {};
+      for (var doc in historySnapshot.docs) {
+        // doc.id is the date string (e.g., "2025-10-23")
+        history[doc.id] = 1; // Each date counts as 1 completion
+      }
+
+      debugPrint('📊 Loaded history for task $taskId: ${history.length} days');
+      debugPrint('📅 Dates: ${history.keys.join(", ")}');
+      return history;
+    } catch (e) {
+      debugPrint('❌ Error fetching recurring task history: $e');
+      return {};
+    }
+  }
+
+  /// Get total completion count for a recurring task
+  Future<int> getRecurringTaskCompletionCount(String taskId) async {
+    try {
+      final history = await getRecurringTaskHistory(taskId);
+      return history.length;
+    } catch (e) {
+      debugPrint('Error getting completion count: $e');
+      return 0;
+    }
   }
 }

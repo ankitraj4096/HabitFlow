@@ -12,27 +12,20 @@ class Todolist extends StatefulWidget {
   final Function(bool?)? onChanged;
   final Function(BuildContext)? deleteFun;
   final Function(BuildContext)? updateFun;
-
-  // Timer properties
   final bool hasTimer;
   final int? totalDuration;
   final int elapsedSeconds;
   final bool isRunning;
   final VoidCallback? onTimerComplete;
   final String? assignedByUsername;
-
-  // Separate timer controls
   final VoidCallback? onTimerStart;
   final VoidCallback? onTimerPause;
   final VoidCallback? onTimerStop;
-
   final int resetKey;
-
-  // Sync status
   final bool isSynced;
-
-  // ✅ NEW: Recurring status
   final bool isRecurring;
+  final String? firebaseId;
+  final VoidCallback? onViewHistory;
 
   const Todolist({
     super.key,
@@ -52,7 +45,9 @@ class Todolist extends StatefulWidget {
     required this.assignedByUsername,
     required this.onTimerComplete,
     this.resetKey = 0,
-    this.isRecurring = false,  // ✅ NEW
+    this.isRecurring = false,
+    this.firebaseId,
+    this.onViewHistory,
   });
 
   @override
@@ -331,6 +326,133 @@ class _TodolistState extends State<Todolist> {
     );
   }
 
+  void _showRecurringHeatmap(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFF3E5F5), Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF9C27B0), Color(0xFFBA68C8)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF9C27B0).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.calendar_month_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.taskName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2C3E50),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Completion History',
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Placeholder for now - you'll replace this with actual heatmap
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.show_chart_rounded,
+                          size: 48,
+                          color: Color(0xFF9C27B0),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Task History Heatmap',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Shows completion dates',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tierProvider = context.watch<TierThemeProvider>();
@@ -338,6 +460,76 @@ class _TodolistState extends State<Todolist> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       child: Slidable(
+        startActionPane: widget.isRecurring
+            ? ActionPane(
+                motion: const DrawerMotion(),
+                extentRatio: 0.25,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4, right: 2),
+                      child: GestureDetector(
+                        onTap: () {
+                          debugPrint('🎯 History button tapped!');
+                          if (widget.onViewHistory != null) {
+                            debugPrint('✅ Calling onViewHistory callback');
+                            widget.onViewHistory!();
+                          } else {
+                            debugPrint('❌ onViewHistory is null!');
+                          }
+                        },
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 80),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF9C27B0), Color(0xFFBA68C8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF9C27B0,
+                                ).withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.calendar_today_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'History',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : null,
         endActionPane: ActionPane(
           motion: const DrawerMotion(),
           extentRatio: 0.45,
@@ -456,8 +648,8 @@ class _TodolistState extends State<Todolist> {
               color: widget.isChecked
                   ? tierProvider.primaryColor.withValues(alpha: 0.3)
                   : widget.isSynced
-                      ? Colors.grey.withValues(alpha: 0.2)
-                      : Colors.orange.withValues(alpha: 0.4),
+                  ? Colors.grey.withValues(alpha: 0.2)
+                  : Colors.orange.withValues(alpha: 0.4),
               width: 1.5,
             ),
             boxShadow: [
@@ -491,14 +683,12 @@ class _TodolistState extends State<Todolist> {
                         gradient: LinearGradient(
                           colors: widget.isChecked
                               ? [
-                                  tierProvider.primaryColor
-                                      .withValues(alpha: 0.15),
+                                  tierProvider.primaryColor.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   tierProvider.glowColor.withValues(alpha: 0.1),
                                 ]
-                              : [
-                                  Colors.white,
-                                  const Color(0xFFFAFAFA),
-                                ],
+                              : [Colors.white, const Color(0xFFFAFAFA)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -550,9 +740,12 @@ class _TodolistState extends State<Todolist> {
                                   boxShadow: [
                                     BoxShadow(
                                       color: widget.isChecked
-                                          ? tierProvider.glowColor
-                                              .withValues(alpha: 0.3)
-                                          : Colors.black.withValues(alpha: 0.12),
+                                          ? tierProvider.glowColor.withValues(
+                                              alpha: 0.3,
+                                            )
+                                          : Colors.black.withValues(
+                                              alpha: 0.12,
+                                            ),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -580,14 +773,17 @@ class _TodolistState extends State<Todolist> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.95),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.95,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.black
-                                                    .withValues(alpha: 0.08),
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.08,
+                                                ),
                                                 blurRadius: 4,
                                                 offset: const Offset(0, 2),
                                               ),
@@ -623,8 +819,9 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.95),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.95,
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               boxShadow: [
@@ -672,8 +869,9 @@ class _TodolistState extends State<Todolist> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.95),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.95,
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               boxShadow: [
@@ -725,13 +923,15 @@ class _TodolistState extends State<Todolist> {
                                         vertical: 3,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange
-                                            .withValues(alpha: 0.96),
+                                        color: Colors.orange.withValues(
+                                          alpha: 0.96,
+                                        ),
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.08),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.08,
+                                            ),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
@@ -747,8 +947,8 @@ class _TodolistState extends State<Todolist> {
                                               strokeWidth: 1,
                                               valueColor:
                                                   AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
+                                                    Colors.white,
+                                                  ),
                                             ),
                                           ),
                                           SizedBox(width: 3),
@@ -773,13 +973,15 @@ class _TodolistState extends State<Todolist> {
                                         vertical: 3,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF9C27B0)
-                                            .withValues(alpha: 0.96),
+                                        color: const Color(
+                                          0xFF9C27B0,
+                                        ).withValues(alpha: 0.96),
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.08),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.08,
+                                            ),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
@@ -819,8 +1021,9 @@ class _TodolistState extends State<Todolist> {
                                         borderRadius: BorderRadius.circular(5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.08),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.08,
+                                            ),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           ),
@@ -850,7 +1053,8 @@ class _TodolistState extends State<Todolist> {
                               ),
                             ],
                           ),
-                          if (widget.hasTimer && widget.totalDuration != null) ...[
+                          if (widget.hasTimer &&
+                              widget.totalDuration != null) ...[
                             const SizedBox(height: 10),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -865,8 +1069,9 @@ class _TodolistState extends State<Todolist> {
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.08),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.08,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
