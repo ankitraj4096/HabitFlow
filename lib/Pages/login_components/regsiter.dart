@@ -136,8 +136,8 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  const Color(0xFF667eea).withOpacity(0.3),
-                                  const Color(0xFF764ba2).withOpacity(0.3),
+                                  const Color(0xFF667eea).withValues(alpha: 0.3),
+                                  const Color(0xFF764ba2).withValues(alpha: 0.3),
                                 ],
                               ),
                             ),
@@ -158,12 +158,12 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   blurRadius: 25,
                                   offset: const Offset(0, 10),
                                 ),
                                 BoxShadow(
-                                  color: const Color(0xFF667eea).withOpacity(0.2),
+                                  color: const Color(0xFF667eea).withValues(alpha: 0.2),
                                   blurRadius: 40,
                                   offset: const Offset(0, 15),
                                 ),
@@ -206,8 +206,8 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    Colors.white.withOpacity(0.8),
-                                    Colors.white.withOpacity(0.0),
+                                    Colors.white.withValues(alpha: 0.8),
+                                    Colors.white.withValues(alpha: 0.0),
                                   ],
                                 ),
                               ),
@@ -232,7 +232,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                         "Join us and start building",
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontWeight: FontWeight.w300,
                           letterSpacing: 0.5,
                         ),
@@ -246,7 +246,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             ),
@@ -315,7 +315,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
                                   borderRadius: BorderRadius.circular(15),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF667eea).withOpacity(0.4),
+                                      color: const Color(0xFF667eea).withValues(alpha: 0.4),
                                       blurRadius: 15,
                                       offset: const Offset(0, 8),
                                     ),

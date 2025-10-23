@@ -46,12 +46,12 @@ void _initializeCleanupTimer() {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final cleanupService = CleanupService();
-        print('🧹 Running scheduled cleanup...');
+        debugPrint('🧹 Running scheduled cleanup...');
         await cleanupService.runFullCleanup(user.uid);
-        print('✅ Scheduled cleanup completed');
+        debugPrint('✅ Scheduled cleanup completed');
       }
     } catch (e) {
-      print('❌ Error during scheduled cleanup: $e');
+      debugPrint('❌ Error during scheduled cleanup: $e');
     }
   });
 
@@ -61,16 +61,16 @@ void _initializeCleanupTimer() {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final cleanupService = CleanupService();
-        print('🧹 Running initial cleanup...');
+        debugPrint('🧹 Running initial cleanup...');
         await cleanupService.runFullCleanup(user.uid);
-        print('✅ Initial cleanup completed');
+        debugPrint('✅ Initial cleanup completed');
       }
     } catch (e) {
-      print('❌ Error during initial cleanup: $e');
+      debugPrint('❌ Error during initial cleanup: $e');
     }
   });
 
-  print('✅ Cleanup timer initialized');
+  debugPrint('✅ Cleanup timer initialized');
 }
 
 class MyApp extends StatelessWidget {
@@ -140,7 +140,7 @@ class _AppInitializerState extends State<AppInitializer>
       // Wait for the minimum splash duration to complete
       await splashTimer;
     } catch (e) {
-      print('Error initializing app: $e');
+      debugPrint('Error initializing app: $e');
       // Still wait for splash timer
       await splashTimer;
     } finally {
@@ -194,7 +194,7 @@ class _AppInitializerState extends State<AppInitializer>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF7C4DFF).withOpacity(0.4),
+                            color: const Color(0xFF7C4DFF).withValues(alpha: 0.4),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),

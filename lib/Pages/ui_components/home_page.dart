@@ -28,6 +28,9 @@ class _HomepageState extends State<Homepage> {
   Timer? _uiUpdateTimer;
   Timer? _notificationUpdateTimer;
 
+  // NEW: Track visibility of completed tasks
+  bool _showCompletedTasks = true;
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +68,6 @@ class _HomepageState extends State<Homepage> {
     });
   }
 
-  // Replace the _startNotificationUpdateTimer method with this:
   void _startNotificationUpdateTimer() {
     _notificationUpdateTimer = Timer.periodic(const Duration(seconds: 1), (
       timer,
@@ -74,16 +76,13 @@ class _HomepageState extends State<Homepage> {
     });
   }
 
-  // Replace the _updateTimerNotification method with this improved version:
   Future<void> _updateTimerNotification() async {
-    // Find any running timer
     final runningTask = tasklist.firstWhere(
       (task) => task['isRunning'] == true,
       orElse: () => {},
     );
 
     if (runningTask.isEmpty) {
-      // No running timer, cancel notification
       await _notificationService.cancelTimerNotification();
       return;
     }
@@ -99,16 +98,13 @@ class _HomepageState extends State<Homepage> {
     double? percentComplete;
 
     if (totalDuration != null) {
-      // Timer with duration - show countdown
       final remainingSeconds = totalDuration - elapsedSeconds;
-
       timerText = _formatTimeEnhanced(remainingSeconds);
       subText = '${_formatTimeEnhanced(elapsedSeconds)} elapsed';
       progress = elapsedSeconds;
       maxProgress = totalDuration;
       percentComplete = (elapsedSeconds / totalDuration * 100).clamp(0, 100);
     } else {
-      // Timer without duration - show elapsed time
       timerText = _formatTimeEnhanced(elapsedSeconds);
       subText = 'Stopwatch mode';
       progress = null;
@@ -208,6 +204,20 @@ class _HomepageState extends State<Homepage> {
           });
         }
 
+        // NEW: Sort tasks - incomplete first, then completed
+        updatedTasks.sort((a, b) {
+          final aCompleted = a['isCompleted'] as bool;
+          final bCompleted = b['isCompleted'] as bool;
+
+          // If completion status differs, incomplete comes first
+          if (aCompleted != bCompleted) {
+            return aCompleted ? 1 : -1;
+          }
+
+          // Otherwise maintain original order (or sort by lastUpdated)
+          return 0;
+        });
+
         setState(() {
           tasklist = updatedTasks;
         });
@@ -218,6 +228,15 @@ class _HomepageState extends State<Homepage> {
         print('Error listening to Firebase: $error');
       },
     );
+  }
+
+  // NEW: Get filtered task list based on visibility toggle
+  List<Map<String, dynamic>> get _filteredTaskList {
+    if (_showCompletedTasks) {
+      return tasklist;
+    } else {
+      return tasklist.where((task) => task['isCompleted'] != true).toList();
+    }
   }
 
   void _autoCompleteTask(int index) async {
@@ -308,7 +327,6 @@ class _HomepageState extends State<Homepage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with icon and title
               Row(
                 children: [
                   Container(
@@ -360,10 +378,7 @@ class _HomepageState extends State<Homepage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 24),
-
-              // Task Name TextField
               Container(
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
@@ -402,10 +417,7 @@ class _HomepageState extends State<Homepage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // Timer TextField
               Container(
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
@@ -445,13 +457,9 @@ class _HomepageState extends State<Homepage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 28),
-
-              // Action buttons
               Row(
                 children: [
-                  // Cancel button
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -484,10 +492,7 @@ class _HomepageState extends State<Homepage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
-                  // Save button with gradient
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -547,7 +552,13 @@ class _HomepageState extends State<Homepage> {
   }
 
   void CheckBoxChanged(bool? value, int index) async {
-    final task = tasklist[index];
+    final task = _filteredTaskList[index];
+    final actualIndex = tasklist.indexWhere(
+      (t) => t['firebaseId'] == task['firebaseId'],
+    );
+
+    if (actualIndex == -1) return;
+
     final firebaseId = task['firebaseId'];
     if (firebaseId == null) {
       CustomToast.showWarning(
@@ -558,22 +569,22 @@ class _HomepageState extends State<Homepage> {
       return;
     }
 
-    final newCompletedStatus = !tasklist[index]['isCompleted'];
+    final newCompletedStatus = !tasklist[actualIndex]['isCompleted'];
 
     setState(() {
-      tasklist[index]['isCompleted'] = newCompletedStatus;
+      tasklist[actualIndex]['isCompleted'] = newCompletedStatus;
       if (newCompletedStatus) {
-        tasklist[index]['completedAt'] = Timestamp.now();
+        tasklist[actualIndex]['completedAt'] = Timestamp.now();
         if (task['hasTimer'] == true && task['totalDuration'] != null) {
-          tasklist[index]['elapsedSeconds'] = task['totalDuration'];
-          tasklist[index]['isRunning'] = false;
+          tasklist[actualIndex]['elapsedSeconds'] = task['totalDuration'];
+          tasklist[actualIndex]['isRunning'] = false;
         }
       } else {
-        tasklist[index]['completedAt'] = null;
+        tasklist[actualIndex]['completedAt'] = null;
         if (task['hasTimer'] == true) {
-          tasklist[index]['elapsedSeconds'] = 0;
-          tasklist[index]['isRunning'] = false;
-          tasklist[index]['resetKey'] = (task['resetKey'] ?? 0) + 1;
+          tasklist[actualIndex]['elapsedSeconds'] = 0;
+          tasklist[actualIndex]['isRunning'] = false;
+          tasklist[actualIndex]['resetKey'] = (task['resetKey'] ?? 0) + 1;
         }
       }
     });
@@ -593,9 +604,9 @@ class _HomepageState extends State<Homepage> {
     } catch (e) {
       print('Error updating Firebase: $e');
       setState(() {
-        tasklist[index]['isCompleted'] = !newCompletedStatus;
+        tasklist[actualIndex]['isCompleted'] = !newCompletedStatus;
         if (!newCompletedStatus) {
-          tasklist[index]['completedAt'] = null;
+          tasklist[actualIndex]['completedAt'] = null;
         }
       });
       if (mounted) {
@@ -609,7 +620,13 @@ class _HomepageState extends State<Homepage> {
 
   void DeleteTask(int index) async {
     final tierProvider = context.read<TierThemeProvider>();
-    final task = tasklist[index];
+    final task = _filteredTaskList[index];
+    final actualIndex = tasklist.indexWhere(
+      (t) => t['firebaseId'] == task['firebaseId'],
+    );
+
+    if (actualIndex == -1) return;
+
     final firebaseId = task['firebaseId'];
 
     if (firebaseId == null) {
@@ -621,7 +638,6 @@ class _HomepageState extends State<Homepage> {
       return;
     }
 
-    // Show confirmation dialog
     final bool? shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -644,7 +660,6 @@ class _HomepageState extends State<Homepage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon with red gradient background
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -669,7 +684,6 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Title
               Text(
                 'Delete Task?',
                 style: TextStyle(
@@ -679,7 +693,6 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Task name display
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -690,7 +703,7 @@ class _HomepageState extends State<Homepage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '"${task['taskName']}"',
+                  '\"${task['taskName']}\"',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -702,17 +715,14 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Warning message
               Text(
                 'This action cannot be undone.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 28),
-              // Action buttons
               Row(
                 children: [
-                  // Cancel button
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -742,7 +752,6 @@ class _HomepageState extends State<Homepage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Delete button with red gradient
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -800,17 +809,15 @@ class _HomepageState extends State<Homepage> {
       ),
     );
 
-    // If user confirmed deletion
     if (shouldDelete == true) {
-      final deletedTask = tasklist[index];
+      final deletedTask = tasklist[actualIndex];
       setState(() {
-        tasklist.removeAt(index);
+        tasklist.removeAt(actualIndex);
       });
 
       try {
         await firestoreService.deleteTask(firebaseId);
 
-        // If task was completed, decrement lifetimeCompletedTasks counter
         if (deletedTask['isCompleted'] == true) {
           final userRef = FirebaseFirestore.instance
               .collection('users')
@@ -832,7 +839,7 @@ class _HomepageState extends State<Homepage> {
       } catch (e) {
         print('Error deleting from Firebase: $e');
         setState(() {
-          tasklist.insert(index, deletedTask);
+          tasklist.insert(actualIndex, deletedTask);
         });
         if (mounted) {
           CustomToast.showError(
@@ -846,7 +853,13 @@ class _HomepageState extends State<Homepage> {
 
   void UpdateTask(int index) {
     final tierProvider = context.read<TierThemeProvider>();
-    final task = tasklist[index];
+    final task = _filteredTaskList[index];
+    final actualIndex = tasklist.indexWhere(
+      (t) => t['firebaseId'] == task['firebaseId'],
+    );
+
+    if (actualIndex == -1) return;
+
     control.text = task['taskName'];
     if (task['hasTimer'] == true && task['totalDuration'] != null) {
       timerController.text = (task['totalDuration'] / 60).round().toString();
@@ -875,7 +888,6 @@ class _HomepageState extends State<Homepage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with icon and title
               Row(
                 children: [
                   Container(
@@ -927,10 +939,7 @@ class _HomepageState extends State<Homepage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 24),
-
-              // Task Name TextField
               Container(
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
@@ -969,10 +978,7 @@ class _HomepageState extends State<Homepage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // Timer TextField
               Container(
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
@@ -1012,13 +1018,9 @@ class _HomepageState extends State<Homepage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 28),
-
-              // Action buttons
               Row(
                 children: [
-                  // Cancel button
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -1051,10 +1053,7 @@ class _HomepageState extends State<Homepage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
-                  // Update button with gradient
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -1074,7 +1073,8 @@ class _HomepageState extends State<Homepage> {
                       ),
                       child: ElevatedButton(
                         onPressed: () async {
-                          final firebaseId = tasklist[index]['firebaseId'];
+                          final firebaseId =
+                              tasklist[actualIndex]['firebaseId'];
                           if (firebaseId == null) {
                             CustomToast.showWarning(
                               context,
@@ -1095,7 +1095,7 @@ class _HomepageState extends State<Homepage> {
                           try {
                             await firestoreService.updateTask(
                               firebaseId,
-                              tasklist[index]['isCompleted'],
+                              tasklist[actualIndex]['isCompleted'],
                               updatedTaskName,
                               timerMinutes,
                             );
@@ -1153,12 +1153,18 @@ class _HomepageState extends State<Homepage> {
   }
 
   void _startTimer(int index) async {
-    final task = tasklist[index];
+    final task = _filteredTaskList[index];
+    final actualIndex = tasklist.indexWhere(
+      (t) => t['firebaseId'] == task['firebaseId'],
+    );
+
+    if (actualIndex == -1) return;
+
     final firebaseId = task['firebaseId'];
     if (firebaseId == null) return;
 
     setState(() {
-      tasklist[index]['isRunning'] = true;
+      tasklist[actualIndex]['isRunning'] = true;
     });
 
     try {
@@ -1167,20 +1173,26 @@ class _HomepageState extends State<Homepage> {
     } catch (e) {
       print('Error starting timer: $e');
       setState(() {
-        tasklist[index]['isRunning'] = false;
+        tasklist[actualIndex]['isRunning'] = false;
       });
     }
   }
 
   void _pauseTimer(int index) async {
-    final task = tasklist[index];
+    final task = _filteredTaskList[index];
+    final actualIndex = tasklist.indexWhere(
+      (t) => t['firebaseId'] == task['firebaseId'],
+    );
+
+    if (actualIndex == -1) return;
+
     final firebaseId = task['firebaseId'];
     if (firebaseId == null) return;
 
     final currentElapsed = task['elapsedSeconds'] ?? 0;
 
     setState(() {
-      tasklist[index]['isRunning'] = false;
+      tasklist[actualIndex]['isRunning'] = false;
     });
 
     try {
@@ -1189,19 +1201,25 @@ class _HomepageState extends State<Homepage> {
     } catch (e) {
       print('Error pausing timer: $e');
       setState(() {
-        tasklist[index]['isRunning'] = true;
+        tasklist[actualIndex]['isRunning'] = true;
       });
     }
   }
 
   void _stopTimer(int index) async {
-    final task = tasklist[index];
+    final task = _filteredTaskList[index];
+    final actualIndex = tasklist.indexWhere(
+      (t) => t['firebaseId'] == task['firebaseId'],
+    );
+
+    if (actualIndex == -1) return;
+
     final firebaseId = task['firebaseId'];
     if (firebaseId == null) return;
 
     setState(() {
-      tasklist[index]['isRunning'] = false;
-      tasklist[index]['elapsedSeconds'] = 0;
+      tasklist[actualIndex]['isRunning'] = false;
+      tasklist[actualIndex]['elapsedSeconds'] = 0;
     });
 
     try {
@@ -1255,103 +1273,143 @@ class _HomepageState extends State<Homepage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Task List',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Stay organized and productive 📝',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Task List',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  if (_isSyncing) ...[
-                                    const SizedBox(width: 8),
-                                    const SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white70,
-                                            ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Flexible(
+                                      child: Text(
+                                        'Stay organized and productive 📝',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 14,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    if (_isSyncing) ...[
+                                      const SizedBox(width: 8),
+                                      const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white70,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
-                                ],
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
-                          Stack(
+                          const SizedBox(width: 12),
+                          Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(15),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: GestureDetector(
                                   onTap: () {
-                                    Navigator.push(
+                                    setState(() {
+                                      _showCompletedTasks =
+                                          !_showCompletedTasks;
+                                    });
+                                    CustomToast.showSuccess(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            TaskRequestsPage(),
-                                      ),
+                                      _showCompletedTasks
+                                          ? 'Showing completed tasks'
+                                          : 'Hiding completed tasks',
                                     );
                                   },
-                                  child: const Icon(
-                                    Icons.inbox,
+                                  child: Icon(
+                                    _showCompletedTasks
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
                                     color: Colors.white,
-                                    size: 28,
+                                    size: 24,
                                   ),
                                 ),
                               ),
-                              StreamBuilder<int>(
-                                stream: firestoreService
-                                    .getPendingTaskRequestsCount(),
-                                builder: (context, snapshot) {
-                                  if (!snapshot.hasData || snapshot.data == 0) {
-                                    return const SizedBox.shrink();
-                                  }
-
-                                  return Positioned(
-                                    right: 8,
-                                    top: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 18,
-                                        minHeight: 18,
-                                      ),
-                                      child: Text(
-                                        '${snapshot.data}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        textAlign: TextAlign.center,
+                              const SizedBox(width: 8),
+                              Stack(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                TaskRequestsPage(),
+                                          ),
+                                        );
+                                      },
+                                      child: const Icon(
+                                        Icons.inbox,
+                                        color: Colors.white,
+                                        size: 24,
                                       ),
                                     ),
-                                  );
-                                },
+                                  ),
+                                  StreamBuilder<int>(
+                                    stream: firestoreService
+                                        .getPendingTaskRequestsCount(),
+                                    builder: (context, snapshot) {
+                                      if (!snapshot.hasData ||
+                                          snapshot.data == 0) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      return Positioned(
+                                        right: 6,
+                                        top: 6,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          constraints: const BoxConstraints(
+                                            minWidth: 16,
+                                            minHeight: 16,
+                                          ),
+                                          child: Text(
+                                            '${snapshot.data}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -1405,7 +1463,7 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
               Expanded(
-                child: tasklist.isEmpty
+                child: _filteredTaskList.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1419,14 +1477,18 @@ class _HomepageState extends State<Homepage> {
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                Icons.task_alt,
+                                _showCompletedTasks
+                                    ? Icons.task_alt
+                                    : Icons.check_circle_outline,
                                 size: 64,
                                 color: tierProvider.primaryColor,
                               ),
                             ),
                             const SizedBox(height: 24),
                             Text(
-                              'No tasks yet',
+                              _showCompletedTasks
+                                  ? 'No tasks yet'
+                                  : 'No pending tasks',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -1435,7 +1497,9 @@ class _HomepageState extends State<Homepage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap the + button to add your first task',
+                              _showCompletedTasks
+                                  ? 'Tap the + button to add your first task'
+                                  : 'All tasks completed! 🎉',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[500],
@@ -1446,9 +1510,9 @@ class _HomepageState extends State<Homepage> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.only(top: 20, bottom: 100),
-                        itemCount: tasklist.length,
+                        itemCount: _filteredTaskList.length,
                         itemBuilder: (context, index) {
-                          final task = tasklist[index];
+                          final task = _filteredTaskList[index];
                           return Todolist(
                             IsChecked: task['isCompleted'] ?? false,
                             TaskName: task['taskName'] ?? '',
@@ -1464,7 +1528,14 @@ class _HomepageState extends State<Homepage> {
                             onTimerPause: () => _pauseTimer(index),
                             onTimerStop: () => _stopTimer(index),
                             assignedByUsername: task['assignedByUsername'],
-                            onTimerComplete: () => _autoCompleteTask(index),
+                            onTimerComplete: () {
+                              final actualIndex = tasklist.indexWhere(
+                                (t) => t['firebaseId'] == task['firebaseId'],
+                              );
+                              if (actualIndex != -1) {
+                                _autoCompleteTask(actualIndex);
+                              }
+                            },
                           );
                         },
                       ),
