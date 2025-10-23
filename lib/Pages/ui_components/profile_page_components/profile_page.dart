@@ -14,7 +14,7 @@ class ProfilePage extends StatefulWidget {
   final String? viewingUsername;
   final bool isOwnProfile;
 
-  ProfilePage({super.key, this.viewingUserID, this.viewingUsername})
+  const ProfilePage({super.key, this.viewingUserID, this.viewingUsername})
       : isOwnProfile = viewingUserID == null;
 
   @override
@@ -92,7 +92,7 @@ class _ProfilePageState extends State<ProfilePage>
         });
       }
     } catch (e) {
-      print('Error loading friend data: $e');
+      debugPrint('Error loading friend data: $e');
       if (mounted) {
         setState(() => isFriendLoading = false);
       }
@@ -209,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.3),
+            color: glowColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -250,7 +250,7 @@ class _ProfilePageState extends State<ProfilePage>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: GestureDetector(
@@ -278,8 +278,8 @@ class _ProfilePageState extends State<ProfilePage>
                       gradient: LinearGradient(colors: gradientColors),
                       boxShadow: [
                         BoxShadow(
-                          color: glowColor.withOpacity(
-                            isAnimated ? _glowAnimation.value : 0.5,
+                          color: glowColor.withValues(
+                            alpha: isAnimated ? _glowAnimation.value : 0.5,
                           ),
                           blurRadius: 25,
                           spreadRadius: 3,
@@ -299,7 +299,7 @@ class _ProfilePageState extends State<ProfilePage>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
+                              color: Colors.black.withValues(alpha: 0.7),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: Colors.white30),
                             ),
@@ -348,7 +348,7 @@ class _ProfilePageState extends State<ProfilePage>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.white30),
                       ),
@@ -398,13 +398,13 @@ class _ProfilePageState extends State<ProfilePage>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: primaryColor.withOpacity(0.1),
+                color: primaryColor.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
             ],
             border: Border.all(
-              color: primaryColor.withOpacity(0.1),
+              color: primaryColor.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -591,7 +591,7 @@ class _ProfilePageState extends State<ProfilePage>
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.3),
+            color: glowColor.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -633,13 +633,13 @@ class _ProfilePageState extends State<ProfilePage>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: primaryColor.withOpacity(0.1),
+              color: primaryColor.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
           ],
           border: Border.all(
-            color: primaryColor.withOpacity(0.1),
+            color: primaryColor.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
