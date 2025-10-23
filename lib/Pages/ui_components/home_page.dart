@@ -28,7 +28,6 @@ class _HomepageState extends State<Homepage> {
   Timer? _uiUpdateTimer;
   Timer? _notificationUpdateTimer;
 
-  // NEW: Track visibility of completed tasks
   bool _showCompletedTasks = true;
 
   @override
@@ -142,7 +141,7 @@ class _HomepageState extends State<Homepage> {
         listenToFirebaseChanges();
       }
     } catch (e) {
-      print('Error initializing data: $e');
+      debugPrint('Error initializing data: $e');
     } finally {
       setState(() => _isSyncing = false);
     }
@@ -204,17 +203,14 @@ class _HomepageState extends State<Homepage> {
           });
         }
 
-        // NEW: Sort tasks - incomplete first, then completed
         updatedTasks.sort((a, b) {
           final aCompleted = a['isCompleted'] as bool;
           final bCompleted = b['isCompleted'] as bool;
 
-          // If completion status differs, incomplete comes first
           if (aCompleted != bCompleted) {
             return aCompleted ? 1 : -1;
           }
 
-          // Otherwise maintain original order (or sort by lastUpdated)
           return 0;
         });
 
@@ -225,12 +221,11 @@ class _HomepageState extends State<Homepage> {
         _updateTimerNotification();
       },
       onError: (error) {
-        print('Error listening to Firebase: $error');
+        debugPrint('Error listening to Firebase: $error');
       },
     );
   }
 
-  // NEW: Get filtered task list based on visibility toggle
   List<Map<String, dynamic>> get _filteredTaskList {
     if (_showCompletedTasks) {
       return tasklist;
@@ -254,7 +249,7 @@ class _HomepageState extends State<Homepage> {
     try {
       await firestoreService.toggleCompletion(firebaseId, false);
     } catch (e) {
-      print('Error auto-completing task: $e');
+      debugPrint('Error auto-completing task: $e');
       setState(() {
         tasklist[index]['isCompleted'] = false;
         tasklist[index]['completedAt'] = null;
@@ -265,7 +260,7 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  void Add_Task() async {
+  void addTask() async {
     if (control.text.isEmpty) {
       Navigator.of(context).pop();
       return;
@@ -293,7 +288,7 @@ class _HomepageState extends State<Homepage> {
         throw Exception('Failed to add task to Firebase');
       }
     } catch (e) {
-      print('Error adding to Firebase: $e');
+      debugPrint('Error adding to Firebase: $e');
       if (mounted) {
         CustomToast.showError(context, 'Failed to add task. Please try again.');
       }
@@ -302,7 +297,7 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  void NewTask() {
+  void newTask() {
     final tierProvider = context.read<TierThemeProvider>();
     showDialog(
       context: context,
@@ -317,7 +312,7 @@ class _HomepageState extends State<Homepage> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.glowColor.withOpacity(0.3),
+                color: tierProvider.glowColor.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -340,7 +335,7 @@ class _HomepageState extends State<Homepage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: tierProvider.glowColor.withOpacity(0.4),
+                          color: tierProvider.glowColor.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -504,14 +499,16 @@ class _HomepageState extends State<Homepage> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: tierProvider.glowColor.withOpacity(0.4),
+                            color: tierProvider.glowColor.withValues(
+                              alpha: 0.4,
+                            ),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: Add_Task,
+                        onPressed: addTask,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -520,9 +517,9 @@ class _HomepageState extends State<Homepage> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.check_rounded,
                               color: Colors.white,
@@ -551,7 +548,7 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  void CheckBoxChanged(bool? value, int index) async {
+  void checkBoxChanged(bool? value, int index) async {
     final task = _filteredTaskList[index];
     final actualIndex = tasklist.indexWhere(
       (t) => t['firebaseId'] == task['firebaseId'],
@@ -602,7 +599,7 @@ class _HomepageState extends State<Homepage> {
 
       await _updateTimerNotification();
     } catch (e) {
-      print('Error updating Firebase: $e');
+      debugPrint('Error updating Firebase: $e');
       setState(() {
         tasklist[actualIndex]['isCompleted'] = !newCompletedStatus;
         if (!newCompletedStatus) {
@@ -618,7 +615,7 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  void DeleteTask(int index) async {
+  void deleteTask(int index) async {
     final tierProvider = context.read<TierThemeProvider>();
     final task = _filteredTaskList[index];
     final actualIndex = tasklist.indexWhere(
@@ -651,7 +648,7 @@ class _HomepageState extends State<Homepage> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.glowColor.withOpacity(0.3),
+                color: tierProvider.glowColor.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -671,7 +668,7 @@ class _HomepageState extends State<Homepage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFEF5350).withOpacity(0.5),
+                      color: const Color(0xFFEF5350).withValues(alpha: 0.5),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -703,7 +700,7 @@ class _HomepageState extends State<Homepage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '\"${task['taskName']}\"',
+                  '"${task['taskName']}"',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -763,7 +760,9 @@ class _HomepageState extends State<Homepage> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFEF5350).withOpacity(0.4),
+                            color: const Color(
+                              0xFFEF5350,
+                            ).withValues(alpha: 0.4),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -779,9 +778,9 @@ class _HomepageState extends State<Homepage> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.delete_rounded,
                               color: Colors.white,
@@ -837,7 +836,7 @@ class _HomepageState extends State<Homepage> {
           CustomToast.showSuccess(context, 'Task deleted successfully');
         }
       } catch (e) {
-        print('Error deleting from Firebase: $e');
+        debugPrint('Error deleting from Firebase: $e');
         setState(() {
           tasklist.insert(actualIndex, deletedTask);
         });
@@ -851,7 +850,7 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  void UpdateTask(int index) {
+  void updateTask(int index) {
     final tierProvider = context.read<TierThemeProvider>();
     final task = _filteredTaskList[index];
     final actualIndex = tasklist.indexWhere(
@@ -878,7 +877,7 @@ class _HomepageState extends State<Homepage> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.glowColor.withOpacity(0.3),
+                color: tierProvider.glowColor.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -901,7 +900,7 @@ class _HomepageState extends State<Homepage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: tierProvider.glowColor.withOpacity(0.4),
+                          color: tierProvider.glowColor.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -1065,7 +1064,9 @@ class _HomepageState extends State<Homepage> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: tierProvider.glowColor.withOpacity(0.4),
+                            color: tierProvider.glowColor.withValues(
+                              alpha: 0.4,
+                            ),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -1100,7 +1101,7 @@ class _HomepageState extends State<Homepage> {
                               timerMinutes,
                             );
                           } catch (e) {
-                            print('Error updating Firebase: $e');
+                            debugPrint('Error updating Firebase: $e');
                             if (mounted) {
                               CustomToast.showError(
                                 context,
@@ -1117,9 +1118,9 @@ class _HomepageState extends State<Homepage> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.check_rounded,
                               color: Colors.white,
@@ -1171,7 +1172,7 @@ class _HomepageState extends State<Homepage> {
       await firestoreService.startTimer(firebaseId);
       await _updateTimerNotification();
     } catch (e) {
-      print('Error starting timer: $e');
+      debugPrint('Error starting timer: $e');
       setState(() {
         tasklist[actualIndex]['isRunning'] = false;
       });
@@ -1199,7 +1200,7 @@ class _HomepageState extends State<Homepage> {
       await firestoreService.pauseTimer(firebaseId, currentElapsed);
       await _notificationService.cancelTimerNotification();
     } catch (e) {
-      print('Error pausing timer: $e');
+      debugPrint('Error pausing timer: $e');
       setState(() {
         tasklist[actualIndex]['isRunning'] = true;
       });
@@ -1226,7 +1227,7 @@ class _HomepageState extends State<Homepage> {
       await firestoreService.stopTimer(firebaseId);
       await _notificationService.cancelTimerNotification();
     } catch (e) {
-      print('Error stopping timer: $e');
+      debugPrint('Error stopping timer: $e');
     }
   }
 
@@ -1259,7 +1260,7 @@ class _HomepageState extends State<Homepage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: tierProvider.glowColor.withOpacity(0.3),
+                      color: tierProvider.glowColor.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -1323,7 +1324,7 @@ class _HomepageState extends State<Homepage> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: GestureDetector(
@@ -1354,7 +1355,9 @@ class _HomepageState extends State<Homepage> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: GestureDetector(
@@ -1419,10 +1422,10 @@ class _HomepageState extends State<Homepage> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(15),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             width: 1,
                           ),
                         ),
@@ -1437,7 +1440,7 @@ class _HomepageState extends State<Homepage> {
                             Container(
                               width: 1,
                               height: 30,
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                             ),
                             _buildStatChip(
                               icon: Icons.check_circle,
@@ -1447,7 +1450,7 @@ class _HomepageState extends State<Homepage> {
                             Container(
                               width: 1,
                               height: 30,
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                             ),
                             _buildStatChip(
                               icon: Icons.pending_actions,
@@ -1471,8 +1474,8 @@ class _HomepageState extends State<Homepage> {
                             Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: tierProvider.primaryColor.withOpacity(
-                                  0.1,
+                                color: tierProvider.primaryColor.withValues(
+                                  alpha: 0.1,
                                 ),
                                 shape: BoxShape.circle,
                               ),
@@ -1516,9 +1519,9 @@ class _HomepageState extends State<Homepage> {
                           return Todolist(
                             IsChecked: task['isCompleted'] ?? false,
                             TaskName: task['taskName'] ?? '',
-                            onChanged: (value) => CheckBoxChanged(value, index),
-                            Delete_Fun: (context) => DeleteTask(index),
-                            Update_Fun: (context) => UpdateTask(index),
+                            onChanged: (value) => checkBoxChanged(value, index),
+                            Delete_Fun: (context) => deleteTask(index),
+                            Update_Fun: (context) => updateTask(index),
                             hasTimer: task['hasTimer'] ?? false,
                             totalDuration: task['totalDuration'],
                             elapsedSeconds: task['elapsedSeconds'] ?? 0,
@@ -1556,14 +1559,14 @@ class _HomepageState extends State<Homepage> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.glowColor.withOpacity(0.4),
+                color: tierProvider.glowColor.withValues(alpha: 0.4),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
           child: FloatingActionButton(
-            onPressed: NewTask,
+            onPressed: newTask,
             backgroundColor: Colors.transparent,
             elevation: 0,
             child: const Icon(Icons.add, size: 32),
