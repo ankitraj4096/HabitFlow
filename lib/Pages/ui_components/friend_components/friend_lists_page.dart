@@ -12,11 +12,7 @@ class FriendsListPage extends StatefulWidget {
   final String? viewingUserID;
   final String? viewingUsername;
 
-  const FriendsListPage({
-    super.key,
-    this.viewingUserID,
-    this.viewingUsername,
-  });
+  const FriendsListPage({super.key, this.viewingUserID, this.viewingUsername});
 
   @override
   State<FriendsListPage> createState() => _FriendsListPageState();
@@ -24,13 +20,13 @@ class FriendsListPage extends StatefulWidget {
 
 class _FriendsListPageState extends State<FriendsListPage> {
   final FireStoreService _firestoreService = FireStoreService();
-  
+
   bool get isOwnProfile => widget.viewingUserID == null;
 
   // Friend's tier colors
   List<Color> friendGradientColors = [
     const Color(0xFF7C4DFF),
-    const Color(0xFF448AFF)
+    const Color(0xFF448AFF),
   ];
   Color friendPrimaryColor = const Color(0xFF7C4DFF);
   Color friendGlowColor = const Color(0xFF7C4DFF);
@@ -49,15 +45,18 @@ class _FriendsListPageState extends State<FriendsListPage> {
   Future<void> _loadFriendTier() async {
     try {
       // Get friend's stats to determine their tier
-      final stats = await _firestoreService
-          .getUserStatisticsForUser(widget.viewingUserID!);
+      final stats = await _firestoreService.getUserStatisticsForUser(
+        widget.viewingUserID!,
+      );
       final tier = _firestoreService.getUserTier(stats['completedTasks']);
 
       setState(() {
         friendGlowColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
         friendGradientColors =
-            (tier['gradient'] as List<dynamic>?)?.map((e) => e as Color).toList() ??
-                [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+            (tier['gradient'] as List<dynamic>?)
+                ?.map((e) => e as Color)
+                .toList() ??
+            [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
         friendPrimaryColor = friendGradientColors[0];
         isLoadingFriendTier = false;
       });
@@ -71,15 +70,15 @@ class _FriendsListPageState extends State<FriendsListPage> {
   Widget build(BuildContext context) {
     // Use friend's colors if viewing friend profile, otherwise use own colors from provider
     final tierProvider = context.watch<TierThemeProvider>();
-    
-    final displayGradientColors = isOwnProfile 
-        ? tierProvider.gradientColors 
+
+    final displayGradientColors = isOwnProfile
+        ? tierProvider.gradientColors
         : friendGradientColors;
-    final displayPrimaryColor = isOwnProfile 
-        ? tierProvider.primaryColor 
+    final displayPrimaryColor = isOwnProfile
+        ? tierProvider.primaryColor
         : friendPrimaryColor;
-    final displayGlowColor = isOwnProfile 
-        ? tierProvider.glowColor 
+    final displayGlowColor = isOwnProfile
+        ? tierProvider.glowColor
         : friendGlowColor;
 
     if (!isOwnProfile && isLoadingFriendTier) {
@@ -147,7 +146,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withValues(alpha:0.3),
+            color: glowColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -185,7 +184,8 @@ class _FriendsListPageState extends State<FriendsListPage> {
                         stream: isOwnProfile
                             ? friendService.getFriendsStream()
                             : friendService.getFriendsStreamForUser(
-                                widget.viewingUserID!),
+                                widget.viewingUserID!,
+                              ),
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             int count = snapshot.data!.length;
@@ -217,7 +217,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                       Container(
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha:0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
@@ -274,7 +274,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   // Search Users Icon
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha:0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -347,8 +347,9 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors:
-                          gradientColors.map((c) => c.withValues(alpha:0.2)).toList(),
+                      colors: gradientColors
+                          .map((c) => c.withValues(alpha: 0.2))
+                          .toList(),
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -372,10 +373,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   isOwnProfile
                       ? 'Tap the search icon to find friends'
                       : 'This user hasn\'t added any friends',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -419,12 +417,12 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: primaryColor.withValues(alpha:0.1),
+          color: primaryColor.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: primaryColor.withValues(alpha:0.08),
+            color: primaryColor.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -434,7 +432,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: primaryColor.withValues(alpha:0.1),
+          splashColor: primaryColor.withValues(alpha: 0.1),
           onTap: () {
             // Navigate to friend's profile
             Navigator.push(
@@ -464,7 +462,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: glowColor.withValues(alpha:0.2),
+                        color: glowColor.withValues(alpha: 0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -498,10 +496,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                       const SizedBox(height: 4),
                       Text(
                         '@${friendUsername.toLowerCase()}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -510,7 +505,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                 if (isOwnProfile)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha:0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -530,7 +525,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
-                    color: primaryColor.withValues(alpha:0.5),
+                    color: primaryColor.withValues(alpha: 0.5),
                   ),
               ],
             ),
@@ -549,96 +544,247 @@ class _FriendsListPageState extends State<FriendsListPage> {
   ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: primaryColor),
-            const SizedBox(width: 8),
-            const Text('Remove Friend?'),
-          ],
-        ),
-        content: Text(
-            'Are you sure you want to remove $friendUsername from your friends?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.red.shade400, Colors.red.shade600],
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.shade400.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ElevatedButton(
-              onPressed: () async {
-                try {
-                  final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-                  await friendService.removeFriend(currentUserID, friendUID);
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Warning Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.red.shade400, Colors.red.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.shade400.withValues(alpha: 0.5),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.person_remove_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 24),
 
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
+              // Title
+              Text(
+                'Remove Friend?',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Friend Name Card
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  friendUsername,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Warning Message
+              Text(
+                'This action cannot be undone.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 28),
+
+              // Action Buttons
+              Row(
+                children: [
+                  // Cancel Button
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Remove Button
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.red.shade400, Colors.red.shade600],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.shade400.withValues(alpha: 0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            final currentUserID =
+                                FirebaseAuth.instance.currentUser!.uid;
+                            await friendService.removeFriend(
+                              currentUserID,
+                              friendUID,
+                            );
+
+                            if (dialogContext.mounted) {
+                              Navigator.pop(dialogContext);
+                            }
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Removed $friendUsername from friends',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.red.shade400,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (dialogContext.mounted) {
+                              Navigator.pop(dialogContext);
+                            }
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to remove friend'),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha:0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 16,
-                              ),
+                            Icon(
+                              Icons.person_remove_rounded,
+                              color: Colors.white,
+                              size: 20,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child:
-                                  Text('Removed $friendUsername from friends'),
+                            SizedBox(width: 6),
+                            Text(
+                              'Remove',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
-                        backgroundColor: primaryColor,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
                       ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Failed to remove friend'),
-                        backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                    ),
+                  ),
+                ],
               ),
-              child:
-                  const Text('Remove', style: TextStyle(color: Colors.white)),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
