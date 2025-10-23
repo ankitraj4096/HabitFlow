@@ -4,8 +4,8 @@ import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 
 class HeatMapPage extends StatelessWidget {
   final Map<String, int> completionData;
-  final String? viewingUserID; // NEW: null if viewing own heatmap
-  final String? viewingUsername; // NEW
+  final String? viewingUserID; 
+  final String? viewingUsername; 
 
   const HeatMapPage({
     super.key,

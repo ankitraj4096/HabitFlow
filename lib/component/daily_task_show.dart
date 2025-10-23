@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:demo/services/notes/firestore.dart';
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class DailyCompletedTasksPage extends StatelessWidget {
+class DailyCompletedTasksPage extends StatefulWidget {
   final DateTime selectedDate;
   final String? viewingUserID;
   final String? viewingUsername;
@@ -16,11 +17,77 @@ class DailyCompletedTasksPage extends StatelessWidget {
     this.viewingUsername,
   });
 
-  bool get isOwnProfile => viewingUserID == null;
+  @override
+  State<DailyCompletedTasksPage> createState() =>
+      _DailyCompletedTasksPageState();
+}
+
+class _DailyCompletedTasksPageState extends State<DailyCompletedTasksPage> {
+  final FireStoreService _firestoreService = FireStoreService();
+
+  // Friend's tier colors
+  List<Color> friendGradientColors = [
+    const Color(0xFF7C4DFF),
+    const Color(0xFF448AFF),
+  ];
+  Color friendGlowColor = const Color(0xFF7C4DFF);
+  Color friendPrimaryColor = const Color(0xFF7C4DFF);
+  bool isLoadingFriendTier = true;
+
+  bool get isOwnProfile => widget.viewingUserID == null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!isOwnProfile) {
+      _loadFriendTierColors();
+    }
+  }
+
+  Future<void> _loadFriendTierColors() async {
+    try {
+      // Fetch friend's lifetime completed tasks
+      final friendUserDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.viewingUserID!)
+          .get();
+
+      final friendLifetimeCount =
+          friendUserDoc.data()?['lifetimeCompletedTasks'] ?? 0;
+
+      // Get friend's tier
+      final tier = _firestoreService.getUserTier(friendLifetimeCount);
+
+      if (mounted) {
+        setState(() {
+          friendGlowColor = tier['glow'] as Color? ?? const Color(0xFF7C4DFF);
+          friendGradientColors = (tier['gradient'] as List<dynamic>?)
+                  ?.map((e) => e as Color)
+                  .toList() ??
+              [const Color(0xFF7C4DFF), const Color(0xFF448AFF)];
+          friendPrimaryColor = friendGlowColor;
+          isLoadingFriendTier = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading friend tier colors: $e');
+      if (mounted) {
+        setState(() => isLoadingFriendTier = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final tierProvider = context.watch<TierThemeProvider>();
+
+    // Decide which colors to use
+    final displayGradient =
+        isOwnProfile ? tierProvider.gradientColors : friendGradientColors;
+    final displayGlowColor =
+        isOwnProfile ? tierProvider.glowColor : friendGlowColor;
+    final displayPrimaryColor =
+        isOwnProfile ? tierProvider.primaryColor : friendPrimaryColor;
 
     return Scaffold(
       body: Container(
@@ -34,8 +101,17 @@ class DailyCompletedTasksPage extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(context, tierProvider),
-              Expanded(child: _buildTasksList(context)),
+              _buildHeader(
+                context,
+                displayGradient,
+                displayGlowColor,
+              ),
+              Expanded(
+                child: _buildTasksList(
+                  context,
+                  displayPrimaryColor,
+                ),
+              ),
             ],
           ),
         ),
@@ -43,15 +119,19 @@ class DailyCompletedTasksPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, TierThemeProvider tierProvider) {
+  Widget _buildHeader(
+    BuildContext context,
+    List<Color> gradientColors,
+    Color glowColor,
+  ) {
     final dateStr =
-        '${selectedDate.day} ${_getMonthName(selectedDate.month)} ${selectedDate.year}';
+        '${widget.selectedDate.day} ${_getMonthName(widget.selectedDate.month)} ${widget.selectedDate.year}';
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: tierProvider.gradientColors,
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -61,7 +141,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.glowColor.withValues(alpha: 0.3),
+            color: glowColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -85,7 +165,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
                       Text(
                         isOwnProfile
                             ? 'Your Completed Tasks'
-                            : '$viewingUsername\'s Tasks',
+                            : '${widget.viewingUsername}\'s Tasks',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -121,12 +201,13 @@ class DailyCompletedTasksPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTasksList(BuildContext context) {
-    final userID =
-        isOwnProfile ? FirebaseAuth.instance.currentUser?.uid : viewingUserID;
+  Widget _buildTasksList(BuildContext context, Color primaryColor) {
+    final userID = isOwnProfile
+        ? FirebaseAuth.instance.currentUser?.uid
+        : widget.viewingUserID;
 
     if (userID == null) {
-      return _buildEmptyState('Unable to load tasks', context);
+      return _buildEmptyState('Unable to load tasks', primaryColor);
     }
 
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -134,15 +215,13 @@ class DailyCompletedTasksPage extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           debugPrint('❌ Error loading tasks: ${snapshot.error}');
-          return _buildEmptyState('Error loading tasks', context);
+          return _buildEmptyState('Error loading tasks', primaryColor);
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          final tierProvider = context.watch<TierThemeProvider>();
           return Center(
             child: CircularProgressIndicator(
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(tierProvider.primaryColor),
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
             ),
           );
         }
@@ -150,7 +229,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
         final allTasks = snapshot.data ?? [];
 
         if (allTasks.isEmpty) {
-          return _buildEmptyState('No tasks completed on this day', context);
+          return _buildEmptyState('No tasks completed on this day', primaryColor);
         }
 
         return ListView.builder(
@@ -164,16 +243,14 @@ class DailyCompletedTasksPage extends StatelessWidget {
     );
   }
 
-  // ✅ FIXED: Fetch BOTH regular tasks AND recurring tasks
   Future<List<Map<String, dynamic>>> _fetchAllCompletedTasks(
       String userID) async {
     try {
       final dateKey =
-          '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+          '${widget.selectedDate.year}-${widget.selectedDate.month.toString().padLeft(2, '0')}-${widget.selectedDate.day.toString().padLeft(2, '0')}';
 
       final List<Map<String, dynamic>> allTasks = [];
 
-      // 1️⃣ Fetch ALL notes (both recurring and non-recurring)
       final notesSnapshot = await FirebaseFirestore.instance
           .collection('user_notes')
           .doc(userID)
@@ -181,10 +258,10 @@ class DailyCompletedTasksPage extends StatelessWidget {
           .where('status', isEqualTo: 'accepted')
           .get();
 
-      final startOfDay =
-          DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-      final endOfDay = DateTime(selectedDate.year, selectedDate.month,
-          selectedDate.day, 23, 59, 59);
+      final startOfDay = DateTime(
+          widget.selectedDate.year, widget.selectedDate.month, widget.selectedDate.day);
+      final endOfDay = DateTime(widget.selectedDate.year, widget.selectedDate.month,
+          widget.selectedDate.day, 23, 59, 59);
 
       for (var doc in notesSnapshot.docs) {
         final data = doc.data();
@@ -192,7 +269,6 @@ class DailyCompletedTasksPage extends StatelessWidget {
         final taskId = doc.id;
 
         if (isRecurring) {
-          // ✅ Check if this recurring task was completed on the selected date
           final dateDoc = await FirebaseFirestore.instance
               .collection('recurringHistory')
               .doc(userID)
@@ -214,7 +290,6 @@ class DailyCompletedTasksPage extends StatelessWidget {
             });
           }
         } else {
-          // ✅ Regular task: check if completed on selected date
           final completedAt = data['completedAt'] as Timestamp?;
           final isCompleted = data['isCompleted'] == true;
 
@@ -337,15 +412,12 @@ class DailyCompletedTasksPage extends StatelessWidget {
                 ),
               ],
             ),
-
-            // Additional Info Row
             if (assignedBy != null || hasTimer || isRecurring) ...[
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
                 children: [
-                  // ✅ Show recurring badge
                   if (isRecurring)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -439,9 +511,7 @@ class DailyCompletedTasksPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(String message, BuildContext context) {
-    final tierProvider = context.watch<TierThemeProvider>();
-
+  Widget _buildEmptyState(String message, Color primaryColor) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -449,17 +519,13 @@ class DailyCompletedTasksPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: tierProvider.gradientColors
-                    .map((c) => c.withValues(alpha: 0.2))
-                    .toList(),
-              ),
+              color: primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.check_circle_outline,
               size: 80,
-              color: tierProvider.primaryColor,
+              color: primaryColor,
             ),
           ),
           const SizedBox(height: 24),
