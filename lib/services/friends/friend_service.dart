@@ -6,7 +6,7 @@ class FriendService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Search for users by their username
+  /// Search for users by their username - FIXED to include uid
   Stream<List<Map<String, dynamic>>> searchUsers(String query) {
     if (query.isEmpty) {
       return Stream.value([]);
@@ -18,18 +18,28 @@ class FriendService {
         .where('username', isLessThanOrEqualTo: '$query\uf8ff')
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => doc.data()).toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        // ✅ Ensure uid is included
+        data['uid'] = doc.id;
+        return data;
+      }).toList();
     });
   }
 
-  /// Get all users (for browsing)
+  /// Get all users (for browsing) - FIXED to include uid
   Stream<List<Map<String, dynamic>>> getAllUsers() {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return Stream.value([]);
 
     return _firestore.collection('users').snapshots().map((snapshot) {
       return snapshot.docs
-          .map((doc) => doc.data())
+          .map((doc) {
+            final data = doc.data();
+            // ✅ Ensure uid is included
+            data['uid'] = doc.id;
+            return data;
+          })
           .where((user) => user['uid'] != currentUser.uid)
           .toList();
     });
@@ -186,7 +196,7 @@ class FriendService {
         .map((snapshot) => snapshot.docs.length);
   }
 
-  /// Get a stream of the current user's friends
+  /// Get a stream of the current user's friends - FIXED to include uid
   Stream<List<Map<String, dynamic>>> getFriendsStream() {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return Stream.value([]);
@@ -217,14 +227,19 @@ class FriendService {
             .where('uid', whereIn: batch)
             .get();
 
-        allFriends.addAll(friendDocs.docs.map((doc) => doc.data()).toList());
+        allFriends.addAll(friendDocs.docs.map((doc) {
+          final data = doc.data();
+          // ✅ Ensure uid is included
+          data['uid'] = doc.id;
+          return data;
+        }).toList());
       }
 
       return allFriends;
     });
   }
 
-  /// NEW: Delete chat room between two users
+  /// Delete chat room between two users
   Future<void> _deleteChatRoom(String userId1, String userId2) async {
     try {
       // Construct chat room ID
@@ -236,8 +251,7 @@ class FriendService {
       final chatRoomRef = _firestore.collection('chat_rooms').doc(chatRoomID);
 
       // Delete all messages in the chat room
-      final messagesSnapshot =
-          await chatRoomRef.collection('messages').get();
+      final messagesSnapshot = await chatRoomRef.collection('messages').get();
 
       for (var doc in messagesSnapshot.docs) {
         await doc.reference.delete();
@@ -252,9 +266,10 @@ class FriendService {
     }
   }
 
-  /// UPDATED: Remove a friend AND delete their chat history
+  /// Remove a friend AND delete their chat history
   Future<void> removeFriend(String currentUserId, String friendId) async {
-    final userId = currentUserId.isNotEmpty ? currentUserId : _auth.currentUser?.uid;
+    final userId =
+        currentUserId.isNotEmpty ? currentUserId : _auth.currentUser?.uid;
 
     if (userId == null) return;
 
@@ -282,7 +297,7 @@ class FriendService {
     }
   }
 
-  /// Get friends stream for a specific user
+  /// Get friends stream for a specific user - FIXED to include uid
   Stream<List<Map<String, dynamic>>> getFriendsStreamForUser(String userID) {
     return _firestore
         .collection('users')
@@ -312,8 +327,12 @@ class FriendService {
               .where('uid', whereIn: batch)
               .get();
 
-          allFriends
-              .addAll(friendDocs.docs.map((doc) => doc.data()).toList());
+          allFriends.addAll(friendDocs.docs.map((doc) {
+            final data = doc.data();
+            // ✅ Ensure uid is included
+            data['uid'] = doc.id;
+            return data;
+          }).toList());
         } catch (e) {
           debugPrint('Error fetching friends batch: $e');
         }

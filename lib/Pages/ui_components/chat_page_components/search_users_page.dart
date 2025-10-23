@@ -18,8 +18,10 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   String _query = "";
 
   // Optimistic state management
-  final Map<String, String> _buttonStates = {}; // uid -> 'loading', 'sent', 'friends', etc.
-  final Map<String, bool> _isProcessing = {}; // Track if a button is being processed
+  final Map<String, String> _buttonStates =
+      {}; // uid -> 'loading', 'sent', 'friends', etc.
+  final Map<String, bool> _isProcessing =
+      {}; // Track if a button is being processed
 
   @override
   void dispose() {
@@ -100,7 +102,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: tierProvider.glowColor.withValues(alpha:0.2),
+                    color: tierProvider.glowColor.withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -128,8 +130,10 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 15,
+                  ),
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -192,7 +196,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: tierProvider.gradientColors
-                          .map((c) => c.withValues(alpha:0.2))
+                          .map((c) => c.withValues(alpha: 0.2))
                           .toList(),
                     ),
                     shape: BoxShape.circle,
@@ -249,7 +253,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: tierProvider.gradientColors
-                          .map((c) => c.withValues(alpha:0.2))
+                          .map((c) => c.withValues(alpha: 0.2))
                           .toList(),
                     ),
                     shape: BoxShape.circle,
@@ -290,7 +294,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: tierProvider.gradientColors
-                          .map((c) => c.withValues(alpha:0.2))
+                          .map((c) => c.withValues(alpha: 0.2))
                           .toList(),
                     ),
                     shape: BoxShape.circle,
@@ -328,6 +332,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     TierThemeProvider tierProvider,
   ) {
     final userId = user['uid'];
+    final username = user['username'] ?? 'Unknown'; // ✅ Add null check
+    final email = user['email'] ?? 'No email'; // ✅ Add null check
     final isProcessing = _isProcessing[userId] ?? false;
 
     return Container(
@@ -340,12 +346,12 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tierProvider.primaryColor.withValues(alpha:0.1),
+          color: tierProvider.primaryColor.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: tierProvider.primaryColor.withValues(alpha:0.08),
+            color: tierProvider.primaryColor.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -368,7 +374,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: tierProvider.glowColor.withValues(alpha:0.3),
+                    color: tierProvider.glowColor.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -376,7 +382,9 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
               ),
               child: Center(
                 child: Text(
-                  user['username'][0].toUpperCase(),
+                  username.isNotEmpty
+                      ? username[0].toUpperCase()
+                      : '?', // ✅ Check if empty
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -393,7 +401,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user['username'],
+                    username,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -402,11 +410,8 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    user['email'],
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    email,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -456,7 +461,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 } else if (state == 'sent') {
                   return _buildCancelableChip(
                     userId,
-                    user['username'],
+                    username, // ✅ Now using the safe username variable
                     tierProvider,
                   );
                 } else if (state == 'received') {
@@ -562,7 +567,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: tierProvider.glowColor.withValues(alpha:0.3),
+                color: tierProvider.glowColor.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -593,6 +598,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
     TierThemeProvider tierProvider,
   ) async {
     final userId = user['uid'];
+    final username = user['username'] ?? 'Unknown'; // ✅ Add null check
 
     // Set processing state immediately for instant UI feedback
     setState(() {
@@ -630,7 +636,7 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Friend request sent to ${user['username']}',
+                    'Friend request sent to $username',
                     style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
