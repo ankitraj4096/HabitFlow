@@ -30,22 +30,22 @@ class TierThemeProvider extends ChangeNotifier {
 
   // New tier thresholds matching your 17-tier system
   static const List<int> _tierThresholds = [
-    0,      // Tier 1: The Starter (slate blue)
-    10,     // Tier 2: The Awakened (login purple gradient)
-    50,     // Tier 3: The Seeker
-    100,    // Tier 4: The Novice
-    250,    // Tier 5: The Apprentice
-    500,    // Tier 6: The Adept
-    1000,   // Tier 7: The Disciplined
-    2500,   // Tier 8: The Specialist
-    5000,   // Tier 9: The Expert
-    10000,  // Tier 10: The Vanguard
-    15000,  // Tier 11: The Sentinel
-    25000,  // Tier 12: The Virtuoso
-    40000,  // Tier 13: The Master
-    60000,  // Tier 14: The Grandmaster
-    75000,  // Tier 15: The Titan
-    90000,  // Tier 16: The Luminary
+    0, // Tier 1: The Starter (slate blue)
+    10, // Tier 2: The Awakened (login purple gradient)
+    50, // Tier 3: The Seeker
+    100, // Tier 4: The Novice
+    250, // Tier 5: The Apprentice
+    500, // Tier 6: The Adept
+    1000, // Tier 7: The Disciplined
+    2500, // Tier 8: The Specialist
+    5000, // Tier 9: The Expert
+    10000, // Tier 10: The Vanguard
+    15000, // Tier 11: The Sentinel
+    25000, // Tier 12: The Virtuoso
+    40000, // Tier 13: The Master
+    60000, // Tier 14: The Grandmaster
+    75000, // Tier 15: The Titan
+    90000, // Tier 16: The Luminary
     100000, // Tier 17: The Ascended
   ];
 
@@ -70,7 +70,7 @@ class TierThemeProvider extends ChangeNotifier {
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
       (User? user) {
         debugPrint('🔄 Auth state changed: ${user?.uid}');
-        
+
         if (user == null) {
           // User logged out
           _handleUserLogout();
@@ -88,17 +88,17 @@ class TierThemeProvider extends ChangeNotifier {
   /// ✅ NEW: Handle user login/switch
   void _handleUserLogin(String userId) {
     debugPrint('👤 User logged in: $userId');
-    
+
     // Cancel previous user's subscriptions
     _cancelSubscriptions();
-    
+
     // Update current user
     _currentUserId = userId;
-    
+
     // Reset and reload theme for new user
     _isLoading = true;
     notifyListeners();
-    
+
     // Initialize theme for new user
     initializeTierTheme();
   }
@@ -106,10 +106,10 @@ class TierThemeProvider extends ChangeNotifier {
   /// ✅ NEW: Handle user logout
   void _handleUserLogout() {
     debugPrint('👋 User logged out');
-    
+
     // Cancel all subscriptions
     _cancelSubscriptions();
-    
+
     // Reset to default theme
     _currentUserId = null;
     _lastCompletedTasksCount = 0;
@@ -122,7 +122,7 @@ class TierThemeProvider extends ChangeNotifier {
   void _cancelSubscriptions() {
     _taskSubscription?.cancel();
     _taskSubscription = null;
-    
+
     _userSubscription?.cancel();
     _userSubscription = null;
   }
@@ -141,18 +141,38 @@ class TierThemeProvider extends ChangeNotifier {
         return;
       }
 
-      // Update current user ID
       _currentUserId = user.uid;
 
-      // Check if user document has lifetimeCompletedTasks field
+      // Get user document
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
 
-      if (!userDoc.exists ||
-          userDoc.data() == null ||
-          !userDoc.data()!.containsKey('lifetimeCompletedTasks')) {
+      if (!userDoc.exists || userDoc.data() == null) {
+        _setDefaultTheme();
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final userData = userDoc.data()!;
+
+      // ✅ NEW: Check if manual theme is selected
+      final autoThemeEnabled = userData['autoThemeEnabled'] ?? true;
+      final selectedThemeId = userData['selectedThemeId'] as int?;
+
+      if (!autoThemeEnabled && selectedThemeId != null) {
+        // User has manually selected a theme - use it
+        debugPrint('🎨 Loading manual theme: $selectedThemeId');
+        setCustomTheme(selectedThemeId);
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // ✅ Auto theme is enabled - proceed with normal initialization
+      if (!userData.containsKey('lifetimeCompletedTasks')) {
         // Initialize for existing users
         debugPrint('Initializing lifetimeCompletedTasks for existing user');
         final stats = await _firestoreService.getUserStatistics();
@@ -162,11 +182,14 @@ class TierThemeProvider extends ChangeNotifier {
           'lifetimeCompletedTasks': completedTasks,
         }, SetOptions(merge: true));
 
-        // Set initial tier
         _updateTierFromCount(completedTasks);
+      } else {
+        // Load existing completed tasks count
+        final lifetimeCompleted = userData['lifetimeCompletedTasks'] ?? 0;
+        _updateTierFromCount(lifetimeCompleted);
       }
 
-      // Listen to user document for lifetimeCompletedTasks
+      // Listen to user document for changes
       _startListeningToUserDoc(user.uid);
 
       // Start listening to task changes in real-time
@@ -190,7 +213,6 @@ class TierThemeProvider extends ChangeNotifier {
         .snapshots()
         .listen(
           (doc) async {
-            // ✅ Check if this is still the current user
             if (_currentUserId != userId) {
               debugPrint('⚠️ Ignoring update for old user: $userId');
               return;
@@ -199,9 +221,19 @@ class TierThemeProvider extends ChangeNotifier {
             if (doc.exists) {
               final data = doc.data();
               if (data != null) {
-                // Check if lifetimeCompletedTasks exists
+                // ✅ NEW: Check if auto theme is enabled
+                final autoThemeEnabled = data['autoThemeEnabled'] ?? true;
+                final selectedThemeId = data['selectedThemeId'] as int?;
+
+                if (!autoThemeEnabled && selectedThemeId != null) {
+                  // Manual theme is selected - apply it
+                  debugPrint('🎨 Applying manual theme: $selectedThemeId');
+                  setCustomTheme(selectedThemeId);
+                  return;
+                }
+
+                // Auto theme is enabled - update based on completed tasks
                 if (!data.containsKey('lifetimeCompletedTasks')) {
-                  // Initialize the field for existing users
                   try {
                     final stats = await _firestoreService.getUserStatistics();
                     final completedTasks = stats['completedTasks'] ?? 0;
@@ -222,7 +254,6 @@ class TierThemeProvider extends ChangeNotifier {
                 }
               }
             } else {
-              // User doc doesn't exist, set default
               _setDefaultTheme();
               _isLoading = false;
               notifyListeners();
@@ -275,7 +306,9 @@ class TierThemeProvider extends ChangeNotifier {
 
     // Only update if completed tasks count changed
     if (completedTasks != _lastCompletedTasksCount) {
-      debugPrint('Tasks completed: $_lastCompletedTasksCount → $completedTasks');
+      debugPrint(
+        'Tasks completed: $_lastCompletedTasksCount → $completedTasks',
+      );
       _lastCompletedTasksCount = completedTasks;
     }
   }
@@ -373,7 +406,9 @@ class TierThemeProvider extends ChangeNotifier {
 
   /// Set default theme values
   void _setDefaultTheme() {
-    _userTier = _firestoreService.getUserTier(0); // Pass 0 for users with no tasks
+    _userTier = _firestoreService.getUserTier(
+      0,
+    ); // Pass 0 for users with no tasks
 
     // If tier data is incomplete, set manual fallback
     if (_userTier.isEmpty || !_userTier.containsKey('id')) {
