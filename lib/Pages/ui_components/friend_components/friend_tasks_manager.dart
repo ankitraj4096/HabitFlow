@@ -696,6 +696,29 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           return _buildEmptyState('No tasks yet', Icons.task_alt);
         }
 
+        // ✅ NEW: Sort tasks - incomplete first, then completed
+        allDocs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+
+          final aCompleted = aData['isCompleted'] ?? false;
+          final bCompleted = bData['isCompleted'] ?? false;
+
+          // If completion status is different, incomplete comes first
+          if (aCompleted != bCompleted) {
+            return aCompleted
+                ? 1
+                : -1; // false (incomplete) comes before true (completed)
+          }
+
+          // If both have same completion status, sort by timestamp (newest first)
+          final aTimestamp = aData['timestamp'] as Timestamp?;
+          final bTimestamp = bData['timestamp'] as Timestamp?;
+
+          if (aTimestamp == null || bTimestamp == null) return 0;
+          return bTimestamp.compareTo(aTimestamp); // Newest first
+        });
+
         // Group tasks by date
         final groupedTasks = groupTasksByDate(allDocs);
 
@@ -711,14 +734,9 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
               children: [
                 _buildDateHeader(dateKey, tasks.length),
                 const SizedBox(height: 8),
-                // ✅ FIXED: Explicitly iterate and extract data
                 ...tasks.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  return _buildTaskCard({
-                    ...data,
-                    'firebaseId':
-                        doc.id, // ✅ doc.id works on QueryDocumentSnapshot
-                  });
+                  return _buildTaskCard({...data, 'firebaseId': doc.id});
                 }),
                 const SizedBox(height: 16),
               ],
@@ -756,7 +774,31 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
           );
         }
 
-        final groupedTasks = groupTasksByDate(snapshot.data!.docs);
+        // ✅ NEW: Get docs and sort them
+        final allDocs = snapshot.data!.docs.toList();
+
+        // Sort tasks - incomplete first, then completed
+        allDocs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+
+          final aCompleted = aData['isCompleted'] ?? false;
+          final bCompleted = bData['isCompleted'] ?? false;
+
+          // If completion status is different, incomplete comes first
+          if (aCompleted != bCompleted) {
+            return aCompleted ? 1 : -1;
+          }
+
+          // If both have same completion status, sort by timestamp (newest first)
+          final aTimestamp = aData['timestamp'] as Timestamp?;
+          final bTimestamp = bData['timestamp'] as Timestamp?;
+
+          if (aTimestamp == null || bTimestamp == null) return 0;
+          return bTimestamp.compareTo(aTimestamp);
+        });
+
+        final groupedTasks = groupTasksByDate(allDocs);
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -770,13 +812,11 @@ class _FriendTasksManagerPageState extends State<FriendTasksManagerPage>
               children: [
                 _buildDateHeader(dateKey, tasks.length),
                 const SizedBox(height: 8),
-                // ✅ FIXED: Explicitly iterate and extract data
                 ...tasks.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   return _buildTaskCard({
                     ...data,
-                    'firebaseId':
-                        doc.id, // ✅ doc.id works on QueryDocumentSnapshot
+                    'firebaseId': doc.id,
                   }, highlightMyTask: true);
                 }),
                 const SizedBox(height: 16),

@@ -22,15 +22,18 @@ class _HomepageState extends State<Homepage> {
   List<Map<String, dynamic>> tasklist = [];
   final TextEditingController control = TextEditingController();
   final TextEditingController timerController = TextEditingController();
-  bool isRecurringTask = false; // ✅ NEW: Track if task is recurring
+  bool isRecurringTask = false;
   final FireStoreService firestoreService = FireStoreService();
   final NotificationService _notificationService = NotificationService();
   bool _isSyncing = false;
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
   Timer? _uiUpdateTimer;
   Timer? _notificationUpdateTimer;
-
+  int _lastPendingCount = 0;
+  bool _isInitialPendingLoad = true;
+  StreamSubscription<int>? _pendingCountSubscription;
   bool _showCompletedTasks = true;
+  final NotificationService notificationService = NotificationService();
 
   @override
   void initState() {
@@ -40,6 +43,7 @@ class _HomepageState extends State<Homepage> {
     _initializeData();
     _startUIUpdateTimer();
     _startNotificationUpdateTimer();
+    _startPendingTaskListener();
   }
 
   @override
@@ -47,6 +51,7 @@ class _HomepageState extends State<Homepage> {
     _firebaseSubscription?.cancel();
     _uiUpdateTimer?.cancel();
     _notificationUpdateTimer?.cancel();
+    _pendingCountSubscription?.cancel();
     control.dispose();
     timerController.dispose();
     super.dispose();
@@ -70,6 +75,43 @@ class _HomepageState extends State<Homepage> {
   Future<void> _initializeNotificationService() async {
     await _notificationService.initialize();
     await _notificationService.requestPermissions();
+  }
+
+  void _startPendingTaskListener() {
+    debugPrint('🎧 Starting pending task listener...');
+
+    _pendingCountSubscription = firestoreService
+        .getPendingTaskRequestsCount()
+        .listen((taskCount) {
+          // ✅ Changed from 'count' to 'taskCount'
+          debugPrint('📋 Pending count: $taskCount (last: $_lastPendingCount)');
+
+          if (_isInitialPendingLoad) {
+            _lastPendingCount = taskCount;
+            _isInitialPendingLoad = false;
+            debugPrint('✅ Initial load complete');
+            return;
+          }
+
+          if (taskCount > _lastPendingCount) {
+            final newTasksCount = taskCount - _lastPendingCount;
+            debugPrint('🆕 NEW TASKS: $newTasksCount');
+
+            // ✅ SIMPLIFIED: Just show "New Task Request"
+            notificationService.showNewTaskNotification(
+              taskName: newTasksCount == 1
+                  ? 'You have a new task request'
+                  : 'You have $newTasksCount new task requests',
+              senderName: 'HabitFlow', // Not used in simplified version
+              notificationId:
+                  3000 + DateTime.now().millisecondsSinceEpoch % 1000,
+            );
+
+            debugPrint('✅ Notification sent!');
+          }
+
+          _lastPendingCount = taskCount;
+        });
   }
 
   void _startUIUpdateTimer() {
@@ -162,20 +204,18 @@ class _HomepageState extends State<Homepage> {
 
   /// ✅ Show recurring task completion history with mini heatmap
   void _showTaskHistory(String? taskId, String taskName) {
-  if (taskId == null) return;
+    if (taskId == null) return;
 
-  debugPrint('🔍 Navigating to history page for: $taskName ($taskId)');
+    debugPrint('🔍 Navigating to history page for: $taskName ($taskId)');
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => RecurringTaskHistoryPage(
-        taskId: taskId,
-        taskName: taskName,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            RecurringTaskHistoryPage(taskId: taskId, taskName: taskName),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void listenToFirebaseChanges() {
     _firebaseSubscription?.cancel();
@@ -1316,7 +1356,6 @@ class _HomepageState extends State<Homepage> {
 
       // Update notification
       await _updateTimerNotification();
-      
     } catch (e) {
       debugPrint('Error starting timer: $e');
 

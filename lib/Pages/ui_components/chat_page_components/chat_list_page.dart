@@ -1,3 +1,4 @@
+import 'dart:async'; // ✅ ADD THIS
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo/Pages/ui_components/chat_page_components/chat_page.dart';
 import 'package:demo/Pages/ui_components/chat_page_components/search_users_page.dart';
@@ -5,6 +6,7 @@ import 'package:demo/Pages/ui_components/friend_components/friend_requests_page.
 import 'package:demo/services/auth/auth_service.dart';
 import 'package:demo/services/chat/chat_service.dart';
 import 'package:demo/services/friends/friend_service.dart';
+import 'package:demo/services/notification_service.dart'; // ✅ ADD THIS
 import 'package:demo/themes/tier_theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,13 +21,65 @@ class ChatListPage extends StatefulWidget {
 class _ChatListPageState extends State<ChatListPage> {
   final FriendService _friendService = FriendService();
   final AuthService _authService = AuthService();
+  final NotificationService _notificationService =
+      NotificationService(); // ✅ ADD THIS
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  // ✅ ADD THESE: Track friend request count for notifications
+  int _lastFriendRequestCount = 0;
+  bool _isInitialFriendRequestLoad = true;
+  StreamSubscription<int>? _friendRequestCountSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _startFriendRequestListener(); // ✅ ADD THIS
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _friendRequestCountSubscription?.cancel(); // ✅ ADD THIS
     super.dispose();
+  }
+
+  void _startFriendRequestListener() {
+    debugPrint('🎧 Starting friend request listener...');
+
+    _friendRequestCountSubscription = _friendService
+        .getFriendRequestsCountStream()
+        .listen((requestCount) {
+          // ✅ Changed from 'count' to 'requestCount'
+          debugPrint(
+            '👥 Friend request count: $requestCount (last: $_lastFriendRequestCount)',
+          );
+
+          if (_isInitialFriendRequestLoad) {
+            _lastFriendRequestCount = requestCount;
+            _isInitialFriendRequestLoad = false;
+            debugPrint('✅ Initial friend request load complete');
+            return;
+          }
+
+          if (requestCount > _lastFriendRequestCount) {
+            final newRequestsCount = requestCount - _lastFriendRequestCount;
+            debugPrint('🆕 NEW FRIEND REQUESTS: $newRequestsCount');
+
+            // ✅ FIXED: Use friend request notification method
+            _notificationService.showFriendRequestNotification(
+              message: newRequestsCount == 1
+                  ? 'You have a new friend request'
+                  : 'You have $newRequestsCount new friend requests',
+              notificationId:
+                  4000 + DateTime.now().millisecondsSinceEpoch % 1000,
+            );
+
+            debugPrint('✅ Friend request notification sent!');
+          }
+
+          _lastFriendRequestCount = requestCount;
+        });
   }
 
   @override
@@ -57,9 +111,7 @@ class _ChatListPageState extends State<ChatListPage> {
                   child: Column(
                     children: [
                       _buildSearchBar(tierProvider),
-                      Expanded(
-                        child: _buildFriendsList(tierProvider),
-                      ),
+                      Expanded(child: _buildFriendsList(tierProvider)),
                     ],
                   ),
                 ),
@@ -94,7 +146,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha:0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
@@ -149,7 +201,7 @@ class _ChatListPageState extends State<ChatListPage> {
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha:0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
@@ -180,7 +232,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 return Text(
                   '$count friend${count != 1 ? 's' : ''}',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha:0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 16,
                   ),
                 );
@@ -188,7 +240,7 @@ class _ChatListPageState extends State<ChatListPage> {
               return Text(
                 '0 friends',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha:0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 16,
                 ),
               );
@@ -207,7 +259,7 @@ class _ChatListPageState extends State<ChatListPage> {
           color: const Color(0xFFF5F7FA),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: tierProvider.primaryColor.withValues(alpha:0.1),
+            color: tierProvider.primaryColor.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -223,13 +275,13 @@ class _ChatListPageState extends State<ChatListPage> {
             hintStyle: TextStyle(color: Colors.grey.shade500),
             prefixIcon: Icon(
               Icons.search,
-              color: tierProvider.primaryColor.withValues(alpha:0.7),
+              color: tierProvider.primaryColor.withValues(alpha: 0.7),
             ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
                     icon: Icon(
                       Icons.clear,
-                      color: tierProvider.primaryColor.withValues(alpha:0.7),
+                      color: tierProvider.primaryColor.withValues(alpha: 0.7),
                     ),
                     onPressed: () {
                       _searchController.clear();
@@ -282,7 +334,7 @@ class _ChatListPageState extends State<ChatListPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: tierProvider.gradientColors
-                          .map((c) => c.withValues(alpha:0.2))
+                          .map((c) => c.withValues(alpha: 0.2))
                           .toList(),
                     ),
                     shape: BoxShape.circle,
@@ -305,17 +357,13 @@ class _ChatListPageState extends State<ChatListPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Tap the search icon to find friends',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                 ),
               ],
             ),
           );
         }
 
-        // Filter friends based on search query
         final filteredFriends = _searchQuery.isEmpty
             ? snapshot.data!
             : snapshot.data!.where((userData) {
@@ -323,17 +371,12 @@ class _ChatListPageState extends State<ChatListPage> {
                 return username.contains(_searchQuery);
               }).toList();
 
-        // Show "No results" message if filtered list is empty
         if (filteredFriends.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.search_off,
-                  size: 64,
-                  color: Colors.grey.shade400,
-                ),
+                Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
                 Text(
                   'No friends found',
@@ -346,10 +389,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Try searching with a different name',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -360,11 +400,8 @@ class _ChatListPageState extends State<ChatListPage> {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           children: filteredFriends
               .map<Widget>(
-                (userData) => _buildFriendListItem(
-                  userData,
-                  context,
-                  tierProvider,
-                ),
+                (userData) =>
+                    _buildFriendListItem(userData, context, tierProvider),
               )
               .toList(),
         );
@@ -397,7 +434,7 @@ class _ChatListPageState extends State<ChatListPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tierProvider.primaryColor.withValues(alpha:0.1),
+          color: tierProvider.primaryColor.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -405,7 +442,7 @@ class _ChatListPageState extends State<ChatListPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: tierProvider.primaryColor.withValues(alpha:0.1),
+          splashColor: tierProvider.primaryColor.withValues(alpha: 0.1),
           onTap: () {
             Navigator.push(
               context,
@@ -421,7 +458,6 @@ class _ChatListPageState extends State<ChatListPage> {
             padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
-                // Avatar with unread badge
                 Stack(
                   children: [
                     Container(
@@ -436,7 +472,9 @@ class _ChatListPageState extends State<ChatListPage> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: tierProvider.glowColor.withValues(alpha:0.2),
+                            color: tierProvider.glowColor.withValues(
+                              alpha: 0.2,
+                            ),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -453,7 +491,6 @@ class _ChatListPageState extends State<ChatListPage> {
                         ),
                       ),
                     ),
-                    // Unread badge
                     StreamBuilder<int>(
                       stream: ChatService().getUnreadMessagesFromUser(
                         currentUserID,
@@ -481,7 +518,7 @@ class _ChatListPageState extends State<ChatListPage> {
                               border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.red.withValues(alpha:0.4),
+                                  color: Colors.red.withValues(alpha: 0.4),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -547,8 +584,9 @@ class _ChatListPageState extends State<ChatListPage> {
                               'Tap to start chatting',
                               style: TextStyle(
                                 fontSize: 14,
-                                color:
-                                    tierProvider.primaryColor.withValues(alpha:0.6),
+                                color: tierProvider.primaryColor.withValues(
+                                  alpha: 0.6,
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             );
@@ -560,7 +598,7 @@ class _ChatListPageState extends State<ChatListPage> {
                 ),
                 Icon(
                   Icons.chevron_right,
-                  color: tierProvider.primaryColor.withValues(alpha:0.5),
+                  color: tierProvider.primaryColor.withValues(alpha: 0.5),
                 ),
               ],
             ),
