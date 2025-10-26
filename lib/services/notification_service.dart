@@ -13,10 +13,16 @@ class NotificationService {
 
   final NotificationPreferences _prefs = NotificationPreferences();
 
+  // Timer notification channel
   static const String _channelId = 'habit_flow_timer';
   static const String _channelName = 'Task Timers';
   static const String _channelDescription = 'Running task timer notifications';
   static const int _timerNotificationId = 1000;
+
+  // ✅ NEW: Task notification channel
+  static const String _taskChannelId = 'habit_flow_tasks';
+  static const String _taskChannelName = 'Task Notifications';
+  static const String _taskChannelDescription = 'Notifications for new tasks';
 
   bool _isInitialized = false;
 
@@ -24,7 +30,6 @@ class NotificationService {
     if (_isInitialized) return;
 
     try {
-      // ✅ USE MIPMAP INSTEAD OF DRAWABLE
       const AndroidInitializationSettings androidSettings =
           AndroidInitializationSettings('ic_notification');
 
@@ -46,6 +51,7 @@ class NotificationService {
       );
 
       await _createNotificationChannel();
+      await _createTaskNotificationChannel(); // ✅ NEW
       _isInitialized = true;
     } catch (e) {
       debugPrint('Notification init error: $e');
@@ -74,6 +80,29 @@ class NotificationService {
     }
   }
 
+  // ✅ NEW: Create task notification channel
+  Future<void> _createTaskNotificationChannel() async {
+    try {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        _taskChannelId,
+        _taskChannelName,
+        description: _taskChannelDescription,
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        showBadge: true,
+      );
+
+      await _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(channel);
+    } catch (e) {
+      debugPrint('Task channel creation error: $e');
+    }
+  }
+
   Future<bool> requestPermissions() async {
     try {
       if (await Permission.notification.isGranted) return true;
@@ -97,7 +126,6 @@ class NotificationService {
       if (!_isInitialized) await initialize();
       if (!await requestPermissions()) return;
 
-      // Load user preferences with fallback to defaults
       ProgressBarStyle progressBarStyle = ProgressBarStyle.thickBlocks;
       bool showPercentage = true;
       bool showElapsedTime = false;
@@ -114,7 +142,6 @@ class NotificationService {
         debugPrint('Error loading preferences: $e');
       }
 
-      // Calculate times
       final int remaining = (maxProgress != null && progress != null)
           ? maxProgress - progress
           : 0;
@@ -127,13 +154,11 @@ class NotificationService {
 
       final int percentInt = percentComplete?.round() ?? 0;
 
-      // Create progress bar based on user preference
       final String progressBar = _prefs.getProgressBarChars(
         progressBarStyle,
         percentInt,
       );
 
-      // Build content based on user preferences
       final List<String> contentLines = [];
 
       if (showPercentage) {
@@ -231,6 +256,114 @@ class NotificationService {
     );
   }
 
+  // ✅ UPDATED: Simpler notification
+  Future<void> showNewTaskNotification({
+    required String taskName,
+    required String senderName,
+    int notificationId = 2000,
+  }) async {
+    try {
+      if (!_isInitialized) await initialize();
+      if (!await requestPermissions()) return;
+
+      final AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+            _taskChannelId,
+            _taskChannelName,
+            channelDescription: _taskChannelDescription,
+
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            showWhen: true,
+            autoCancel: true,
+
+            // ✅ Simplified - no BigTextStyle
+            color: const Color(0xFF6A1B9A),
+            colorized: true,
+            category: AndroidNotificationCategory.message,
+            visibility: NotificationVisibility.public,
+          );
+
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'default',
+      );
+
+      final NotificationDetails details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      // ✅ Simple title and body
+      await _notifications.show(
+        notificationId,
+        'New Task Request', // Simple title
+        taskName, // Just the task name
+        details,
+        payload: 'task_request',
+      );
+    } catch (e) {
+      debugPrint('Show task notification error: $e');
+    }
+  }
+
+  // ✅ NEW: Show notification for friend requests
+  Future<void> showFriendRequestNotification({
+    required String message,
+    int notificationId = 4000,
+  }) async {
+    try {
+      if (!_isInitialized) await initialize();
+      if (!await requestPermissions()) return;
+
+      final AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+            _taskChannelId,
+            _taskChannelName,
+            channelDescription: _taskChannelDescription,
+
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            showWhen: true,
+            autoCancel: true,
+
+            color: const Color(0xFF6A1B9A),
+            colorized: true,
+            category: AndroidNotificationCategory.social,
+            visibility: NotificationVisibility.public,
+          );
+
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'default',
+      );
+
+      final NotificationDetails details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      // Show friend request notification
+      await _notifications.show(
+        notificationId,
+        'Friend Request', // Title
+        message, // Body
+        details,
+        payload: 'friend_request',
+      );
+    } catch (e) {
+      debugPrint('Show friend request notification error: $e');
+    }
+  }
+
   Future<void> cancelTimerNotification() async {
     try {
       await _notifications.cancel(_timerNotificationId);
@@ -248,7 +381,7 @@ class NotificationService {
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    // Handle notification tap if needed
+    debugPrint('Notification tapped: ${response.payload}');
   }
 
   static String formatDuration(int seconds) {
