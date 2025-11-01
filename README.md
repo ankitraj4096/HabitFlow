@@ -14,18 +14,30 @@
 
 **HabitFlow** is a productivity and task management app designed to help you build better habits through a **competitive and friendly environment**. The app combines task management with gamification to make productivity fun and rewarding!
 
-## 📱 Screenshots
+## 📱 App Preview
 
-<div align="center">
-  <img src="screenshots/home.png" width="200" />
-  <img src="screenshots/timer.png" width="200" />
-  <img src="screenshots/heatmap.png" width="200" />
-  <img src="screenshots/friends.png" width="200" />
-</div>
+### 🏠 Main Features
+<p align="center">
+  <img src="screenshots/home_page.jpg" width="250"/>
+  <img src="screenshots/task_requests.jpg" width="250"/>
+  <img src="screenshots/chat_section.jpg" width="250"/>
+</p>
+<p align="center"><em>Task Dashboard • Inbox System • Friend Chat</em></p>
 
-<div align="center">
-  <em>Home • Timer Animation • Activity Heatmap • Friends</em>
-</div>
+### 🎨 Customization & Progress
+<p align="center">
+  <img src="screenshots/profile_page.jpg" width="250"/>
+  <img src="screenshots/achievements.jpg" width="250"/>
+  <img src="screenshots/theme_selection.jpg" width="250"/>
+</p>
+<p align="center"><em>User Profile • Achievement Badges • Theme Gallery</em></p>
+
+### ⚙️ Settings
+<p align="center">
+  <img src="screenshots/settings_page.jpg" width="250"/>
+</p>
+<p align="center"><em>App Configuration</em></p>
+
 
 ### Key Highlights
 - ⏱️ **Timed task tracking** with pause/resume functionality and beautiful water droplet animations
