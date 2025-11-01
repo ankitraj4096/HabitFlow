@@ -14,6 +14,19 @@
 
 **HabitFlow** is a productivity and task management app designed to help you build better habits through a **competitive and friendly environment**. The app combines task management with gamification to make productivity fun and rewarding!
 
+## 📱 Screenshots
+
+<div align="center">
+  <img src="screenshots/home.png" width="200" />
+  <img src="screenshots/timer.png" width="200" />
+  <img src="screenshots/heatmap.png" width="200" />
+  <img src="screenshots/friends.png" width="200" />
+</div>
+
+<div align="center">
+  <em>Home • Timer Animation • Activity Heatmap • Friends</em>
+</div>
+
 ### Key Highlights
 - ⏱️ **Timed task tracking** with pause/resume functionality and beautiful water droplet animations
 - 🔄 **Daily recurring tasks** with calendar heatmap and history tracking
