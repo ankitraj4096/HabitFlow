@@ -157,75 +157,50 @@ class _SearchUsersPageState extends State<SearchUsersPage> {
   }
 
   Widget _buildBrowseAllUsers(TierThemeProvider tierProvider) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _friendService.getAllUsers(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                tierProvider.primaryColor,
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: tierProvider.gradientColors
+                    .map((c) => c.withValues(alpha: 0.15))
+                    .toList(),
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.search,
+              size: 80,
+              color: tierProvider.primaryColor.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Search for Friends',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48),
+            child: Text(
+              'Enter a username to find and connect with friends',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade600,
+                height: 1.5,
               ),
             ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 80, color: Colors.red.shade300),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading users',
-                  style: TextStyle(fontSize: 18, color: Colors.red.shade700),
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: tierProvider.gradientColors
-                          .map((c) => c.withValues(alpha: 0.2))
-                          .toList(),
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.people_outline,
-                    size: 64,
-                    color: tierProvider.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No users found',
-                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: snapshot.data!.length,
-          itemBuilder: (context, index) {
-            final user = snapshot.data![index];
-            return _buildUserCard(user, tierProvider);
-          },
-        );
-      },
+          ),
+        ],
+      ),
     );
   }
 

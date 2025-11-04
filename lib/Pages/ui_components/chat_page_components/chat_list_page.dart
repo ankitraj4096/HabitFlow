@@ -397,13 +397,16 @@ class _ChatListPageState extends State<ChatListPage> {
         }
 
         return ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          children: filteredFriends
-              .map<Widget>(
-                (userData) =>
-                    _buildFriendListItem(userData, context, tierProvider),
-              )
-              .toList(),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          children: [
+            ...filteredFriends
+                .map<Widget>(
+                  (userData) =>
+                      _buildFriendListItem(userData, context, tierProvider),
+                )
+                .toList(),
+            const SizedBox(height: 70),
+          ],
         );
       },
     );
